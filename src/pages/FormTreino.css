@@ -1,0 +1,284 @@
+.form-treino-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.form-treino-container h1 {
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.treino-form {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.form-section h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+}
+
+.treino-form .form-group {
+  margin-bottom: 20px;
+}
+
+.treino-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 500;
+}
+
+.treino-form input,
+.treino-form select,
+.treino-form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.treino-form input:focus,
+.treino-form select:focus,
+.treino-form textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.blocos-section {
+  margin-top: 30px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.btn-add-bloco {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s;
+  font-size: 16px;
+}
+
+.btn-add-bloco:hover {
+  background: #45a049;
+}
+
+.bloco-form-card {
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 2px solid #e0e0e0;
+}
+
+.bloco-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #ccc;
+}
+
+.bloco-numero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.btn-remove-bloco {
+  background: #f44336;
+  color: white;
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-bloco:hover {
+  background: #da190b;
+}
+
+.padroes-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.checkbox-label:hover {
+  background: #f0f0f0;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.exercicios-bloco-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ccc;
+}
+
+.section-header-small {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.section-header-small h4 {
+  margin: 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.btn-add-exercicio {
+  background: #2196f3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.btn-add-exercicio:hover {
+  background: #0b7dda;
+}
+
+.exercicio-form-item {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #e0e0e0;
+}
+
+.exercicio-form-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 100px 120px 100px 40px;
+  gap: 10px;
+  align-items: end;
+}
+
+.form-group-small {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group-small label {
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+}
+
+.form-group-small input,
+.form-group-small select {
+  padding: 8px;
+  font-size: 14px;
+}
+
+.form-group-large {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group-large label {
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+}
+
+.btn-remove-exercicio {
+  background: #f44336;
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-exercicio:hover {
+  background: #da190b;
+}
+
+@media (max-width: 768px) {
+  .exercicio-form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .btn-remove-exercicio {
+    width: 100%;
+    height: auto;
+    padding: 8px;
+  }
+
+  .padroes-checkboxes {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}

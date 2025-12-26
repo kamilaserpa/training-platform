@@ -1,0 +1,48 @@
+# Node/Vite
+node_modules/
+dist/
+.vite/
+.env*
+.DS_Store
+
+# Log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# macOS
+*.DS_Store
+
+# Supabase
+supabase/.env
+supabase/.temp/
+supabase/.output/
+supabase/.cache/
+supabase/studio/
+
+# VSCode
+.vscode/
+
+# Test/coverage
+coverage/
+
+# IDE temp files
+*.swp
+*.swo
+*~
+
+# Build
+build/
+
+# OS-generated
+Thumbs.db
+Icon?
+
+# Local mock/dev files
+frontend/config.js
+frontend/data/mock*.js
+frontend/services/*Service.js
+
+# Documentação e arquivos sensíveis (NÃO subir para o repo público)
+docs/
+supabase-instructions/
