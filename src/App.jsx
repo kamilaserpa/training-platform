@@ -3,6 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
 import Login from './components/Login'
+import TestConnection from './components/TestConnection'
+
+// Habilite isso para testar a conexão
+const SHOW_TEST_CONNECTION = false
+
 import Semanas from './pages/Semanas'
 import Treinos from './pages/Treinos'
 import Historico from './pages/Historico'
@@ -17,17 +22,22 @@ import './App.css'
 
 // Componente para proteger rotas que requerem autenticação (Owner ou Viewer)
 const AuthenticatedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth()
+ const { isAuthenticated, loading } = useAuth()
 
-  if (loading) {
-    return <div className="loading">Carregando...</div>
-  }
+ console.log('🔒 [AuthenticatedRoute] Estado:', { isAuthenticated, loading })
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
+ if (loading) {
+   console.log('⏳ [AuthenticatedRoute] Loading... aguardando autenticação')
+   return <div className="loading">Carregando...</div>
+ }
 
-  return children
+ if (!isAuthenticated) {
+   console.log('❌ [AuthenticatedRoute] Não autenticado, redirecionando para /login')
+   return <Navigate to="/login" replace />
+ }
+
+ console.log('✅ [AuthenticatedRoute] Autenticado, renderizando children')
+ return children
 }
 
 // Componente para proteger rotas que requerem permissão de edição (apenas Owner)
@@ -161,6 +171,11 @@ function AppContent() {
 }
 
 function App() {
+ // Modo de teste de conexão
+ if (SHOW_TEST_CONNECTION) {
+   return <TestConnection />
+ }
+
   return (
     <AuthProvider>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
