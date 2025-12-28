@@ -12,6 +12,7 @@ const TreinoPublico = () => {
 
   useEffect(() => {
     loadTreinoPublico()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const loadTreinoPublico = async () => {

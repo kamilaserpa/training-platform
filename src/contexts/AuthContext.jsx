@@ -1,4 +1,5 @@
 // Contexto de autenticação para gerenciar o estado do usuário e roles
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 

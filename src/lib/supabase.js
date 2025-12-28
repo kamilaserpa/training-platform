@@ -29,7 +29,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Testar conexão ao inicializar
 supabase.auth.getSession()
-    .then(({ data, error }) => {
+    .then(({ _, error }) => {
     if (error) {
         console.error('❌ [Supabase] Erro ao testar conexão:', error.message)
     } else {

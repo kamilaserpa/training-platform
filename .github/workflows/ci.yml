@@ -17,8 +17,13 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - name: Clean install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
 
-#      Lint temporariamente desabilitado
-#      - run: npm run lint
-      - run: npm run build
+      # Lint temporariamente desabilitado
+      # - run: npm run lint
+
+      - name: Build
+        run: npm run build
