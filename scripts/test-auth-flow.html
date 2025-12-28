@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Autenticação - Diagnóstico</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    .log {
+      background: #252526;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border-left: 4px solid #007acc;
+    }
+    .success { border-left-color: #4ec9b0; }
+    .error { border-left-color: #f48771; }
+    .warning { border-left-color: #dcdcaa; }
+    button {
+      padding: 10px 20px;
+      margin: 10px 5px;
+      background: #007acc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover { background: #005a9e; }
+    pre { 
+      background: #1e1e1e; 
+      padding: 10px; 
+      overflow-x: auto;
+      border-radius: 4px;
+    }
+    input {
+      padding: 8px;
+      margin: 5px 0;
+      width: 300px;
+      border: 1px solid #3c3c3c;
+      background: #252526;
+      color: #d4d4d4;
+      border-radius: 4px;
+    }
+    h1 { color: #4ec9b0; }
+    h2 { color: #dcdcaa; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Teste de Autenticação - Diagnóstico Completo</h1>
+  <p>Este teste simula exatamente o que o AuthContext faz.</p>
+
+  <div class="log">
+    <h2>📋 Configuração</h2>
+    <p>Carregue as variáveis do seu arquivo .env:</p>
+    <label>VITE_SUPABASE_URL:</label><br>
+    <input type="text" id="supabaseUrl" placeholder="https://seu-projeto.supabase.co"><br>
+    <label>VITE_SUPABASE_ANON_KEY:</label><br>
+    <input type="text" id="supabaseKey" placeholder="eyJ..."><br>
+    <button onclick="loadFromEnv()">📁 Carregar do .env</button>
+  </div>
+
+  <div class="log">
+    <h2>🧪 Testes</h2>
+    <button onclick="testConnection()">1️⃣ Testar Conexão</button>
+    <button onclick="testGetSession()">2️⃣ Testar getSession()</button>
+    <button onclick="testProfilesAccess()">3️⃣ Testar Acesso a Profiles</button>
+    <button onclick="testFullFlow()">▶️ Executar Todos</button>
+    <button onclick="clearLogs()">🗑️ Limpar Logs</button>
+  </div>
+
+  <div id="output"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+    
+    window.supabaseClient = null;
+
+    window.log = function(message, type = 'info') {
+      const output = document.getElementById('output');
+      const div = document.createElement('div');
+      div.className = `log ${type}`;
+      div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong><br>${message}`;
+      output.appendChild(div);
+      console.log(message);
+    }
+
+    window.clearLogs = function() {
+      document.getElementById('output').innerHTML = '';
+    }
+
+    window.loadFromEnv = function() {
+      // Instruções para carregar manualmente
+      log(`
+        <strong>📝 Instruções:</strong><br>
+        1. Abra o arquivo .env na raiz do projeto<br>
+        2. Copie os valores de VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY<br>
+        3. Cole nos campos acima<br>
+        4. Execute os testes
+      `, 'warning');
+    }
+
+    window.initSupabase = function() {
+      const url = document.getElementById('supabaseUrl').value;
+      const key = document.getElementById('supabaseKey').value;
+
+      if (!url || !key) {
+        log('❌ Preencha URL e KEY primeiro!', 'error');
+        return false;
+      }
+
+      if (url.includes('YOUR_SUPABASE') || key.includes('YOUR_')) {
+        log('❌ Configure as credenciais reais do Supabase!', 'error');
+        return false;
+      }
+
+      try {
+        window.supabaseClient = createClient(url, key);
+        log('✅ Cliente Supabase criado com sucesso', 'success');
+        return true;
+      } catch (error) {
+        log(`❌ Erro ao criar cliente: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    window.testConnection = async function() {
+      if (!initSupabase()) return;
+
+      log('🔍 Testando conexão com Supabase...');
+
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('profiles')
+          .select('count')
+          .limit(1);
+
+        if (error) {
+          if (error.code === 'PGRST116') {
+            log('⚠️ Tabela profiles não encontrada', 'warning');
+          } else {
+            log(`❌ Erro na conexão: ${error.message}<br>Código: ${error.code}`, 'error');
+          }
+        } else {
+          log('✅ Conexão com Supabase OK!', 'success');
+        }
+      } catch (error) {
+        log(`❌ Exceção: ${error.message}`, 'error');
+      }
+    }
+
+    window.testGetSession = async function() {
+      if (!initSupabase()) return;
+
+      log('🔍 Testando getSession()...');
+
+      try {
+        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+
+        if (error) {
+          log(`❌ Erro ao obter sessão: ${error.message}`, 'error');
+          return;
+        }
+
+        if (session) {
+          log(`✅ Sessão ativa encontrada!<br>
+            User ID: ${session.user.id}<br>
+            Email: ${session.user.email}<br>
+            Expira em: ${new Date(session.expires_at * 1000).toLocaleString()}
+          `, 'success');
+          window.currentUserId = session.user.id;
+        } else {
+          log('⚠️ Nenhuma sessão ativa (usuário não está logado)', 'warning');
+          log('💡 Para testar com sessão, faça login na aplicação primeiro', 'warning');
+        }
+      } catch (error) {
+        log(`❌ Exceção: ${error.message}`, 'error');
+      }
+    }
+
+    window.testProfilesAccess = async function() {
+      if (!initSupabase()) return;
+
+      log('🔍 Testando acesso à tabela profiles...');
+
+      try {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+
+        if (!session) {
+          log('⚠️ Sem sessão ativa. Tentando query anônima...', 'warning');
+        } else {
+          log(`📋 User ID atual: ${session.user.id}`);
+        }
+
+        // Tentar buscar perfil do usuário logado (ou qualquer perfil se anônimo)
+        const userId = session?.user?.id;
+
+        if (userId) {
+          log(`🔍 Buscando perfil para user_id: ${userId}`);
+          
+          const { data, error } = await window.supabaseClient
+            .from('profiles')
+            .select('role, active')
+            .eq('user_id', userId)
+            .single();
+
+          if (error) {
+            log(`❌ Erro ao buscar perfil:<br>
+              Código: ${error.code}<br>
+              Mensagem: ${error.message}<br>
+              Detalhes: ${error.details || 'N/A'}<br>
+              Hint: ${error.hint || 'N/A'}
+            `, 'error');
+
+            if (error.code === '42501') {
+              log(`💡 Erro 42501 = Permissão negada (RLS).<br>
+                Mas você disse que as políticas estão corretas...<br>
+                <strong>Possíveis causas:</strong><br>
+                1. A função is_owner() não está funcionando<br>
+                2. O user_id não corresponde ao auth.uid()<br>
+                3. O campo 'active' está false
+              `, 'warning');
+            }
+          } else if (!data) {
+            log('⚠️ Perfil não encontrado para este usuário', 'warning');
+            log('💡 O usuário existe em auth.users mas não tem registro em profiles', 'warning');
+          } else {
+            log(`✅ Perfil encontrado!<br>
+              Role: ${data.role}<br>
+              Active: ${data.active}
+            `, 'success');
+          }
+        } else {
+          log('⚠️ Sem usuário logado para testar', 'warning');
+        }
+
+        // Tentar listar todos os perfis (só funciona se for owner)
+        log('🔍 Tentando listar todos os perfis (teste de is_owner)...');
+        const { data: allProfiles, error: listError } = await window.supabaseClient
+          .from('profiles')
+          .select('user_id, role, active')
+          .limit(5);
+
+        if (listError) {
+          log(`⚠️ Não conseguiu listar perfis: ${listError.message}`, 'warning');
+        } else {
+          log(`✅ Listou ${allProfiles?.length || 0} perfil(is):<br>
+            <pre>${JSON.stringify(allProfiles, null, 2)}</pre>
+          `, 'success');
+        }
+      } catch (error) {
+        log(`❌ Exceção: ${error.message}`, 'error');
+      }
+    }
+
+    window.testFullFlow = async function() {
+      clearLogs();
+      log('🚀 Executando bateria completa de testes...', 'success');
+      await testConnection();
+      await new Promise(r => setTimeout(r, 500));
+      await testGetSession();
+      await new Promise(r => setTimeout(r, 500));
+      await testProfilesAccess();
+      log('✅ Testes concluídos!', 'success');
+    }
+
+    // Auto-tentar carregar credenciais do localStorage
+    window.addEventListener('load', () => {
+      const savedUrl = localStorage.getItem('test_supabase_url');
+      const savedKey = localStorage.getItem('test_supabase_key');
+      if (savedUrl) document.getElementById('supabaseUrl').value = savedUrl;
+      if (savedKey) document.getElementById('supabaseKey').value = savedKey;
+    });
+
+    // Salvar credenciais ao mudar
+    document.getElementById('supabaseUrl').addEventListener('change', (e) => {
+      localStorage.setItem('test_supabase_url', e.target.value);
+    });
+    document.getElementById('supabaseKey').addEventListener('change', (e) => {
+      localStorage.setItem('test_supabase_key', e.target.value);
+    });
+  </script>
+</body>
+</html>
+
