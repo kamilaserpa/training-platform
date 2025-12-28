@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import './Navbar.css'
 
 const Navbar = () => {
-  const { user, signOut, isOwner, isViewer, isAuthenticated } = useAuth()
+  const { signOut, isOwner, isViewer, isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {

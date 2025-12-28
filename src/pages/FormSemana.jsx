@@ -28,6 +28,7 @@ const FormSemana = () => {
     if (id) {
       loadSemana()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, canEdit, navigate])
 
   const loadTiposTreino = async () => {

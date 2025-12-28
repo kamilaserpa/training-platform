@@ -19,12 +19,12 @@ Sistema completo de gestão profissional de treinos físicos com compartilhament
 - Criar, editar e excluir tipos de treino
 - Criar, editar e excluir semanas de periodização
 - Criar treinos com múltiplos blocos:
-  - Padrão de Movimento
-  - Mobilidade Articular
-  - Ativação de Core
-  - Ativação Neural
-  - Treino
-  - Condicionamento Físico
+- Padrão de Movimento
+- Mobilidade Articular
+- Ativação de Core
+- Ativação Neural
+- Treino
+- Condicionamento Físico
 - Definir prescrições por bloco
 - Associar padrões de movimento
 - Adicionar exercícios aos blocos (Core e Treino)
@@ -43,9 +43,9 @@ Sistema completo de gestão profissional de treinos físicos com compartilhament
 - **Método protegido**: Visitantes não têm acesso a listagens ou outros treinos
 - **Acesso por token**: Cada treino tem um token único de compartilhamento
 - **RLS (Row Level Security)**: Políticas rigorosas no Supabase
-  - Owner: Acesso total
-  - Visitante: SELECT somente via token_compartilhamento
-  - Nenhuma escrita permitida para anon
+- Owner: Acesso total
+- Visitante: SELECT somente via token_compartilhamento
+- Nenhuma escrita permitida para anon
 
 ## 🗄️ Estrutura do Banco de Dados
 
@@ -152,10 +152,10 @@ Adicione os scripts:
 
 ```json
 {
-  "scripts": {
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
-  }
+ "scripts": {
+   "predeploy": "npm run build",
+   "deploy": "gh-pages -d dist"
+ }
 }
 ```
 
@@ -163,8 +163,8 @@ Adicione os scripts:
 
 1. Vá em **Settings > Secrets and variables > Actions**
 2. Adicione as variáveis:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
 Ou configure via GitHub Actions (recomendado):
 
@@ -174,26 +174,26 @@ Crie `.github/workflows/deploy.yml`:
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [ main ]
+ push:
+   branches: [ main ]
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - run: npm install
-      - run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      - uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+ build-and-deploy:
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v3
+     - uses: actions/setup-node@v3
+       with:
+         node-version: '18'
+     - run: npm install
+     - run: npm run build
+       env:
+         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+     - uses: peaceiris/actions-gh-pages@v3
+       with:
+         github_token: ${{ secrets.GITHUB_TOKEN }}
+         publish_dir: ./dist
 ```
 
 ### 5. Faça o deploy
@@ -297,25 +297,18 @@ Gere ícones de 192x192 e 512x512 pixels e adicione em `public/`:
 
 O sistema implementa políticas rigorosas de segurança:
 
-- **SELECT**: 
-  - Owner: Acesso a todos os dados
-  - Visitante: Apenas treinos com token válido
-- **INSERT/UPDATE/DELETE**: 
-  - Apenas usuários autenticados (Owner)
-  - Nenhuma escrita permitida para anon
+- **SELECT**:
+- Owner: Acesso a todos os dados
+- Visitante: Apenas treinos com token válido
+- **INSERT/UPDATE/DELETE**:
+- Apenas usuários autenticados (Owner)
+- Nenhuma escrita permitida para anon
 
 ## 📄 Licença
 
-Este projeto é de uso pessoal e livre para modificação.
+Copyright © 2025 - Todos os direitos reservados.
 
-## 👨‍💻 Desenvolvimento
-
-Para contribuir ou modificar:
-
-1. Faça fork do projeto
-2. Crie uma branch para sua feature
-3. Faça commit das mudanças
-4. Abra um Pull Request
+Este software é proprietário e seu uso, cópia, distribuição ou modificação não autorizada é expressamente proibida. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
 

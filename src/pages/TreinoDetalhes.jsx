@@ -19,6 +19,7 @@ const TreinoDetalhes = () => {
   useEffect(() => {
     if (!isAuthenticated) return
     loadTreino()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isAuthenticated])
 
   const loadTreino = async () => {

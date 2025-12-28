@@ -1,113 +1,170 @@
 // Contexto de autenticação para gerenciar o estado do usuário e roles
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de AuthProvider')
-  }
-  return context
+ const context = useContext(AuthContext)
+ if (!context) {
+   throw new Error('useAuth deve ser usado dentro de AuthProvider')
+ }
+ return context
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [userRole, setUserRole] = useState(null)
-  const [loading, setLoading] = useState(true)
+ const [user, setUser] = useState(null)
+ const [userRole, setUserRole] = useState(null)
+ const [loading, setLoading] = useState(true)
 
-  const loadUserRole = async (userId) => {
-    if (!userId) {
-      setUserRole(null)
-      return
-    }
+ const loadUserRole = async (userId) => {
+   if (!userId) {
+     setUserRole(null)
+     return
+   }
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role, active')
-        .eq('user_id', userId)
-        .single()
+   try {
+     const timeoutPromise = new Promise((_, reject) =>
+       setTimeout(() => reject(new Error('Timeout ao carregar role')), 5000)
+     )
 
-      if (error) {
-        console.error('Erro ao carregar role:', error)
-        setUserRole(null)
-        return
-      }
+     const rolePromise = supabase
+       .from('profiles')
+       .select('role, active')
+       .eq('user_id', userId)
+       .single()
 
-      // Só considerar role se usuário estiver ativo
-      if (data && data.active) {
-        setUserRole(data.role || null)
-      } else {
-        setUserRole(null)
-      }
-    } catch (error) {
-      console.error('Erro ao carregar role:', error)
-      setUserRole(null)
-    }
-  }
+     const { data, error } = await Promise.race([rolePromise, timeoutPromise])
 
-  useEffect(() => {
-    // Verifica se há uma sessão ativa
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await loadUserRole(session.user.id)
-      } else {
-        setUserRole(null)
-      }
-      setLoading(false)
-    })
+     if (error) {
+       console.error('Erro ao carregar role:', error.message)
+       setUserRole(null)
+       return
+     }
 
-    // Escuta mudanças no estado de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await loadUserRole(session.user.id)
-      } else {
-        setUserRole(null)
-      }
-      setLoading(false)
-    })
+     if (data && data.active) {
+       setUserRole(data.role || null)
+     } else {
+       setUserRole(null)
+     }
+   } catch (error) {
+     console.error('Erro ao carregar role:', error.message)
+     setUserRole(null)
+   }
+ }
 
-    return () => subscription.unsubscribe()
-  }, [])
+ useEffect(() => {
+   let mounted = true
 
-  const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) throw error
-    
-    // Carregar role após login
-    if (data.user) {
-      await loadUserRole(data.user.id)
-    }
-    
-    return data
-  }
+   const safetyTimeout = setTimeout(() => {
+     if (mounted) {
+       setLoading(false)
+     }
+   }, 2000)
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-    setUserRole(null)
-  }
+   const initAuth = async () => {
+     try {
+       const sessionTimeoutPromise = new Promise((_, reject) =>
+         setTimeout(() => reject(new Error('Timeout ao carregar sessão')), 5000)
+       )
 
-  const value = {
-    user,
-    loading,
-    signIn,
-    signOut,
-    userRole, // 'owner', 'viewer', ou null
-    isOwner: userRole === 'owner',
-    isViewer: userRole === 'viewer',
-    isAuthenticated: !!user,
-    canEdit: userRole === 'owner', // Apenas owner pode editar
-  }
+       const sessionPromise = supabase.auth.getSession()
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+       const { data: { session }, error } = await Promise.race([
+         sessionPromise,
+         sessionTimeoutPromise
+       ])
+
+       if (!mounted) return
+
+       if (error) {
+         console.error('Erro ao carregar sessão:', error)
+         await supabase.auth.signOut()
+         setUser(null)
+         setUserRole(null)
+         setLoading(false)
+         return
+       }
+
+       setUser(session?.user ?? null)
+       if (session?.user) {
+         await loadUserRole(session.user.id)
+       } else {
+         setUserRole(null)
+       }
+       setLoading(false)
+       clearTimeout(safetyTimeout)
+     } catch (err) {
+       console.error('Exceção ao carregar sessão:', err.message)
+       if (mounted) {
+         await supabase.auth.signOut().catch(() => {})
+         setUser(null)
+         setUserRole(null)
+         setLoading(false)
+       }
+     }
+   }
+
+   initAuth()
+
+   const {
+     data: { subscription },
+   } = supabase.auth.onAuthStateChange(async (_event, session) => {
+     if (!mounted) return
+
+     setUser(session?.user ?? null)
+     if (session?.user) {
+       await loadUserRole(session.user.id)
+     } else {
+       setUserRole(null)
+     }
+     setLoading(false)
+   })
+
+   return () => {
+     mounted = false
+     clearTimeout(safetyTimeout)
+     subscription.unsubscribe()
+   }
+ }, [])
+
+ const signIn = async (email, password) => {
+   try {
+     const { data, error } = await supabase.auth.signInWithPassword({
+       email,
+       password,
+     })
+
+     if (error) throw error
+     if (!data || !data.user) {
+       throw new Error('Login falhou: sem dados de usuário')
+     }
+
+     return data
+   } catch (error) {
+     console.error('Erro ao fazer login:', error)
+     throw error
+   }
+ }
+
+ const signOut = async () => {
+   const { error } = await supabase.auth.signOut()
+   if (error) throw error
+   setUserRole(null)
+ }
+
+ const value = {
+   user,
+   loading,
+   signIn,
+   signOut,
+   userRole,
+   isOwner: userRole === 'owner',
+   isViewer: userRole === 'viewer',
+   isAuthenticated: !!user,
+   canEdit: userRole === 'owner',
+ }
+
+ return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
