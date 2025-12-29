@@ -1,7 +1,7 @@
 // Serviço de treinos - abstração que usa mock ou Supabase
 import { USE_MOCK } from '../config/env'
 import { supabase } from '../lib/supabase'
-import { treinoMock } from '../../frontend/data/mockTreinos.js'
+import { treinoMock } from '../data/mockTreinos.js'
 
 // Mock data - lista de treinos
 const mockTreinosList = [
