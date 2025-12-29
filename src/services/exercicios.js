@@ -1,7 +1,7 @@
 // Serviço de exercícios - abstração que usa mock ou Supabase
 import { USE_MOCK } from '../config/env'
 import { supabase } from '../lib/supabase'
-import { mockExercicios } from '../../frontend/data/mockExercicios'
+import { mockExercicios } from '../data/mockExercicios'
 
 export const exerciciosService = {
   // Listar todos os exercícios

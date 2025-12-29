@@ -476,10 +476,11 @@ function Treinos() {
                       primary="Ativação de Core"
                       secondary={
                         <>
-                          <Typography variant="body2">
+                          <Typography variant="body2" component="span">
                             {treino.core.protocolo}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <br />
+                          <Typography variant="body2" color="text.secondary" component="span">
                             {treino.core.exercicios.join(', ')}
                           </Typography>
                         </>
@@ -501,10 +502,11 @@ function Treinos() {
                       primary="Treino Bloco 01"
                       secondary={
                         <>
-                          <Typography variant="body2">
+                          <Typography variant="body2" component="span">
                             {treino.treino_bloco1.protocolo}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <br />
+                          <Typography variant="body2" color="text.secondary" component="span">
                             {treino.treino_bloco1.exercicios.join(', ')}
                           </Typography>
                         </>

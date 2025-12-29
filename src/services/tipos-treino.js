@@ -1,7 +1,7 @@
 // Serviço de tipos de treino - abstração que usa mock ou Supabase
 import { USE_MOCK } from '../config/env'
 import { supabase } from '../lib/supabase'
-import { mockTiposTreino } from '../../frontend/data/mockTiposTreino'
+import { mockTiposTreino } from '../data/mockTiposTreino'
 
 export const tiposTreinoService = {
   // Listar todos os tipos de treino

@@ -1,7 +1,7 @@
 // Serviço de semanas - abstração que usa mock ou Supabase
 import { USE_MOCK } from '../config/env'
 import { supabase } from '../lib/supabase'
-import { mockSemanas } from '../../frontend/data/mockSemanas'
+import { mockSemanas } from '../data/mockSemanas'
 
 export const semanasService = {
   // Listar todas as semanas

@@ -9,7 +9,7 @@ export default function FormSelect({ name, label, options, required, ...props })
 
   return (
     <FormControl fullWidth error={isError}>
-      <InputLabel fullWidth id={`${name}-label`}>
+      <InputLabel id={`${name}-label`}>
         {label} {required && '*'}
       </InputLabel>
       <Controller

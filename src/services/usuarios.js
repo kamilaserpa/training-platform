@@ -1,8 +1,8 @@
 // Serviço de usuários - abstração que usa mock ou Supabase
 import { USE_MOCK } from '../config/env'
 import { supabase } from '../lib/supabase'
-import { mockUsuarios } from '../../frontend/data/mockUsuarios'
-import { mockUser } from '../../frontend/data/mockUser'
+import { mockUsuarios } from '../data/mockUsuarios'
+import { mockUser } from '../data/mockUser'
 
 export const usuariosService = {
   // Listar todos os usuários
