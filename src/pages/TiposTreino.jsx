@@ -1,6 +1,6 @@
 // Página de gerenciamento de tipos de treino (apenas Owner)
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { tiposTreinoService } from '../services/tipos-treino'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import Breadcrumb from '../components/Breadcrumb'
@@ -28,10 +28,7 @@ const TiposTreino = () => {
 
   const loadTipos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('tipos_treino')
-        .select('*')
-        .order('nome', { ascending: true })
+      const { data, error } = await tiposTreinoService.getAll()
 
       if (error) throw error
       setTipos(data || [])
@@ -46,15 +43,10 @@ const TiposTreino = () => {
     e.preventDefault()
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('tipos_treino')
-          .update(formData)
-          .eq('id', editingId)
+        const { error } = await tiposTreinoService.update(editingId, formData)
         if (error) throw error
       } else {
-        const { error } = await supabase
-          .from('tipos_treino')
-          .insert([formData])
+        const { error } = await tiposTreinoService.create(formData)
         if (error) throw error
       }
       resetForm()
@@ -75,10 +67,7 @@ const TiposTreino = () => {
     if (!confirm('Tem certeza que deseja excluir este tipo de treino?')) return
 
     try {
-      const { error } = await supabase
-        .from('tipos_treino')
-        .delete()
-        .eq('id', id)
+      const { error } = await tiposTreinoService.delete(id)
       if (error) throw error
       loadTipos()
       alert('Tipo de treino excluído com sucesso!')

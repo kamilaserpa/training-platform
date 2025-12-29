@@ -1,6 +1,7 @@
 // Página de gerenciamento de usuários (apenas Owner)
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { usuariosService } from '../services/usuarios'
+// import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import Breadcrumb from '../components/Breadcrumb'
@@ -30,8 +31,7 @@ const Usuarios = () => {
 
   const loadUsuarios = async () => {
     try {
-      // Usar função RPC para listar usuários
-      const { data, error } = await supabase.rpc('list_users')
+      const { data, error } = await usuariosService.listUsers()
 
       if (error) throw error
       setUsuarios(data || [])
@@ -60,7 +60,7 @@ const Usuarios = () => {
 
     try {
       // Obter token de autenticação
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session } } = await usuariosService.getSession()
       if (!session) {
         throw new Error('Sessão não encontrada')
       }
@@ -104,10 +104,7 @@ const Usuarios = () => {
     if (!confirm(`Tem certeza que deseja ${action} este usuário?`)) return
 
     try {
-      const { error } = await supabase.rpc('update_user_status', {
-        p_user_id: userId,
-        p_active: newStatus,
-      })
+      const { error } = await usuariosService.updateUserStatus(userId, newStatus)
 
       if (error) throw error
 
@@ -134,7 +131,7 @@ const Usuarios = () => {
   return (
     <div className="usuarios-container">
       <Breadcrumb items={[{ label: 'Usuários', to: '/usuarios' }]} />
-      
+
       <div className="page-header">
         <h1>Gerenciar Usuários</h1>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary">
@@ -148,7 +145,7 @@ const Usuarios = () => {
           <p className="form-description">
             Crie um novo usuário com acesso somente leitura ao sistema.
           </p>
-          
+
           <div className="form-group">
             <label>Email *</label>
             <input
@@ -206,7 +203,7 @@ const Usuarios = () => {
 
       <div className="usuarios-list">
         <h2>Usuários do Sistema</h2>
-        
+
         {usuarios.length === 0 ? (
           <div className="empty-state">
             <p>Nenhum usuário cadastrado ainda.</p>
@@ -220,7 +217,7 @@ const Usuarios = () => {
               <div className="table-cell">Criado em</div>
               <div className="table-cell">Ações</div>
             </div>
-            
+
             {usuarios.map((usuario) => (
               <div key={usuario.user_id} className="table-row">
                 <div className="table-cell">

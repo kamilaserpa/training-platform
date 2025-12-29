@@ -1,15 +1,19 @@
-// Componente principal da aplicação com rotas
+// Componente principal da aplicação com rotas + Material UI
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { ThemeProvider, CssBaseline } from '@mui/material'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import theme from './theme'
 import Navbar from './components/Navbar'
 import Login from './components/Login'
+import DevModeAlert from './components/DevModeAlert'
 import Semanas from './pages/Semanas'
 import Treinos from './pages/Treinos'
 import Historico from './pages/Historico'
 import TreinoDetalhes from './pages/TreinoDetalhes'
+import TreinoDetalhesForm from './pages/TreinoDetalhesForm'
 import TreinoPublico from './pages/TreinoPublico'
 import Exercicios from './pages/Exercicios'
-import TiposTreino from './pages/TiposTreino'
+import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import FormSemana from './pages/FormSemana'
 import FormTreino from './pages/FormTreino'
@@ -68,22 +72,38 @@ function AppRoutes() {
          </AuthenticatedRoute>
        }
      />
-     <Route
-       path="/treinos/:id"
-       element={
-         <AuthenticatedRoute>
-           <TreinoDetalhes />
-         </AuthenticatedRoute>
-       }
-     />
-     <Route
-       path="/historico"
-       element={
-         <AuthenticatedRoute>
-           <Historico />
-         </AuthenticatedRoute>
-       }
-     />
+    <Route
+      path="/treinos/:id"
+      element={
+        <AuthenticatedRoute>
+          <TreinoDetalhes />
+        </AuthenticatedRoute>
+      }
+    />
+    <Route
+      path="/treinos/novo"
+      element={
+        <AuthenticatedRoute>
+          <TreinoDetalhesForm />
+        </AuthenticatedRoute>
+      }
+    />
+    <Route
+      path="/treinos/form-demo"
+      element={
+        <AuthenticatedRoute>
+          <TreinoDetalhesForm />
+        </AuthenticatedRoute>
+      }
+    />
+    <Route
+      path="/historico"
+      element={
+        <AuthenticatedRoute>
+          <Historico />
+        </AuthenticatedRoute>
+      }
+    />
 
      {/* Rotas protegidas - apenas Owner (edição) */}
      <Route
@@ -95,10 +115,10 @@ function AppRoutes() {
        }
      />
      <Route
-       path="/tipos-treino"
+       path="/configuracoes"
        element={
          <OwnerRoute>
-           <TiposTreino />
+           <Configuracoes />
          </OwnerRoute>
        }
      />
@@ -147,25 +167,29 @@ function AppRoutes() {
 }
 
 function AppContent() {
- const location = useLocation()
- const isPublicRoute = location.pathname.includes('/treino-publico/')
+  const location = useLocation()
+  const isPublicRoute = location.pathname.includes('/treino-publico/')
   return (
-   <div className="app">
-     {!isPublicRoute && <Navbar />}
-     <main className="main-content">
-       <AppRoutes />
-     </main>
-   </div>
- )
+    <div className="app">
+      <DevModeAlert />
+      {!isPublicRoute && <Navbar />}
+      <main className="main-content">
+        <AppRoutes />
+      </main>
+    </div>
+  )
 }
 
 function App() {
  return (
-   <AuthProvider>
-     <BrowserRouter basename={import.meta.env.BASE_URL}>
-       <AppContent />
-     </BrowserRouter>
-   </AuthProvider>
+   <ThemeProvider theme={theme}>
+     <CssBaseline />
+     <AuthProvider>
+       <BrowserRouter basename={import.meta.env.BASE_URL}>
+         <AppContent />
+       </BrowserRouter>
+     </AuthProvider>
+   </ThemeProvider>
  )
 }
 

@@ -1,82 +1,99 @@
-// Página de detalhes de um treino específico (Owner/Viewer)
+// Página de detalhes de um treino - Material UI
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import { treinosService } from '../services/treinos'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import Breadcrumb from '../components/Breadcrumb'
-import './TreinoDetalhes.css'
+import {
+  Container,
+  Box,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  Accordion as MuiAccordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
+  Stack,
+  IconButton,
+  TextField,
+  Switch,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  Divider,
+  Alert,
+  List,
+  ListItem,
+  ListItemText,
+  Fab,
+  Grid,
+  Paper,
+} from '@mui/material'
+import {
+  ExpandMore as ExpandMoreIcon,
+  Edit as EditIcon,
+  Visibility as VisibilityIcon,
+  Share as ShareIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  ContentCopy as CopyIcon,
+  ArrowBack as ArrowBackIcon,
+  FitnessCenter as FitnessCenterIcon,
+} from '@mui/icons-material'
 
 const TreinoDetalhes = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [treino, setTreino] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [editMode, setEditMode] = useState(false)
   const [shareLink, setShareLink] = useState('')
   const [linkExpiresAt, setLinkExpiresAt] = useState('')
   const [linkActive, setLinkActive] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showSharePanel, setShowSharePanel] = useState(false)
+
+  // Estados para edição
+  const [editingBloco, setEditingBloco] = useState(null)
+  const [editingExercicio, setEditingExercicio] = useState(null)
+  const [blocoForm, setBlocoForm] = useState({
+    tipo_bloco: '',
+    prescricao: '',
+    ordem: 1
+  })
+  const [exercicioForm, setExercicioForm] = useState({
+    nome: '',
+    series: '',
+    repeticoes: '',
+    carga: '',
+    observacoes: ''
+  })
+
   const { canEdit, isAuthenticated } = useAuth()
 
   useEffect(() => {
     if (!isAuthenticated) return
     loadTreino()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isAuthenticated])
 
   const loadTreino = async () => {
     try {
-      const { data, error } = await supabase
-        .from('treinos')
-        .select(`
-          *,
-          semanas (
-            id,
-            data_inicio,
-            data_fim,
-            tipos_treino (
-              nome
-            )
-          ),
-          blocos_treino (
-            id,
-            tipo_bloco,
-            ordem,
-            prescricao,
-            bloco_padrao_movimento (
-              padrao_movimento_id,
-              padroes_movimento (
-                nome
-              )
-            ),
-            bloco_exercicios (
-              id,
-              ordem,
-              series,
-              repeticoes,
-              carga,
-              exercicios (
-                id,
-                nome,
-                grupo_muscular,
-                observacoes
-              )
-            )
-          )
-        `)
-        .eq('id', id)
-        .single()
-
+      const { data, error } = await treinosService.getById(id)
       if (error) throw error
       setTreino(data)
-      
-      // Configurar link de compartilhamento (apenas para owner)
+
+      // Configurar link de compartilhamento
       if (canEdit && data.token_compartilhamento) {
         const baseUrl = window.location.origin
         setShareLink(`${baseUrl}/treino-publico/${data.token_compartilhamento}`)
-        
-        // Configurar campos de expiração
+
         if (data.link_expires_at) {
           const expiresDate = new Date(data.link_expires_at)
-          // Converter para datetime-local format (YYYY-MM-DDTHH:mm)
           const year = expiresDate.getFullYear()
           const month = String(expiresDate.getMonth() + 1).padStart(2, '0')
           const day = String(expiresDate.getDate()).padStart(2, '0')
@@ -97,52 +114,48 @@ const TreinoDetalhes = () => {
 
   const generateShareLink = async () => {
     if (!treino.token_compartilhamento) {
-      // Gerar novo token
       const newToken = crypto.randomUUID()
       try {
-        const { error } = await supabase
-          .from('treinos')
-          .update({ 
+        const { error } = await supabase.from('treinos')
+          .update({
             token_compartilhamento: newToken,
             link_active: true,
             link_expires_at: null
           })
           .eq('id', id)
-        
+
         if (error) throw error
-        
+
         await loadTreino()
         const baseUrl = window.location.origin
         const link = `${baseUrl}/treino-publico/${newToken}`
         await navigator.clipboard.writeText(link)
-        alert('Link gerado e copiado para a área de transferência!')
+        alert('Link copiado para a área de transferência!')
       } catch (error) {
         alert('Erro ao gerar link: ' + error.message)
       }
     } else {
-      // Copiar link existente
       await navigator.clipboard.writeText(shareLink)
       alert('Link copiado para a área de transferência!')
     }
   }
 
-  const updateLinkSettings = async () => {
+  const updateShareSettings = async () => {
     setSaving(true)
     try {
-      const updateData = {
+      const updates = {
         link_active: linkActive,
-        link_expires_at: linkExpiresAt ? new Date(linkExpiresAt).toISOString() : null
+        link_expires_at: linkExpiresAt || null
       }
 
-      const { error } = await supabase
-        .from('treinos')
-        .update(updateData)
+      const { error } = await supabase.from('treinos')
+        .update(updates)
         .eq('id', id)
-      
+
       if (error) throw error
-      
+
+      alert('Configurações de compartilhamento atualizadas!')
       await loadTreino()
-      alert('Configurações do link atualizadas com sucesso!')
     } catch (error) {
       alert('Erro ao atualizar configurações: ' + error.message)
     } finally {
@@ -150,255 +163,575 @@ const TreinoDetalhes = () => {
     }
   }
 
-  const getLinkStatus = () => {
-    if (!treino?.token_compartilhamento) return null
-    
-    // Usar dados do treino carregado (mais confiável)
-    const isActive = treino.link_active !== false
-    const expiresAt = treino.link_expires_at ? new Date(treino.link_expires_at) : null
-    
-    if (!isActive) {
-      return { status: 'desativado', label: 'Desativado', color: '#f44336' }
-    }
-    
-    if (expiresAt) {
-      const now = new Date()
-      if (now > expiresAt) {
-        return { status: 'expirado', label: 'Expirado', color: '#ff9800' }
-      }
-    }
-    
-    return { status: 'ativo', label: 'Ativo', color: '#4caf50' }
+  // Handlers de edição de blocos
+  const handleEditBloco = (bloco) => {
+    setEditingBloco(bloco)
+    setBlocoForm({
+      tipo_bloco: bloco.tipo_bloco,
+      prescricao: bloco.prescricao,
+      ordem: bloco.ordem
+    })
   }
 
-  const getTipoBlocoLabel = (tipo) => {
-    const labels = {
-      PADRAO_MOVIMENTO: 'Padrão de Movimento',
-      MOBILIDADE_ARTICULAR: 'Mobilidade Articular',
-      ATIVACAO_CORE: 'Ativação de Core',
-      ATIVACAO_NEURAL: 'Ativação Neural',
-      TREINO: 'Treino',
-      CONDICIONAMENTO_FISICO: 'Condicionamento Físico',
+  const handleAddBloco = (tipoBloco) => {
+    const maxOrdem = Math.max(...treino.blocos_treino.map(b => b.ordem), 0)
+    setBlocoForm({
+      tipo_bloco: tipoBloco,
+      prescricao: '',
+      ordem: maxOrdem + 1
+    })
+    setEditingBloco({ id: 'new' })
+  }
+
+  const handleDeleteBloco = (blocoId) => {
+    if (!confirm('Remover este bloco?')) return
+
+    setTreino(prev => ({
+      ...prev,
+      blocos_treino: prev.blocos_treino.filter(b => b.id !== blocoId)
+    }))
+  }
+
+  const saveBloco = () => {
+    if (editingBloco.id === 'new') {
+      const newBloco = {
+        id: `temp-${Date.now()}`,
+        ...blocoForm,
+        bloco_exercicios: [],
+        bloco_padrao_movimento: []
+      }
+      setTreino(prev => ({
+        ...prev,
+        blocos_treino: [...prev.blocos_treino, newBloco]
+      }))
+    } else {
+      setTreino(prev => ({
+        ...prev,
+        blocos_treino: prev.blocos_treino.map(b =>
+          b.id === editingBloco.id ? { ...b, ...blocoForm } : b
+        )
+      }))
     }
-    return labels[tipo] || tipo
+    setEditingBloco(null)
+  }
+
+  // Handlers de exercícios
+  const handleAddExercicio = (blocoId) => {
+    const bloco = treino.blocos_treino.find(b => b.id === blocoId)
+    const maxOrdem = Math.max(...(bloco.bloco_exercicios || []).map(e => e.ordem), 0)
+
+    setExercicioForm({
+      nome: '',
+      series: '',
+      repeticoes: '',
+      carga: '',
+      observacoes: ''
+    })
+    setEditingExercicio({ blocoId, id: 'new', ordem: maxOrdem + 1 })
+  }
+
+  const handleEditExercicio = (blocoId, exercicio) => {
+    setEditingExercicio({ blocoId, ...exercicio })
+    setExercicioForm({
+      nome: exercicio.exercicios.nome,
+      series: exercicio.series,
+      repeticoes: exercicio.repeticoes,
+      carga: exercicio.carga,
+      observacoes: exercicio.exercicios.observacoes
+    })
+  }
+
+  const handleDeleteExercicio = (blocoId, exercicioId) => {
+    if (!confirm('Remover este exercício?')) return
+
+    setTreino(prev => ({
+      ...prev,
+      blocos_treino: prev.blocos_treino.map(b =>
+        b.id === blocoId
+          ? { ...b, bloco_exercicios: b.bloco_exercicios.filter(e => e.id !== exercicioId) }
+          : b
+      )
+    }))
+  }
+
+  const saveExercicio = () => {
+    const { blocoId, id: exercicioId } = editingExercicio
+
+    if (exercicioId === 'new') {
+      const newExercicio = {
+        id: `temp-${Date.now()}`,
+        ordem: editingExercicio.ordem,
+        series: exercicioForm.series,
+        repeticoes: exercicioForm.repeticoes,
+        carga: exercicioForm.carga,
+        exercicios: {
+          id: `temp-ex-${Date.now()}`,
+          nome: exercicioForm.nome,
+          observacoes: exercicioForm.observacoes,
+          grupo_muscular: ''
+        }
+      }
+
+      setTreino(prev => ({
+        ...prev,
+        blocos_treino: prev.blocos_treino.map(b =>
+          b.id === blocoId
+            ? { ...b, bloco_exercicios: [...(b.bloco_exercicios || []), newExercicio] }
+            : b
+        )
+      }))
+    } else {
+      setTreino(prev => ({
+        ...prev,
+        blocos_treino: prev.blocos_treino.map(b =>
+          b.id === blocoId
+            ? {
+              ...b,
+              bloco_exercicios: b.bloco_exercicios.map(e =>
+                e.id === exercicioId
+                  ? {
+                    ...e,
+                    series: exercicioForm.series,
+                    repeticoes: exercicioForm.repeticoes,
+                    carga: exercicioForm.carga,
+                    exercicios: {
+                      ...e.exercicios,
+                      nome: exercicioForm.nome,
+                      observacoes: exercicioForm.observacoes
+                    }
+                  }
+                  : e
+              )
+            }
+            : b
+        )
+      }))
+    }
+    setEditingExercicio(null)
   }
 
   if (loading) {
-    return <div className="loading">Carregando treino...</div>
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    )
   }
 
   if (!treino) {
     return (
-      <div className="error-state">
-        <p>Treino não encontrado.</p>
-        <Link to="/treinos" className="btn-primary">Voltar</Link>
-      </div>
+      <Container>
+        <Alert severity="error">Treino não encontrado</Alert>
+      </Container>
     )
   }
 
-  const blocos = treino.blocos_treino
-    ? [...treino.blocos_treino].sort((a, b) => a.ordem - b.ordem)
-    : []
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
 
-  const linkStatus = getLinkStatus()
+  const tiposBloco = {
+    'MOBILIDADE_ARTICULAR': 'Mobilidade Articular',
+    'ATIVACAO_CORE': 'Ativação de Core',
+    'ATIVACAO_NEURAL': 'Ativação Neural',
+    'TREINO': 'Treino Principal',
+    'CONDICIONAMENTO_FISICO': 'Condicionamento Físico',
+    'PADRAO_MOVIMENTO': 'Padrão de Movimento'
+  }
 
   return (
-    <div className="treino-detalhes-container">
-      <Breadcrumb items={[
-        { label: 'Treinos', to: '/treinos' },
-        { label: 'Detalhes', to: `/treinos/${id}` }
-      ]} />
-      
-      <div className="treino-detalhes-header">
-        <Link to="/treinos" className="back-link">← Voltar</Link>
-        <div className="header-actions">
-          {canEdit && (
-            <>
-              <Link
-                to={`/treinos/${id}/editar`}
-                className="btn-primary"
-              >
-                Editar Treino
-              </Link>
-              <button onClick={generateShareLink} className="btn-share">
-                📤 Compartilhar
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box mb={4}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/treinos')}
+          sx={{ mb: 2 }}
+        >
+          Voltar
+        </Button>
 
-      {canEdit && shareLink && (
-        <div className="share-link-box">
-          <div className="share-link-header">
-            <p><strong>Link de compartilhamento:</strong></p>
-            {linkStatus && (
-              <span 
-                className="link-status-badge"
-                style={{ backgroundColor: linkStatus.color }}
-              >
-                {linkStatus.label}
-              </span>
-            )}
-          </div>
-          
-          <div className="share-link-input">
-            <input type="text" value={shareLink} readOnly />
-            <button onClick={generateShareLink} className="btn-copy">
-              Copiar
-            </button>
-          </div>
-
-          <div className="link-settings">
-            <h4>Configurações do Link</h4>
-            
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={linkActive}
-                  onChange={(e) => setLinkActive(e.target.checked)}
-                />
-                <span>Link ativo</span>
-              </label>
-            </div>
-
-            <div className="form-group">
-              <label>Data/Hora de Expiração (opcional)</label>
-              <input
-                type="datetime-local"
-                value={linkExpiresAt}
-                onChange={(e) => setLinkExpiresAt(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
+          <Box>
+            <Typography variant="h4" component="h1" fontWeight="700" gutterBottom>
+              {formatDate(treino.data)}
+            </Typography>
+            {treino.semanas?.tipos_treino && (
+              <Chip
+                label={treino.semanas.tipos_treino.nome}
+                color="primary"
+                sx={{ fontWeight: 600 }}
               />
-              <small className="form-help">
-                Deixe em branco para link sem expiração
-              </small>
-            </div>
-
-            {treino.link_expires_at && (
-              <div className="expiration-info">
-                <strong>Expira em:</strong>{' '}
-                {new Date(treino.link_expires_at).toLocaleString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
             )}
+          </Box>
 
-            <button
-              onClick={updateLinkSettings}
-              disabled={saving}
-              className="btn-primary"
-            >
-              {saving ? 'Salvando...' : 'Salvar Configurações'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="treino-info">
-        <h1>{new Date(treino.data).toLocaleDateString('pt-BR', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })}</h1>
-        
-        {treino.semanas?.tipos_treino && (
-          <span className="tipo-badge">
-            {treino.semanas.tipos_treino.nome}
-          </span>
-        )}
+          {canEdit && (
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant={editMode ? 'outlined' : 'contained'}
+                startIcon={editMode ? <VisibilityIcon /> : <EditIcon />}
+                onClick={() => setEditMode(!editMode)}
+              >
+                {editMode ? 'Visualizar' : 'Editar'}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<ShareIcon />}
+                onClick={() => setShowSharePanel(true)}
+              >
+                Compartilhar
+              </Button>
+            </Stack>
+          )}
+        </Box>
 
         {treino.observacoes && (
-          <p className="treino-observacoes">{treino.observacoes}</p>
+          <Alert severity="info" sx={{ mt: 2 }}>
+            {treino.observacoes}
+          </Alert>
         )}
-      </div>
+      </Box>
 
-      {blocos.length > 0 ? (
-        <div className="blocos-container">
-          <h2>Blocos do Treino</h2>
-          {blocos.map((bloco) => (
-            <div key={bloco.id} className="bloco-card">
-              <div className="bloco-header">
-                <span className="bloco-ordem">{bloco.ordem}</span>
-                <h3>{getTipoBlocoLabel(bloco.tipo_bloco)}</h3>
-              </div>
+      {/* Blocos de Treino */}
+      {treino.blocos_treino && treino.blocos_treino.length > 0 ? (
+        <Stack spacing={2}>
+          {treino.blocos_treino
+            .sort((a, b) => a.ordem - b.ordem)
+            .map((bloco, index) => (
+              <MuiAccordion
+                key={bloco.id}
+                defaultExpanded={!editMode}
+                sx={{ '&:before': { display: 'none' } }}
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box display="flex" alignItems="center" gap={2} width="100%">
+                    <Chip
+                      label={`${index + 1}`}
+                      color="primary"
+                      size="small"
+                    />
+                    <Typography variant="h6" fontWeight="600">
+                      {tiposBloco[bloco.tipo_bloco] || bloco.tipo_bloco}
+                    </Typography>
+                    {editMode && (
+                      <Box ml="auto" onClick={(e) => e.stopPropagation()}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditBloco(bloco)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteBloco(bloco.id)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                  </Box>
+                </AccordionSummary>
 
-              {bloco.tipo_bloco === 'PADRAO_MOVIMENTO' &&
-                bloco.bloco_padrao_movimento &&
-                bloco.bloco_padrao_movimento.length > 0 && (
-                  <div className="padroes-movimento">
-                    {bloco.bloco_padrao_movimento.map((bpm, idx) => (
-                      <span key={idx} className="padrao-badge">
-                        {bpm.padroes_movimento?.nome}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <AccordionDetails>
+                  {bloco.prescricao && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      {bloco.prescricao}
+                    </Alert>
+                  )}
 
-              {(bloco.tipo_bloco === 'ATIVACAO_CORE' ||
-                bloco.tipo_bloco === 'TREINO') &&
-                bloco.prescricao && (
-                  <div className="bloco-prescricao">
-                    <strong>Prescrição:</strong>
-                    <p>{bloco.prescricao}</p>
-                  </div>
-                )}
+                  {/* Padrões de Movimento */}
+                  {bloco.bloco_padrao_movimento && bloco.bloco_padrao_movimento.length > 0 && (
+                    <Box mb={2}>
+                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                        Padrões de Movimento:
+                      </Typography>
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
+                        {bloco.bloco_padrao_movimento.map((pm) => (
+                          <Chip
+                            key={pm.padrao_movimento_id}
+                            label={pm.padroes_movimento.nome}
+                            variant="outlined"
+                            size="small"
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
 
-              {bloco.bloco_exercicios &&
-                bloco.bloco_exercicios.length > 0 && (
-                  <div className="exercicios-list">
-                    <h4>Exercícios:</h4>
-                    <ul>
+                  {/* Exercícios */}
+                  {bloco.bloco_exercicios && bloco.bloco_exercicios.length > 0 ? (
+                    <List>
                       {bloco.bloco_exercicios
                         .sort((a, b) => a.ordem - b.ordem)
-                        .map((be) => (
-                          <li key={be.id} className="exercicio-item">
-                            <div className="exercicio-nome">
-                              <strong>{be.exercicios?.nome || 'Exercício'}</strong>
-                              {be.exercicios?.grupo_muscular && (
-                                <span className="grupo-muscular">
-                                  ({be.exercicios.grupo_muscular})
-                                </span>
-                              )}
-                            </div>
-                            <div className="exercicio-detalhes">
-                              {be.series && <span>{be.series} séries</span>}
-                              {be.repeticoes && <span>{be.repeticoes} reps</span>}
-                              {be.carga && <span>{be.carga}</span>}
-                            </div>
-                            {be.exercicios?.observacoes && (
-                              <p className="exercicio-obs">
-                                {be.exercicios.observacoes}
-                              </p>
-                            )}
-                          </li>
+                        .map((ex) => (
+                          <ListItem
+                            key={ex.id}
+                            sx={{
+                              border: 1,
+                              borderColor: 'divider',
+                              borderRadius: 2,
+                              mb: 1,
+                            }}
+                            secondaryAction={
+                              editMode && (
+                                <Box>
+                                  <IconButton
+                                    edge="end"
+                                    onClick={() => handleEditExercicio(bloco.id, ex)}
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                  <IconButton
+                                    edge="end"
+                                    color="error"
+                                    onClick={() => handleDeleteExercicio(bloco.id, ex.id)}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Box>
+                              )
+                            }
+                          >
+                            <ListItemText
+                              primary={
+                                <Typography variant="body1" fontWeight="600">
+                                  {ex.exercicios.nome}
+                                </Typography>
+                              }
+                              secondary={
+                                <Box component="span">
+                                  <Typography variant="body2" component="span">
+                                    {ex.series} séries × {ex.repeticoes} reps
+                                    {ex.carga && ` • ${ex.carga}`}
+                                  </Typography>
+                                  {ex.exercicios.observacoes && (
+                                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                      {ex.exercicios.observacoes}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              }
+                            />
+                          </ListItem>
                         ))}
-                    </ul>
-                  </div>
-                )}
+                    </List>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>
+                      Nenhum exercício neste bloco
+                    </Typography>
+                  )}
 
-              {['MOBILIDADE_ARTICULAR', 'ATIVACAO_NEURAL', 'CONDICIONAMENTO_FISICO'].includes(bloco.tipo_bloco) &&
-                bloco.prescricao && (
-                  <div className="bloco-prescricao">
-                    <p>{bloco.prescricao}</p>
-                  </div>
-                )}
-            </div>
-          ))}
-        </div>
+                  {editMode && (
+                    <Button
+                      startIcon={<AddIcon />}
+                      onClick={() => handleAddExercicio(bloco.id)}
+                      fullWidth
+                      sx={{ mt: 2 }}
+                    >
+                      Adicionar Exercício
+                    </Button>
+                  )}
+                </AccordionDetails>
+              </MuiAccordion>
+            ))}
+        </Stack>
       ) : (
-        <div className="empty-blocos">
-          <p>Nenhum bloco cadastrado neste treino.</p>
-        </div>
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 8 }}>
+            <FitnessCenterIcon sx={{ fontSize: 80, color: 'grey.300', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Nenhum bloco de treino ainda
+            </Typography>
+          </CardContent>
+        </Card>
       )}
-    </div>
+
+      {/* Botões de Adicionar Blocos (modo edição) */}
+      {editMode && canEdit && (
+        <Paper sx={{ p: 3, mt: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Adicionar Bloco
+          </Typography>
+          <Grid container spacing={1}>
+            {Object.entries(tiposBloco).map(([key, label]) => (
+              <Grid item xs={12} sm={6} md={4} key={key}>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleAddBloco(key)}
+                  fullWidth
+                >
+                  {label}
+                </Button>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      )}
+
+      {/* Dialog de Edição de Bloco */}
+      <Dialog open={Boolean(editingBloco)} onClose={() => setEditingBloco(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingBloco?.id === 'new' ? 'Adicionar Bloco' : 'Editar Bloco'}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              select
+              label="Tipo de Bloco"
+              value={blocoForm.tipo_bloco}
+              onChange={(e) => setBlocoForm({ ...blocoForm, tipo_bloco: e.target.value })}
+              SelectProps={{ native: true }}
+              fullWidth
+            >
+              <option value="">Selecione...</option>
+              {Object.entries(tiposBloco).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Prescrição"
+              value={blocoForm.prescricao}
+              onChange={(e) => setBlocoForm({ ...blocoForm, prescricao: e.target.value })}
+              multiline
+              rows={3}
+              fullWidth
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingBloco(null)}>Cancelar</Button>
+          <Button variant="contained" onClick={saveBloco}>Salvar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Edição de Exercício */}
+      <Dialog open={Boolean(editingExercicio)} onClose={() => setEditingExercicio(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingExercicio?.id === 'new' ? 'Adicionar Exercício' : 'Editar Exercício'}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Nome do Exercício"
+              value={exercicioForm.nome}
+              onChange={(e) => setExercicioForm({ ...exercicioForm, nome: e.target.value })}
+              fullWidth
+            />
+
+            <Grid container spacing={2}>
+              <Grid item xs={4}>
+                <TextField
+                  label="Séries"
+                  value={exercicioForm.series}
+                  onChange={(e) => setExercicioForm({ ...exercicioForm, series: e.target.value })}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField
+                  label="Repetições"
+                  value={exercicioForm.repeticoes}
+                  onChange={(e) => setExercicioForm({ ...exercicioForm, repeticoes: e.target.value })}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField
+                  label="Carga"
+                  value={exercicioForm.carga}
+                  onChange={(e) => setExercicioForm({ ...exercicioForm, carga: e.target.value })}
+                  fullWidth
+                />
+              </Grid>
+            </Grid>
+
+            <TextField
+              label="Observações"
+              value={exercicioForm.observacoes}
+              onChange={(e) => setExercicioForm({ ...exercicioForm, observacoes: e.target.value })}
+              multiline
+              rows={2}
+              fullWidth
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingExercicio(null)}>Cancelar</Button>
+          <Button variant="contained" onClick={saveExercicio}>Salvar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Compartilhamento */}
+      <Dialog open={showSharePanel} onClose={() => setShowSharePanel(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Compartilhar Treino</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            {shareLink ? (
+              <>
+                <TextField
+                  label="Link de Compartilhamento"
+                  value={shareLink}
+                  InputProps={{
+                    readOnly: true,
+                    endAdornment: (
+                      <IconButton onClick={generateShareLink}>
+                        <CopyIcon />
+                      </IconButton>
+                    )
+                  }}
+                  fullWidth
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={linkActive}
+                      onChange={(e) => setLinkActive(e.target.checked)}
+                    />
+                  }
+                  label="Link Ativo"
+                />
+
+                <TextField
+                  label="Expiração do Link (opcional)"
+                  type="datetime-local"
+                  value={linkExpiresAt}
+                  onChange={(e) => setLinkExpiresAt(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  fullWidth
+                />
+              </>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={generateShareLink}
+                fullWidth
+              >
+                Gerar Link de Compartilhamento
+              </Button>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSharePanel(false)}>Fechar</Button>
+          {shareLink && (
+            <Button variant="contained" onClick={updateShareSettings} disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar Configurações'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+    </Container>
   )
 }
 
 export default TreinoDetalhes
+

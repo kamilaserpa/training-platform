@@ -1,352 +1,420 @@
+/* TreinoDetalhes - Mobile-first + Print-ready */
 .treino-detalhes-container {
-  max-width: 1200px;
+  padding: 16px;
+  max-width: 900px;
   margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* Loading e Error states */
+.loading-fullscreen,
+.error-fullscreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 20px;
+  text-align: center;
+  color: #718096;
+}
+
+/* Header do treino */
+.treino-header-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.treino-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.treino-data {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 8px 0;
+  text-transform: capitalize;
+  line-height: 1.3;
+}
+
+.treino-tipo-badge-large {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.treino-observacoes-header {
+  color: #4a5568;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 12px 0 0 0;
+  padding: 12px;
+  background: #f7fafc;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+/* Painel de Compartilhamento */
+.share-panel {
+  margin-bottom: 20px;
+}
+
+.share-content {
+  padding-top: 4px;
+}
+
+.share-empty {
+  text-align: center;
   padding: 20px;
 }
 
-.treino-detalhes-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  flex-wrap: wrap;
-  gap: 15px;
+.share-empty p {
+  color: #718096;
+  margin-bottom: 16px;
 }
 
-.header-actions {
+.share-active {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.btn-share {
-  background: #4caf50;
-  color: white;
-  padding: 10px 20px;
-  border: none;
+.share-status {
+  padding: 12px 16px;
   border-radius: 8px;
-  cursor: pointer;
   font-weight: 600;
-  transition: background 0.3s;
-  font-size: 16px;
-}
-
-.btn-share:hover {
-  background: #45a049;
+  font-size: 14px;
 }
 
 .share-link-box {
-  background: #e3f2fd;
-  border: 2px solid #2196f3;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 30px;
-}
-
-.share-link-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.share-link-box p {
-  margin: 0;
-  color: #333;
-}
-
-.link-status-badge {
-  display: inline-block;
-  color: white;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  gap: 8px;
 }
 
 .share-link-input {
-  display: flex;
-  gap: 10px;
-}
-
-.share-link-input input {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
-  background: white;
+  background: #f7fafc;
+  color: #2d3748;
 }
 
-.btn-copy {
-  background: #2196f3;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+.share-settings {
+  padding: 16px;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.share-settings h4 {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  color: #2d3748;
+}
+
+.share-field {
+  margin-bottom: 16px;
+}
+
+.share-field:last-of-type {
+  margin-bottom: 20px;
+}
+
+.share-field label {
+  display: block;
+  font-size: 14px;
   font-weight: 500;
-  transition: background 0.3s;
+  color: #4a5568;
+  margin-bottom: 8px;
 }
 
-.btn-copy:hover {
-  background: #0b7dda;
-}
-
-.link-settings {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #90caf9;
-}
-
-.link-settings h4 {
-  margin: 0 0 15px 0;
-  color: #333;
-  font-size: 1rem;
-}
-
-.link-settings .form-group {
-  margin-bottom: 15px;
-}
-
-.checkbox-label {
-  display: flex;
+.share-toggle {
+  display: flex !important;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
 }
 
-.checkbox-label input[type="checkbox"] {
+.share-toggle input[type="checkbox"] {
   width: 20px;
   height: 20px;
   cursor: pointer;
 }
 
-.checkbox-label span {
-  color: #333;
-  font-weight: 500;
-}
-
-.link-settings input[type="datetime-local"] {
+.share-input {
   width: 100%;
-  padding: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 16px;
-  font-family: inherit;
-  margin-top: 8px;
-}
-
-.link-settings input[type="datetime-local"]:focus {
-  outline: none;
-  border-color: #2196f3;
-}
-
-.form-help {
-  display: block;
-  margin-top: 5px;
-  color: #666;
-  font-size: 0.85rem;
-}
-
-.expiration-info {
-  background: #fff3cd;
-  border-left: 4px solid #ffc107;
   padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 15px;
-  color: #856404;
-  font-size: 0.9rem;
-}
-
-.expiration-info strong {
-  color: #856404;
-}
-
-.treino-info {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.treino-info h1 {
-  margin: 0 0 15px 0;
-  color: #333;
-  text-transform: capitalize;
-}
-
-.blocos-container {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.blocos-container h2 {
-  margin: 0 0 20px 0;
-  color: #333;
-}
-
-.bloco-card {
-  border: 1px solid #e0e0e0;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
-  padding: 20px;
+  font-size: 14px;
+  /* Touch-friendly */
+  min-height: 44px;
+}
+
+.share-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Seções do treino */
+.treino-secoes {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 20px;
+}
+
+/* Bloco card */
+.bloco-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
   background: #fafafa;
+}
+
+.bloco-card:last-child {
+  margin-bottom: 0;
 }
 
 .bloco-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 12px;
 }
 
-.bloco-ordem {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.bloco-numero {
+  font-size: 14px;
+  font-weight: 700;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bloco-actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-
-.bloco-header h3 {
-  margin: 0;
-  color: #333;
-  font-size: 1.2rem;
-}
-
-.padroes-movimento {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.padrao-badge {
-  background: #4caf50;
-  color: white;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  gap: 4px;
 }
 
 .bloco-prescricao {
-  background: white;
-  border-left: 4px solid #667eea;
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 15px;
+  color: #2d3748;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0;
+  font-style: italic;
 }
 
-.bloco-prescricao strong {
+/* Padrões de movimento */
+.padroes-movimento {
+  margin: 12px 0;
+}
+
+.padroes-movimento strong {
   display: block;
+  font-size: 13px;
+  color: #4a5568;
   margin-bottom: 8px;
-  color: #333;
 }
 
-.bloco-prescricao p {
-  margin: 0;
-  color: #555;
-  line-height: 1.6;
+.padroes-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
+.padrao-tag {
+  background: #edf2f7;
+  color: #2d3748;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Lista de exercícios */
 .exercicios-list {
-  margin-top: 20px;
-}
-
-.exercicios-list h4 {
-  margin: 0 0 15px 0;
-  color: #333;
-  font-size: 1.1rem;
-}
-
-.exercicios-list ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  margin-top: 12px;
 }
 
 .exercicio-item {
-  padding: 15px;
-  margin-bottom: 12px;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
   background: white;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  align-items: flex-start;
+}
+
+.exercicio-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.exercicio-numero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
   border-radius: 8px;
-  border-left: 3px solid #667eea;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.exercicio-info {
+  flex: 1;
 }
 
 .exercicio-nome {
-  margin-bottom: 8px;
-}
-
-.exercicio-nome strong {
-  color: #333;
-  font-size: 1rem;
-}
-
-.grupo-muscular {
-  color: #666;
-  font-size: 0.85rem;
-  font-weight: normal;
-  margin-left: 8px;
+  display: block;
+  font-size: 15px;
+  color: #1a202c;
+  margin-bottom: 6px;
 }
 
 .exercicio-detalhes {
   display: flex;
-  gap: 15px;
-  margin-top: 8px;
   flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #4a5568;
+  margin-bottom: 4px;
 }
 
 .exercicio-detalhes span {
-  background: #f5f5f5;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  color: #555;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .exercicio-obs {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #e0e0e0;
-  color: #666;
-  font-size: 0.9rem;
+  font-size: 12px;
+  color: #718096;
+  margin: 6px 0 0 0;
   font-style: italic;
 }
 
-.empty-blocos {
-  text-align: center;
-  padding: 40px;
-  color: #666;
+.add-bloco-btn {
+  margin-top: 12px;
 }
 
-@media (max-width: 768px) {
-  .treino-detalhes-header {
-    flex-direction: column;
-    align-items: flex-start;
+/* Footer actions */
+.treino-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+  padding-bottom: 24px;
+}
+
+/* Desktop */
+@media (min-width: 768px) {
+  .treino-detalhes-container {
+    padding: 24px;
   }
 
-  .share-link-input {
-    flex-direction: column;
+  .treino-header-card {
+    padding: 28px;
   }
 
-  .bloco-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .treino-data {
+    font-size: 28px;
+  }
+
+  .treino-tipo-badge-large {
+    font-size: 15px;
+    padding: 8px 20px;
+  }
+
+  .bloco-card {
+    padding: 20px;
+  }
+
+  .exercicio-nome {
+    font-size: 16px;
+  }
+
+  .exercicio-detalhes {
+    font-size: 14px;
+  }
+
+  .treino-footer-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .treino-footer-actions button {
+    max-width: 280px;
   }
 }
+
+/* Print */
+@media print {
+  .treino-detalhes-container {
+    padding: 0;
+    max-width: 100%;
+  }
+
+  .treino-header-card {
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+    page-break-after: avoid;
+  }
+
+  .mode-toggle,
+  .bloco-actions,
+  .treino-footer-actions,
+  .share-panel {
+    display: none !important;
+  }
+
+  .treino-secoes {
+    page-break-inside: avoid;
+  }
+
+  .bloco-card {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+  }
+
+  .exercicio-item {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #f0f0f0;
+  }
+
+  /* Força impressão de cores */
+  .exercicio-numero,
+  .treino-tipo-badge-large {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+

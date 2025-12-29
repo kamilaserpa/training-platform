@@ -1,7 +1,7 @@
 // Página de histórico de treinos (Owner/Viewer)
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { treinosService } from '../services/treinos'
 import { useAuth } from '../contexts/AuthContext'
 import Breadcrumb from '../components/Breadcrumb'
 import './Historico.css'
@@ -18,26 +18,7 @@ const Historico = () => {
 
   const loadHistorico = async () => {
     try {
-      const { data, error } = await supabase
-        .from('treinos')
-        .select(`
-          *,
-          semanas (
-            id,
-            data_inicio,
-            data_fim,
-            tipos_treino (
-              nome
-            )
-          ),
-          blocos_treino (
-            id,
-            tipo_bloco,
-            ordem
-          )
-        `)
-        .order('data', { ascending: false })
-        .limit(50)
+      const { data, error } = await treinosService.getHistorico()
 
       if (error) throw error
       setTreinos(data || [])

@@ -102,12 +102,16 @@ npm install
 
 ### 4. Configure as variáveis de ambiente
 
-Crie um arquivo `.env` na raiz do projeto:
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
 
-```env
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
+# Edite o .env com suas credenciais reais
+# VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+# VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui
 ```
+
+**💡 Dica:** Para desenvolvimento, use `.env.local` em vez de `.env` (veja seção "Ambientes" abaixo)
 
 ### 5. Execute o script SQL
 
@@ -130,83 +134,267 @@ npm run dev
 
 Acesse `http://localhost:5173`
 
+---
+
+## 🔧 Executar em Ambiente de Desenvolvimento
+
+### 🎯 Modo Mock (Sem Supabase)
+
+**Use dados simulados** - ideal para refatorar banco sem poluir dados reais:
+
+```bash
+# Apenas um comando!
+npm run dev:mock
+```
+
+**O que acontece:**
+- ✅ Banner laranja no topo: "MODO MOCK ATIVO"
+- ✅ Login aceita **qualquer email/senha**
+- ✅ Dados de usuário simulados
+- ✅ **Não precisa de Supabase configurado**
+- ✅ Perfeito para refatorar banco de dados
+
+**Para voltar ao Supabase real:**
+```bash
+npm run dev  # Modo normal
+```
+
+---
+
+### Opção 1: Dois Projetos Supabase (Para dados reais)
+
+**Use um projeto Supabase para DEV e outro para PROD** (veja seção "Ambientes" abaixo)
+
+```bash
+# 1. Crie dois projetos no Supabase:
+# - treinos-dev (dados de teste)  
+# - treinos-app (dados reais)
+
+# 2. Configure .env.local para desenvolvimento
+cp .env.example .env.local
+# Edite .env.local com credenciais do projeto DEV
+
+# 3. Configure secrets do GitHub com credenciais PROD
+# Settings > Secrets > Actions
+
+# 4. Desenvolva localmente
+npm run dev  # → usa .env.local (projeto DEV)
+
+# 5. Deploy
+git push origin main  # → usa secrets GitHub (projeto PROD)
+```
+
+---
+
+### Opção 2: Supabase Único (Mais Simples)
+
+Se você já configurou o Supabase (passos 1-6 acima):
+
+```bash
+# 1. Instale as dependências
+npm install
+
+# 2. Verifique se o .env existe e está correto
+cat .env
+# Deve mostrar:
+# VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+# VITE_SUPABASE_ANON_KEY=sua-chave-aqui
+
+# 3. Inicie o servidor de desenvolvimento
+npm run dev
+```
+
+**Resultado esperado:**
+```
+VITE v5.x.x  ready in 500 ms
+
+➜  Local:   http://localhost:5173/
+➜  Network: use --host to expose
+```
+
+**Acesse:** `http://localhost:5173` no navegador
+
+**O que você verá:**
+- ✅ Tela inicial com formulário de login
+- ✅ Login com email/senha do usuário criado no Supabase
+- ✅ Após login: acesso às páginas de gestão de treinos
+
+---
+
+### Comandos Úteis Durante Desenvolvimento
+
+```bash
+# Desenvolvimento normal (com Supabase)
+npm run dev
+
+# Desenvolvimento com MOCK (sem Supabase) ⭐ NOVO
+npm run dev:mock
+
+# Validar código (ESLint)
+npm run lint
+
+# Build para testar produção localmente
+npm run build
+npm run preview  # Acesse http://localhost:4173
+```
+
+---
+
+## 🗄️ Ambientes: Desenvolvimento vs Produção
+
+### Problema: Não Poluir o Banco de Produção
+
+**❌ Não faça:** Testar com dados fake no banco de produção
+
+**✅ Solução:** Crie um projeto Supabase separado para desenvolvimento
+
+### Opção 1: Dois Projetos Supabase (Recomendado)
+
+#### 1. Crie Dois Projetos no Supabase
+
+1. **Projeto DEV** (para desenvolvimento)
+   - Nome: `treinos-dev` ou similar
+   - Use para testar e inserir dados fake
+
+2. **Projeto PROD** (para produção)
+   - Nome: `treinos-app` ou similar
+   - Apenas dados reais dos usuários
+
+#### 2. Configure Dois Arquivos .env
+
+```bash
+# .env (produção - usado no CI/CD)
+VITE_SUPABASE_URL=https://seu-projeto-prod.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-key-prod
+
+# .env.local (desenvolvimento - usado localmente)
+VITE_SUPABASE_URL=https://seu-projeto-dev.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-key-dev
+```
+
+**⚠️ Importante:**
+- `.env.local` tem **prioridade** sobre `.env` no Vite
+- `.env.local` está no `.gitignore` (não vai para o GitHub)
+- CI/CD usa os **secrets** do GitHub (produção)
+
+#### 3. Como Usar
+
+```bash
+# Desenvolvimento (usa .env.local automaticamente)
+npm run dev
+# → Conecta no banco DEV
+# → Pode inserir dados de teste à vontade
+
+# Produção (GitHub Actions usa secrets)
+git push origin main
+# → Deploy usa o banco PROD
+# → Dados reais protegidos
+```
+
+---
+
+### Opção 2: Supabase CLI Local (Avançado)
+
+Execute o Supabase **totalmente local** com Docker:
+
+```bash
+# 1. Instale o Supabase CLI
+brew install supabase/tap/supabase  # macOS
+# ou
+npm install -g supabase             # npm
+
+# 2. Inicie o Supabase local
+supabase init
+supabase start
+
+# 3. Use as credenciais locais
+# API URL: http://localhost:54321
+# Anon key: (será mostrada no terminal)
+
+# 4. Configure .env.local
+VITE_SUPABASE_URL=http://localhost:54321
+VITE_SUPABASE_ANON_KEY=sua-key-local
+
+# 5. Rode migrações
+supabase db reset  # Limpa e recria o banco local
+```
+
+**Vantagens:**
+- ✅ Banco 100% local (não precisa internet)
+- ✅ Dados não vão para nenhum servidor
+- ✅ Rápido para testar migrações
+
+**Desvantagens:**
+- ⚠️ Requer Docker instalado
+- ⚠️ Mais complexo de configurar
+
+---
+
+### Comparação das Opções
+
+| Opção | Facilidade | Custo | Recomendado Para |
+|-------|-----------|-------|------------------|
+| **Dois Projetos Supabase** | ⭐⭐⭐ Fácil | Grátis | Maioria dos casos |
+| **Supabase CLI Local** | ⭐⭐ Médio | Grátis | Projetos avançados |
+| **Mocks (frontend/)** | ⭐⭐⭐ Muito fácil | Grátis | Desenvolvimento inicial |
+
+---
+
 ## 📱 Deploy no GitHub Pages
 
-### 1. Configure o Vite
+### Deploy Automático via CI/CD
 
-O arquivo `vite.config.js` já está configurado para GitHub Pages. Se seu repositório tiver um nome diferente de `treinos-app`, ajuste a linha `base`:
-
-```js
-base: process.env.NODE_ENV === 'production' ? '/seu-repositorio/' : '/',
-```
-
-### 2. Instale o plugin do GitHub Pages
+O deploy é **totalmente automático** quando você faz merge para `main`:
 
 ```bash
-npm install --save-dev gh-pages
+# 1. Crie uma branch para sua feature
+git checkout -b feature/minha-feature
+
+# 2. Faça suas alterações e commit
+git add .
+git commit -m "feat: minha feature"
+git push origin feature/minha-feature
+
+# 3. Abra um Pull Request para main no GitHub
+# O CI irá validar automaticamente (build + testes)
+
+# 4. Após aprovação e merge para main
+# O GitHub Actions automaticamente:
+#   ✅ Roda validações
+#   ✅ Faz build da aplicação
+#   ✅ Publica no GitHub Pages
 ```
 
-### 3. Atualize o package.json
+### Configuração Inicial (uma vez)
 
-Adicione os scripts:
-
-```json
-{
- "scripts": {
-   "predeploy": "npm run build",
-   "deploy": "gh-pages -d dist"
- }
-}
-```
-
-### 4. Configure as variáveis de ambiente no GitHub
+#### 1. Configure as variáveis de ambiente
 
 1. Vá em **Settings > Secrets and variables > Actions**
-2. Adicione as variáveis:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+2. Clique em **New repository secret**
+3. Adicione:
+   - Nome: `VITE_SUPABASE_URL` | Valor: `https://seu-projeto.supabase.co`
+   - Nome: `VITE_SUPABASE_ANON_KEY` | Valor: `sua-chave-anon`
 
-Ou configure via GitHub Actions (recomendado):
-
-Crie `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy to GitHub Pages
-
-on:
- push:
-   branches: [ main ]
-
-jobs:
- build-and-deploy:
-   runs-on: ubuntu-latest
-   steps:
-     - uses: actions/checkout@v3
-     - uses: actions/setup-node@v3
-       with:
-         node-version: '18'
-     - run: npm install
-     - run: npm run build
-       env:
-         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-     - uses: peaceiris/actions-gh-pages@v3
-       with:
-         github_token: ${{ secrets.GITHUB_TOKEN }}
-         publish_dir: ./dist
-```
-
-### 5. Faça o deploy
-
-```bash
-npm run deploy
-```
-
-### 6. Configure o GitHub Pages
+#### 2. Habilite GitHub Pages
 
 1. Vá em **Settings > Pages**
-2. Selecione a branch `gh-pages` como source
-3. Acesse sua aplicação em: `https://seu-usuario.github.io/treinos-app/`
+2. Source: **GitHub Actions** ⚠️ (não use branch gh-pages)
+3. Salve
+
+#### 3. Workflows Incluídos
+
+O projeto já tem 2 workflows prontos:
+
+- **`ci.yml`** - Validação automática em Pull Requests
+- **`deploy.yml`** - Deploy automático em merge para main
+
+### Acessar Aplicação
+
+Após o primeiro deploy:
+
+```
+https://seu-usuario.github.io/training-platform/
+```
 
 ### 7. Atualize o Supabase
 
@@ -288,10 +476,16 @@ Gere ícones de 192x192 e 512x512 pixels e adicione em `public/`:
 
 ## 📝 Scripts Disponíveis
 
-- `npm run dev`: Inicia servidor de desenvolvimento
-- `npm run build`: Cria build de produção
-- `npm run preview`: Preview do build de produção
-- `npm run deploy`: Deploy para GitHub Pages
+### Desenvolvimento
+- `npm run dev` - Inicia servidor com Supabase real (http://localhost:5173)
+- `npm run dev:mock` - ⭐ Inicia servidor com dados MOCK (sem Supabase)
+- `npm run build` - Cria build de produção
+- `npm run preview` - Preview do build local
+- `npm run lint` - Valida código com ESLint
+
+### CI/CD (Automático)
+- **Pull Request → main**: CI valida build e lint
+- **Merge → main**: Deploy automático para GitHub Pages
 
 ## 🔐 Políticas RLS (Row Level Security)
 
