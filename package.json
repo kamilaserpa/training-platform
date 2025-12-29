@@ -13,12 +13,14 @@
     "dev": "vite",
     "dev:mock": "VITE_USE_MOCK=true vite",
     "build": "vite build",
+    "build:mock": "VITE_USE_MOCK=true vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "bash scripts/check-setup.sh",
     "test-supabase": "bash scripts/test-supabase-connection.js",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "switch-deploy": "bash scripts/switch-deploy.sh"
   },
   "dependencies": {
     "@date-io/moment": "^3.2.0",
