@@ -415,7 +415,7 @@ function Treinos() {
             Treinos
           </Typography>
         </Stack>
-        
+
         <Button
           variant="contained"
           startIcon={<AddIcon />}

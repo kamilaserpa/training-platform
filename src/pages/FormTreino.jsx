@@ -115,13 +115,13 @@ const FormTreino = () => {
         .single()
 
       if (error) throw error
-      
+
       setFormData({
         data: data.data,
         semana_id: data.semana_id || '',
         observacoes: data.observacoes || '',
       })
-      
+
       if (data.blocos_treino) {
         const blocosFormatados = data.blocos_treino
           .sort((a, b) => a.ordem - b.ordem)
@@ -334,11 +334,11 @@ const FormTreino = () => {
         { label: id ? 'Editar' : 'Novo', to: '#' }
       ]} />
       <h1>{id ? 'Editar' : 'Novo'} Treino</h1>
-      
+
       <form onSubmit={handleSubmit} className="treino-form">
         <div className="form-section">
           <h3>Informações Básicas</h3>
-          
+
           <div className="form-group">
             <label>Data *</label>
             <input
@@ -445,158 +445,158 @@ const FormTreino = () => {
 
               {(bloco.tipo_bloco === 'ATIVACAO_CORE' ||
                 bloco.tipo_bloco === 'TREINO') && (
-                <>
+                  <>
+                    <div className="form-group">
+                      <label>Prescrição *</label>
+                      <textarea
+                        value={bloco.prescricao}
+                        onChange={(e) =>
+                          updateBloco(blocoIndex, 'prescricao', e.target.value)
+                        }
+                        rows="2"
+                        required
+                        placeholder="Ex: 9x30''x15''"
+                      />
+                    </div>
+
+                    <div className="exercicios-bloco-section">
+                      <div className="section-header-small">
+                        <h4>Exercícios</h4>
+                        <button
+                          type="button"
+                          onClick={() => addExercicioToBloco(blocoIndex)}
+                          className="btn-add-exercicio"
+                        >
+                          + Exercício
+                        </button>
+                      </div>
+
+                      {bloco.exercicios.map((ex, exIndex) => (
+                        <div key={exIndex} className="exercicio-form-item">
+                          <div className="exercicio-form-row">
+                            <div className="form-group-small">
+                              <label>Ordem</label>
+                              <input
+                                type="number"
+                                value={ex.ordem}
+                                onChange={(e) =>
+                                  updateExercicioInBloco(
+                                    blocoIndex,
+                                    exIndex,
+                                    'ordem',
+                                    parseInt(e.target.value)
+                                  )
+                                }
+                                min="1"
+                                required
+                              />
+                            </div>
+
+                            <div className="form-group-large">
+                              <label>Exercício *</label>
+                              <select
+                                value={ex.exercicio_id}
+                                onChange={(e) =>
+                                  updateExercicioInBloco(
+                                    blocoIndex,
+                                    exIndex,
+                                    'exercicio_id',
+                                    e.target.value
+                                  )
+                                }
+                                required
+                              >
+                                <option value="">Selecione</option>
+                                {exercicios.map((exercicio) => (
+                                  <option key={exercicio.id} value={exercicio.id}>
+                                    {exercicio.nome}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="form-group-small">
+                              <label>Séries</label>
+                              <input
+                                type="number"
+                                value={ex.series}
+                                onChange={(e) =>
+                                  updateExercicioInBloco(
+                                    blocoIndex,
+                                    exIndex,
+                                    'series',
+                                    e.target.value
+                                  )
+                                }
+                                min="1"
+                              />
+                            </div>
+
+                            <div className="form-group-small">
+                              <label>Repetições</label>
+                              <input
+                                type="text"
+                                value={ex.repeticoes}
+                                onChange={(e) =>
+                                  updateExercicioInBloco(
+                                    blocoIndex,
+                                    exIndex,
+                                    'repeticoes',
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Ex: 10-12"
+                              />
+                            </div>
+
+                            <div className="form-group-small">
+                              <label>Carga</label>
+                              <input
+                                type="text"
+                                value={ex.carga}
+                                onChange={(e) =>
+                                  updateExercicioInBloco(
+                                    blocoIndex,
+                                    exIndex,
+                                    'carga',
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Ex: 20kg"
+                              />
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeExercicioFromBloco(blocoIndex, exIndex)
+                              }
+                              className="btn-remove-exercicio"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+              {['MOBILIDADE_ARTICULAR', 'ATIVACAO_NEURAL', 'CONDICIONAMENTO_FISICO'].includes(
+                bloco.tipo_bloco
+              ) && (
                   <div className="form-group">
-                    <label>Prescrição *</label>
+                    <label>Prescrição</label>
                     <textarea
                       value={bloco.prescricao}
                       onChange={(e) =>
                         updateBloco(blocoIndex, 'prescricao', e.target.value)
                       }
                       rows="2"
-                      required
-                      placeholder="Ex: 9x30''x15''"
+                      placeholder="Descreva a prescrição do bloco"
                     />
                   </div>
-
-                  <div className="exercicios-bloco-section">
-                    <div className="section-header-small">
-                      <h4>Exercícios</h4>
-                      <button
-                        type="button"
-                        onClick={() => addExercicioToBloco(blocoIndex)}
-                        className="btn-add-exercicio"
-                      >
-                        + Exercício
-                      </button>
-                    </div>
-
-                    {bloco.exercicios.map((ex, exIndex) => (
-                      <div key={exIndex} className="exercicio-form-item">
-                        <div className="exercicio-form-row">
-                          <div className="form-group-small">
-                            <label>Ordem</label>
-                            <input
-                              type="number"
-                              value={ex.ordem}
-                              onChange={(e) =>
-                                updateExercicioInBloco(
-                                  blocoIndex,
-                                  exIndex,
-                                  'ordem',
-                                  parseInt(e.target.value)
-                                )
-                              }
-                              min="1"
-                              required
-                            />
-                          </div>
-
-                          <div className="form-group-large">
-                            <label>Exercício *</label>
-                            <select
-                              value={ex.exercicio_id}
-                              onChange={(e) =>
-                                updateExercicioInBloco(
-                                  blocoIndex,
-                                  exIndex,
-                                  'exercicio_id',
-                                  e.target.value
-                                )
-                              }
-                              required
-                            >
-                              <option value="">Selecione</option>
-                              {exercicios.map((exercicio) => (
-                                <option key={exercicio.id} value={exercicio.id}>
-                                  {exercicio.nome}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="form-group-small">
-                            <label>Séries</label>
-                            <input
-                              type="number"
-                              value={ex.series}
-                              onChange={(e) =>
-                                updateExercicioInBloco(
-                                  blocoIndex,
-                                  exIndex,
-                                  'series',
-                                  e.target.value
-                                )
-                              }
-                              min="1"
-                            />
-                          </div>
-
-                          <div className="form-group-small">
-                            <label>Repetições</label>
-                            <input
-                              type="text"
-                              value={ex.repeticoes}
-                              onChange={(e) =>
-                                updateExercicioInBloco(
-                                  blocoIndex,
-                                  exIndex,
-                                  'repeticoes',
-                                  e.target.value
-                                )
-                              }
-                              placeholder="Ex: 10-12"
-                            />
-                          </div>
-
-                          <div className="form-group-small">
-                            <label>Carga</label>
-                            <input
-                              type="text"
-                              value={ex.carga}
-                              onChange={(e) =>
-                                updateExercicioInBloco(
-                                  blocoIndex,
-                                  exIndex,
-                                  'carga',
-                                  e.target.value
-                                )
-                              }
-                              placeholder="Ex: 20kg"
-                            />
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeExercicioFromBloco(blocoIndex, exIndex)
-                            }
-                            className="btn-remove-exercicio"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {['MOBILIDADE_ARTICULAR', 'ATIVACAO_NEURAL', 'CONDICIONAMENTO_FISICO'].includes(
-                bloco.tipo_bloco
-              ) && (
-                <div className="form-group">
-                  <label>Prescrição</label>
-                  <textarea
-                    value={bloco.prescricao}
-                    onChange={(e) =>
-                      updateBloco(blocoIndex, 'prescricao', e.target.value)
-                    }
-                    rows="2"
-                    placeholder="Descreva a prescrição do bloco"
-                  />
-                </div>
-              )}
+                )}
             </div>
           ))}
         </div>

@@ -134,8 +134,6 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
 function TreinoCell({ treino }) {
-  const navigate = useNavigate()
-
   if (!treino) {
     return <Typography align="center">-</Typography>
   }
@@ -170,18 +168,6 @@ const focosSemanaMock = [
   { id: 3, nome: 'Força Máxima', intensidade: 85, descricao: 'Foco em força máxima' },
   { id: 4, nome: 'Potência', intensidade: 70, descricao: 'Foco em potência muscular' },
   { id: 5, nome: 'Funcional', intensidade: 60, descricao: 'Treino funcional' },
-]
-
-// 🔹 Padrões de movimento mockados
-const padroesMock = [
-  'Agachar',
-  'Empurrar Horizontal',
-  'Empurrar Vertical', 
-  'Puxar Horizontal',
-  'Puxar Vertical',
-  'Dobrar',
-  'Rotação',
-  'Locomoção'
 ]
 
 // 🔹 Definição das linhas da tabela
@@ -316,8 +302,7 @@ const semanasMock = [
   },
 ]
 
-function renderCell(treino, key) {
-  const navigate = useNavigate()
+function renderCell(treino, key, navigate) {
   if (!treino) return '-'
 
   switch (key) {
@@ -417,7 +402,7 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
 
     // Encontra o foco da semana selecionado
     const focoSemana = focosSemanaMock.find(foco => foco.id === formData.focoSemanaId)
-    
+
     // Cria a nova semana
     const novaSemana = {
       semestre: `${formData.ano}.${formData.semestre}`,
@@ -427,7 +412,7 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
     }
 
     onSave(novaSemana)
-    
+
     // Reset do formulário
     setFormData({
       ano: new Date().getFullYear(),
@@ -435,7 +420,7 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
       numeroSemana: 1,
       focoSemanaId: '',
     })
-    
+
     onClose()
   }
 
@@ -502,7 +487,7 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
 }
 
 
-function SemanaTable({ semana }) {
+function SemanaTable({ semana, navigate }) {
   return (
     <Box mb={6}>
       <Stack direction="row" alignItems="left" spacing={2} mb={2}>
@@ -512,11 +497,11 @@ function SemanaTable({ semana }) {
         </Typography>
         <Chip label={semana.semestre} size="small" />
         {semana.focoSemana && (
-          <Chip 
+          <Chip
             label={`Foco: ${semana.focoSemana.nome}`}
-            color="primary" 
-            variant="outlined" 
-            size="small" 
+            color="primary"
+            variant="outlined"
+            size="small"
           />
         )}
       </Stack>
@@ -548,7 +533,7 @@ function SemanaTable({ semana }) {
 
                   return (
                     <TableCell key={dia.key} align="left">
-                      {renderCell(treino, linha.key)}
+                      {renderCell(treino, linha.key, navigate)}
                     </TableCell>
                   )
                 })}
@@ -562,6 +547,7 @@ function SemanaTable({ semana }) {
 }
 
 function Semanas() {
+  const navigate = useNavigate()
   const [semanas, setSemanas] = useState(semanasMock)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -575,8 +561,8 @@ function Semanas() {
         <Typography variant="h4" fontWeight="700">
           Semanas de Treino
         </Typography>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           onClick={() => setDialogOpen(true)}
           sx={{ minWidth: 150 }}
         >
@@ -588,6 +574,7 @@ function Semanas() {
         <SemanaTable
           key={`${semana.semestre}-${semana.numeroSemana}`}
           semana={semana}
+          navigate={navigate}
         />
       ))}
 

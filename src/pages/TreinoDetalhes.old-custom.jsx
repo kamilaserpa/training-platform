@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { treinosService } from '../services/treinos'
-import { supabase } from '../lib/supabase'
+import { _supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import Breadcrumb from '../components/Breadcrumb'
 import Accordion from '../components/Accordion'
@@ -16,17 +16,17 @@ const TreinoDetalhes = () => {
   const navigate = useNavigate()
   const [treino, setTreino] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [editMode, setEditMode] = useState(false)
-  const [shareLink, setShareLink] = useState('')
-  const [linkExpiresAt, setLinkExpiresAt] = useState('')
-  const [linkActive, setLinkActive] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [showSharePanel, setShowSharePanel] = useState(false)
+  const [_editMode, setEditMode] = useState(false)
+  const [_shareLink, setShareLink] = useState('')
+  const [_linkExpiresAt, setLinkExpiresAt] = useState('')
+  const [_linkActive, setLinkActive] = useState(true)
+  const [_saving, setSaving] = useState(false)
+  const [_showSharePanel, setShowSharePanel] = useState(false)
   
   // Estados para edição
-  const [editingBloco, setEditingBloco] = useState(null)
-  const [editingExercicio, setEditingExercicio] = useState(null)
-  const [blocoForm, setBlocoForm] = useState({
+  const [_editingBloco, setEditingBloco] = useState(null)
+  const [_editingExercicio, setEditingExercicio] = useState(null)
+  const [_blocoForm, setBlocoForm] = useState({
     tipo_bloco: '',
     prescricao: '',
     ordem: 1

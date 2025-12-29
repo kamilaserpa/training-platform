@@ -57,7 +57,7 @@ const TreinoDetalhes = () => {
   const [linkActive, setLinkActive] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showSharePanel, setShowSharePanel] = useState(false)
-  
+
   // Estados para edição
   const [editingBloco, setEditingBloco] = useState(null)
   const [editingExercicio, setEditingExercicio] = useState(null)
@@ -73,7 +73,7 @@ const TreinoDetalhes = () => {
     carga: '',
     observacoes: ''
   })
-  
+
   const { canEdit, isAuthenticated } = useAuth()
 
   useEffect(() => {
@@ -86,12 +86,12 @@ const TreinoDetalhes = () => {
       const { data, error } = await treinosService.getById(id)
       if (error) throw error
       setTreino(data)
-      
+
       // Configurar link de compartilhamento
       if (canEdit && data.token_compartilhamento) {
         const baseUrl = window.location.origin
         setShareLink(`${baseUrl}/treino-publico/${data.token_compartilhamento}`)
-        
+
         if (data.link_expires_at) {
           const expiresDate = new Date(data.link_expires_at)
           const year = expiresDate.getFullYear()
@@ -117,15 +117,15 @@ const TreinoDetalhes = () => {
       const newToken = crypto.randomUUID()
       try {
         const { error } = await supabase.from('treinos')
-          .update({ 
+          .update({
             token_compartilhamento: newToken,
             link_active: true,
             link_expires_at: null
           })
           .eq('id', id)
-        
+
         if (error) throw error
-        
+
         await loadTreino()
         const baseUrl = window.location.origin
         const link = `${baseUrl}/treino-publico/${newToken}`
@@ -147,13 +147,13 @@ const TreinoDetalhes = () => {
         link_active: linkActive,
         link_expires_at: linkExpiresAt || null
       }
-      
+
       const { error } = await supabase.from('treinos')
         .update(updates)
         .eq('id', id)
-      
+
       if (error) throw error
-      
+
       alert('Configurações de compartilhamento atualizadas!')
       await loadTreino()
     } catch (error) {
@@ -185,7 +185,7 @@ const TreinoDetalhes = () => {
 
   const handleDeleteBloco = (blocoId) => {
     if (!confirm('Remover este bloco?')) return
-    
+
     setTreino(prev => ({
       ...prev,
       blocos_treino: prev.blocos_treino.filter(b => b.id !== blocoId)
@@ -219,7 +219,7 @@ const TreinoDetalhes = () => {
   const handleAddExercicio = (blocoId) => {
     const bloco = treino.blocos_treino.find(b => b.id === blocoId)
     const maxOrdem = Math.max(...(bloco.bloco_exercicios || []).map(e => e.ordem), 0)
-    
+
     setExercicioForm({
       nome: '',
       series: '',
@@ -243,7 +243,7 @@ const TreinoDetalhes = () => {
 
   const handleDeleteExercicio = (blocoId, exercicioId) => {
     if (!confirm('Remover este exercício?')) return
-    
+
     setTreino(prev => ({
       ...prev,
       blocos_treino: prev.blocos_treino.map(b =>
@@ -256,7 +256,7 @@ const TreinoDetalhes = () => {
 
   const saveExercicio = () => {
     const { blocoId, id: exercicioId } = editingExercicio
-    
+
     if (exercicioId === 'new') {
       const newExercicio = {
         id: `temp-${Date.now()}`,
@@ -271,7 +271,7 @@ const TreinoDetalhes = () => {
           grupo_muscular: ''
         }
       }
-      
+
       setTreino(prev => ({
         ...prev,
         blocos_treino: prev.blocos_treino.map(b =>
@@ -286,23 +286,23 @@ const TreinoDetalhes = () => {
         blocos_treino: prev.blocos_treino.map(b =>
           b.id === blocoId
             ? {
-                ...b,
-                bloco_exercicios: b.bloco_exercicios.map(e =>
-                  e.id === exercicioId
-                    ? {
-                        ...e,
-                        series: exercicioForm.series,
-                        repeticoes: exercicioForm.repeticoes,
-                        carga: exercicioForm.carga,
-                        exercicios: {
-                          ...e.exercicios,
-                          nome: exercicioForm.nome,
-                          observacoes: exercicioForm.observacoes
-                        }
-                      }
-                    : e
-                )
-              }
+              ...b,
+              bloco_exercicios: b.bloco_exercicios.map(e =>
+                e.id === exercicioId
+                  ? {
+                    ...e,
+                    series: exercicioForm.series,
+                    repeticoes: exercicioForm.repeticoes,
+                    carga: exercicioForm.carga,
+                    exercicios: {
+                      ...e.exercicios,
+                      nome: exercicioForm.nome,
+                      observacoes: exercicioForm.observacoes
+                    }
+                  }
+                  : e
+              )
+            }
             : b
         )
       }))
@@ -403,7 +403,7 @@ const TreinoDetalhes = () => {
           {treino.blocos_treino
             .sort((a, b) => a.ordem - b.ordem)
             .map((bloco, index) => (
-              <MuiAccordion 
+              <MuiAccordion
                 key={bloco.id}
                 defaultExpanded={!editMode}
                 sx={{ '&:before': { display: 'none' } }}
@@ -437,7 +437,7 @@ const TreinoDetalhes = () => {
                     )}
                   </Box>
                 </AccordionSummary>
-                
+
                 <AccordionDetails>
                   {bloco.prescricao && (
                     <Alert severity="info" sx={{ mb: 2 }}>
@@ -595,7 +595,7 @@ const TreinoDetalhes = () => {
                 <option key={key} value={key}>{label}</option>
               ))}
             </TextField>
-            
+
             <TextField
               label="Prescrição"
               value={blocoForm.prescricao}
@@ -625,7 +625,7 @@ const TreinoDetalhes = () => {
               onChange={(e) => setExercicioForm({ ...exercicioForm, nome: e.target.value })}
               fullWidth
             />
-            
+
             <Grid container spacing={2}>
               <Grid item xs={4}>
                 <TextField
@@ -652,7 +652,7 @@ const TreinoDetalhes = () => {
                 />
               </Grid>
             </Grid>
-            
+
             <TextField
               label="Observações"
               value={exercicioForm.observacoes}
@@ -689,7 +689,7 @@ const TreinoDetalhes = () => {
                   }}
                   fullWidth
                 />
-                
+
                 <FormControlLabel
                   control={
                     <Switch
@@ -699,7 +699,7 @@ const TreinoDetalhes = () => {
                   }
                   label="Link Ativo"
                 />
-                
+
                 <TextField
                   label="Expiração do Link (opcional)"
                   type="datetime-local"

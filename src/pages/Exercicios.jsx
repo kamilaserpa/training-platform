@@ -1,5 +1,5 @@
 // Página de gerenciamento de exercícios (apenas Owner)
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -86,8 +86,7 @@ const exerciciosMock = [
 
 const Exercicios = () => {
   const [exercicios, setExercicios] = useState(exerciciosMock)
-  const [filteredExercicios, setFilteredExercicios] = useState(exerciciosMock)
-  const [loading, setLoading] = useState(false)
+  const [_loading, _setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -104,15 +103,8 @@ const Exercicios = () => {
   // Obter padrões únicos para o filtro
   const padroesUnicos = [...new Set(exercicios.map(ex => ex.padrao_movimento).filter(Boolean))].sort()
 
-  useEffect(() => {
-    if (!canEdit) {
-      navigate('/')
-      return
-    }
-  }, [canEdit, navigate])
-
-  // Filtrar exercícios baseado na busca e padrão selecionado
-  useEffect(() => {
+  // Filtrar exercícios usando useMemo em vez de useEffect
+  const filteredExercicios = useMemo(() => {
     let filtered = exercicios
 
     // Filtro por nome
@@ -127,8 +119,15 @@ const Exercicios = () => {
       filtered = filtered.filter(exercicio => exercicio.padrao_movimento === selectedPadrao)
     }
 
-    setFilteredExercicios(filtered)
+    return filtered
   }, [exercicios, searchTerm, selectedPadrao])
+
+  useEffect(() => {
+    if (!canEdit) {
+      navigate('/')
+      return
+    }
+  }, [canEdit, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -187,7 +186,7 @@ const Exercicios = () => {
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
   }
 
-  if (loading) {
+  if (_loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Typography>Carregando exercícios...</Typography>
