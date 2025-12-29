@@ -28,6 +28,7 @@
     "@iconify/react": "^6.0.2",
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
+    "@mui/x-data-grid": "^8.23.0",
     "@mui/x-date-pickers": "^8.23.0",
     "@supabase/supabase-js": "^2.89.0",
     "dayjs": "^1.11.19",

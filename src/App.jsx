@@ -13,7 +13,7 @@ import TreinoDetalhes from './pages/TreinoDetalhes'
 import TreinoDetalhesForm from './pages/TreinoDetalhesForm'
 import TreinoPublico from './pages/TreinoPublico'
 import Exercicios from './pages/Exercicios'
-import TiposTreino from './pages/TiposTreino'
+import Configuracoes from './pages/Configuracoes'
 import Usuarios from './pages/Usuarios'
 import FormSemana from './pages/FormSemana'
 import FormTreino from './pages/FormTreino'
@@ -81,6 +81,14 @@ function AppRoutes() {
       }
     />
     <Route
+      path="/treinos/novo"
+      element={
+        <AuthenticatedRoute>
+          <TreinoDetalhesForm />
+        </AuthenticatedRoute>
+      }
+    />
+    <Route
       path="/treinos/form-demo"
       element={
         <AuthenticatedRoute>
@@ -107,10 +115,10 @@ function AppRoutes() {
        }
      />
      <Route
-       path="/tipos-treino"
+       path="/configuracoes"
        element={
          <OwnerRoute>
-           <TiposTreino />
+           <Configuracoes />
          </OwnerRoute>
        }
      />

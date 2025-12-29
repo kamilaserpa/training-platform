@@ -61,15 +61,14 @@ const Navbar = () => {
     menuItems.push(
       { label: 'Semanas', path: '/', icon: <CalendarIcon /> },
       { label: 'Treinos', path: '/treinos', icon: <FitnessCenterIcon /> },
-      { label: 'Histórico', path: '/historico', icon: <HistoryIcon /> },
-      { label: '🧪 Formulário (Teste)', path: '/treinos/form-demo', icon: <ScienceIcon />, isTest: true }
+      { label: 'Histórico', path: '/historico', icon: <HistoryIcon /> }
     )
   }
 
   if (isOwner) {
     menuItems.push(
       { label: 'Exercícios', path: '/exercicios', icon: <ExerciseIcon /> },
-      { label: 'Tipos', path: '/tipos-treino', icon: <CategoryIcon /> },
+      { label: 'Configurações', path: '/configuracoes', icon: <CategoryIcon /> },
       { label: 'Usuários', path: '/usuarios', icon: <PeopleIcon /> }
     )
   }

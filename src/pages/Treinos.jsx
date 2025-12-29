@@ -306,6 +306,7 @@ import {
   Box,
 } from '@mui/material'
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter'
+import AddIcon from '@mui/icons-material/Add'
 
 // 🔹 DADOS MOCKADOS
 const treinosMock = [
@@ -407,122 +408,133 @@ function Treinos() {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
-      <Stack direction="row" alignItems="center" spacing={2} mb={4}>
-        <FitnessCenterIcon color="primary" fontSize="large" />
-        <Typography variant="h4" fontWeight="700">
-          Treinos
-        </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <FitnessCenterIcon color="primary" fontSize="large" />
+          <Typography variant="h4" fontWeight="700">
+            Treinos
+          </Typography>
+        </Stack>
+        
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => navigate('/treinos/novo')}
+          sx={{ minWidth: 150 }}
+        >
+          + Novo Treino
+        </Button>
       </Stack>
 
-     <Grid container spacing={3}>
-       {treinosMock.map((treino) => (
-         <Grid
-           item
-           key={treino.id}
-           xs={12}
-           sm={6}
-           md={4}
-           lg={2.4}
-         >
-          <Card key={treino.id} variant="outlined"
-            sx={{
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-            <CardContent>
-              {/* Cabeçalho do treino */}
-              <Stack spacing={0.5} mb={2}>
-                <Typography variant="subtitle1" fontWeight="700">
-                  Treino
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {treino.semana} - {treino.diaSemana}
-                </Typography>
-                <Chip
-                  label={treino.padrao_movimento}
-                  size="small"
-                  color="primary"
-                  sx={{ width: 'fit-content', mt: 1 }}
-                />
-              </Stack>
-
-              <Divider sx={{ mb: 2 }} />
-
-              <List dense disablePadding>
-                {/* Mobilidade */}
-                <ListItem disableGutters>
-                  <ListItemText
-                    primary="Mobilidade Articular"
-                    secondary={treino.mobilidade.join(', ')}
+      <Grid container spacing={3}>
+        {treinosMock.map((treino) => (
+          <Grid
+            item
+            key={treino.id}
+            xs={12}
+            sm={6}
+            md={4}
+            lg={2.4}
+          >
+            <Card key={treino.id} variant="outlined"
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
+              <CardContent>
+                {/* Cabeçalho do treino */}
+                <Stack spacing={0.5} mb={2}>
+                  <Typography variant="subtitle1" fontWeight="700">
+                    Treino
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {`Semana ${treino.semana} - ${treino.diaSemana}`}
+                  </Typography>
+                  <Chip
+                    label={treino.padrao_movimento}
+                    size="small"
+                    color="primary"
+                    sx={{ width: 'fit-content', mt: 1 }}
                   />
-                </ListItem>
+                </Stack>
 
-                {/* Core */}
-                <ListItem disableGutters>
-                  <ListItemText
-                    primary="Ativação de Core"
-                    secondary={
-                      <>
-                        <Typography variant="body2">
-                          {treino.core.protocolo}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {treino.core.exercicios.join(', ')}
-                        </Typography>
-                      </>
-                    }
-                  />
-                </ListItem>
+                <Divider sx={{ mb: 2 }} />
 
-                {/* Neural */}
-                <ListItem disableGutters>
-                  <ListItemText
-                    primary="Ativação Neural"
-                    secondary={treino.neural.join(', ')}
-                  />
-                </ListItem>
+                <List dense disablePadding>
+                  {/* Mobilidade */}
+                  <ListItem disableGutters>
+                    <ListItemText
+                      primary="Mobilidade Articular"
+                      secondary={treino.mobilidade.join(', ')}
+                    />
+                  </ListItem>
 
-                {/* Bloco 01 */}
-                <ListItem disableGutters>
-                  <ListItemText
-                    primary="Treino Bloco 01"
-                    secondary={
-                      <>
-                        <Typography variant="body2">
-                          {treino.treino_bloco1.protocolo}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {treino.treino_bloco1.exercicios.join(', ')}
-                        </Typography>
-                      </>
-                    }
-                  />
-                </ListItem>
+                  {/* Core */}
+                  <ListItem disableGutters>
+                    <ListItemText
+                      primary="Ativação de Core"
+                      secondary={
+                        <>
+                          <Typography variant="body2">
+                            {treino.core.protocolo}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {treino.core.exercicios.join(', ')}
+                          </Typography>
+                        </>
+                      }
+                    />
+                  </ListItem>
 
-                {/* Condicionamento */}
-                <ListItem disableGutters>
-                  <ListItemText
-                    primary="Condicionamento Físico"
-                    secondary={treino.condicionamento.join(', ')}
-                  />
-                </ListItem>
-              </List>
+                  {/* Neural */}
+                  <ListItem disableGutters>
+                    <ListItemText
+                      primary="Ativação Neural"
+                      secondary={treino.neural.join(', ')}
+                    />
+                  </ListItem>
 
-              <Box mt="auto">
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() => navigate(`/treinos/${treino.id}`)}
-                >
-                  Ver detalhes do treino
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-       </Grid>
-         ))}
-       </Grid>
+                  {/* Bloco 01 */}
+                  <ListItem disableGutters>
+                    <ListItemText
+                      primary="Treino Bloco 01"
+                      secondary={
+                        <>
+                          <Typography variant="body2">
+                            {treino.treino_bloco1.protocolo}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {treino.treino_bloco1.exercicios.join(', ')}
+                          </Typography>
+                        </>
+                      }
+                    />
+                  </ListItem>
+
+                  {/* Condicionamento */}
+                  <ListItem disableGutters>
+                    <ListItemText
+                      primary="Condicionamento Físico"
+                      secondary={treino.condicionamento.join(', ')}
+                    />
+                  </ListItem>
+                </List>
+
+                <Box mt="auto">
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={() => navigate(`/treinos/form-demo`)} ///${treino.id}
+                  >
+                    Ver detalhes do treino
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
     </Container>
   )
 }
