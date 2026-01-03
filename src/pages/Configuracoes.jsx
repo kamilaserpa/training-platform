@@ -27,6 +27,9 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
+  Settings as SettingsIcon,
+  TrendingUp as TrendingUpIcon,
+  DirectionsRun as DirectionsRunIcon,
 } from '@mui/icons-material'
 
 // 🔹 Dados mockados - Focos da Semana
@@ -243,29 +246,52 @@ function Configuracoes() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" fontWeight="700" mb={4}>
-        Configurações → Semana & Movimento
-      </Typography>
+      {/* Header da página */}
+      <Box mb={4}>
+        <Box display="flex" alignItems="center" gap={2} mb={2}>
+          <SettingsIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+          <Typography variant="h4" fontWeight="700">
+            Configurações
+          </Typography>
+        </Box>
+        <Typography variant="body1" color="text.secondary">
+          Gerencie os focos da semana e padrões de movimento do sistema
+        </Typography>
+      </Box>
 
-      {/* 🟦 Seção 1: Focos da Semana */}
-      <Card sx={{ mb: 6 }}>
-        <CardContent>
+      {/* Seção 1: Focos da Semana */}
+      <Card sx={{ mb: 4, boxShadow: 1 }}>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h5" fontWeight="600" color="primary.main">
-              🟦 Focos da Semana
-            </Typography>
+            <Box display="flex" alignItems="center" gap={2}>
+              <TrendingUpIcon sx={{ fontSize: 28, color: 'primary.main' }} />
+              <Typography 
+                variant="h5" 
+                fontWeight="600"
+                sx={{
+                  fontSize: { xs: '1.1rem', md: '1.5rem' }
+                }}
+              >
+                Focos da Semana
+              </Typography>
+            </Box>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setFocoDialogOpen(true)}
+              sx={{ 
+                borderRadius: 1,
+                minWidth: { xs: 'auto', md: 'auto' },
+                px: { xs: 1, md: 2 }
+              }}
             >
-              + Novo Foco da Semana
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Novo Foco</Box>
             </Button>
           </Stack>
 
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
             <Table>
-              <TableHead>
+              <TableHead sx={{ bgcolor: 'grey.50' }}>
                 <TableRow>
                   <TableCell>
                     <Typography variant="subtitle2" fontWeight="600">Nome</Typography>
@@ -300,20 +326,26 @@ function Configuracoes() {
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
+                      <Stack direction="row" spacing={0.5} justifyContent="center">
                         <IconButton
                           size="small"
                           onClick={() => handleEditFoco(foco)}
-                          color="primary"
+                          sx={{ 
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.lighter' }
+                          }}
                         >
-                          <EditIcon />
+                          <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
                           onClick={() => handleDeleteFoco(foco.id)}
-                          color="error"
+                          sx={{ 
+                            color: 'error.main',
+                            '&:hover': { bgcolor: 'error.lighter' }
+                          }}
                         >
-                          <DeleteIcon />
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Stack>
                     </TableCell>
@@ -325,25 +357,39 @@ function Configuracoes() {
         </CardContent>
       </Card>
 
-      {/* 🟩 Seção 2: Padrões de Movimento */}
-      <Card>
-        <CardContent>
+      {/* Seção 2: Padrões de Movimento */}
+      <Card sx={{ boxShadow: 1 }}>
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h5" fontWeight="600" color="success.main">
-              🟩 Padrões de Movimento
-            </Typography>
+            <Box display="flex" alignItems="center" gap={2}>
+              <DirectionsRunIcon sx={{ fontSize: 28, color: 'primary.main' }} />
+              <Typography 
+                variant="h5" 
+                fontWeight="600"
+                sx={{
+                  fontSize: { xs: '1.1rem', md: '1.5rem' }
+                }}
+              >
+                Padrões de Movimento
+              </Typography>
+            </Box>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setPadraoDialogOpen(true)}
+              sx={{ 
+                borderRadius: 1,
+                minWidth: { xs: 'auto', md: 'auto' },
+                px: { xs: 1, md: 2 }
+              }}
             >
-              + Novo Padrão de Movimento
+              <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Novo Padrão</Box>
             </Button>
           </Stack>
 
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
             <Table>
-              <TableHead>
+              <TableHead sx={{ bgcolor: 'grey.50' }}>
                 <TableRow>
                   <TableCell>
                     <Typography variant="subtitle2" fontWeight="600">Nome</Typography>
@@ -362,20 +408,26 @@ function Configuracoes() {
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
+                      <Stack direction="row" spacing={0.5} justifyContent="center">
                         <IconButton
                           size="small"
                           onClick={() => handleEditPadrao(padrao)}
-                          color="primary"
+                          sx={{ 
+                            color: 'primary.main',
+                            '&:hover': { bgcolor: 'primary.lighter' }
+                          }}
                         >
-                          <EditIcon />
+                          <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
                           onClick={() => handleDeletePadrao(padrao.id)}
-                          color="error"
+                          sx={{ 
+                            color: 'error.main',
+                            '&:hover': { bgcolor: 'error.lighter' }
+                          }}
                         >
-                          <DeleteIcon />
+                          <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Stack>
                     </TableCell>

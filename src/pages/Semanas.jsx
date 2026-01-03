@@ -129,8 +129,18 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Grid,
+  Card,
+  CardContent,
+  Divider,
 } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { 
+  Add as AddIcon,
+  Search as SearchIcon,
+  FilterList as FilterListIcon,
+  Clear as ClearIcon
+} from '@mui/icons-material'
+import { data, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
 function TreinoCell({ treino }) {
@@ -188,10 +198,13 @@ const semanasMock = [
   {
     semestre: '2025.1',
     numeroSemana: 1,
-    focoSemana: { nome: 'Hipertrofia', intensidade: 65, descricao: 'Foco em hipertrofia muscular' },
-    treinos: {
-      segunda: {
+    data_inicio: '2025-03-03',
+    focoSemana: { nome: 'Hipertrofia', intensidade: 65, 
+      descricao: 'Foco em hipertrofia muscular' },
+    treinos: [
+       {
         nome: 'Treino 01',
+            diaSemana: 'Segunda',
         padroes_movimento: ['Dobrar', 'Puxar Vertical'],
         mobilidade: ['Ombro, Tronco, Quadril, Tornozelo'],
         core: {
@@ -206,8 +219,9 @@ const semanasMock = [
         treino_bloco2: '-',
         condicionamento: 'Burpee Tabata',
       },
-      terca: {
+       {
         nome: 'Treino 02',
+        diaSemana: 'Terça',
         padroes_movimento: ['Agachar', 'Empurrar Vertical'],
         mobilidade: ['Quadril, Joelho, Tornozelo'],
         core: {
@@ -225,8 +239,9 @@ const semanasMock = [
         },
         condicionamento: 'Bike 10 min',
       },
-      quarta: {
+       {
         nome: 'Treino 04',
+        diaSemana: 'Quarta',
         padroes_movimento: ['Agachar'],
         mobilidade: ['Quadril, Tornozelo'],
         core: {
@@ -241,8 +256,9 @@ const semanasMock = [
         treino_bloco2: '-',
         condicionamento: 'Sled Push',
       },
-      quinta: {
+       {
         nome: 'Treino 03',
+         diaSemana: 'Quinta',
         padroes_movimento: ['Puxar Vertical'],
         mobilidade: ['Escápula, Ombro'],
         core: {
@@ -258,15 +274,15 @@ const semanasMock = [
         treino_bloco2: '-',
         condicionamento: 'Corrida 1km',
       },
-    },
-  },
+],},
+  
   {
     semestre: '2025.1',
     numeroSemana: 2,
     focoSemana: { nome: 'Resistência', intensidade: 50, descricao: 'Foco em resistência muscular' },
-    treinos: {
-      segunda: {
+    treinos: [ {
         nome: 'Treino 01',
+        diaSemana: 'Segunda',
         padroes_movimento: ['Puxar Vertical'],
         mobilidade: ['Escápula, Ombro'],
         core: {
@@ -282,8 +298,9 @@ const semanasMock = [
         treino_bloco2: '-',
         condicionamento: 'Corrida 1km',
       },
-      quarta: {
+       {
         nome: 'Treino 03',
+        diaSemana: 'Quarta',
         padroes_movimento: ['Agachar'],
         mobilidade: ['Quadril, Tornozelo'],
         core: {
@@ -297,9 +314,8 @@ const semanasMock = [
         },
         treino_bloco2: '-',
         condicionamento: 'Sled Push',
-      },
+      },],
     },
-  },
 ]
 
 function renderCell(treino, key, navigate) {
@@ -308,6 +324,9 @@ function renderCell(treino, key, navigate) {
   switch (key) {
     case 'nome':
       return <TreinoCell treino={treino} />
+
+    case 'diaSemana':
+      return treino.diaSemana || '-'
 
     case 'padroes_movimento':
       return treino.padroes_movimento ? (
@@ -360,7 +379,7 @@ function renderCell(treino, key, navigate) {
       return treino ? (
         <Button
           size="small"
-          variant="contained"
+          variant="outlined"
           onClick={() => navigate(`/treinos/form-demo`)}//${treino.id}`
           sx={{
             '@media print': {
@@ -378,13 +397,39 @@ function renderCell(treino, key, navigate) {
 }
 
 // 🔹 Componente do formulário de nova semana
-function NovaSemanaDialog({ open, onClose, onSave }) {
+function NovaSemanaDialog({ open, onClose, onSave, editData = null }) {
+  const isEditing = !!editData
+  
   const [formData, setFormData] = useState({
     ano: new Date().getFullYear(),
     semestre: 1,
     numeroSemana: 1,
     focoSemanaId: '',
+    dataInicio: '',
   })
+
+  // Preenche os dados quando em modo de edição
+  useState(() => {
+    if (editData && open) {
+      const [ano, semestre] = editData.semestre.split('.')
+      setFormData({
+        ano: parseInt(ano),
+        semestre: parseInt(semestre),
+        numeroSemana: editData.numeroSemana,
+        focoSemanaId: editData.focoSemana?.id || '',
+        dataInicio: editData.data_inicio || '',
+      })
+    } else if (!editData && open) {
+      // Reset para modo de criação
+      setFormData({
+        ano: new Date().getFullYear(),
+        semestre: 1,
+        numeroSemana: 1,
+        focoSemanaId: '',
+        dataInicio: '',
+      })
+    }
+  }, [editData, open])
 
   const handleChange = (field) => (event) => {
     setFormData(prev => ({
@@ -403,15 +448,16 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
     // Encontra o foco da semana selecionado
     const focoSemana = focosSemanaMock.find(foco => foco.id === formData.focoSemanaId)
 
-    // Cria a nova semana
-    const novaSemana = {
+    // Cria ou atualiza a semana
+    const semanaData = {
       semestre: `${formData.ano}.${formData.semestre}`,
       numeroSemana: formData.numeroSemana,
       focoSemana: focoSemana,
-      treinos: {} // Inicialmente vazia, será preenchida posteriormente
+      ...(formData.dataInicio && { data_inicio: formData.dataInicio }),
+      treinos: editData?.treinos || [] // Mantém treinos existentes ou array vazio
     }
 
-    onSave(novaSemana)
+    onSave(semanaData, isEditing)
 
     // Reset do formulário
     setFormData({
@@ -419,6 +465,7 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
       semestre: 1,
       numeroSemana: 1,
       focoSemanaId: '',
+      dataInicio: '',
     })
 
     onClose()
@@ -426,9 +473,20 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Nova Semana de Treino</DialogTitle>
+      <DialogTitle>
+        {isEditing ? 'Editar Semana de Treino' : 'Nova Semana de Treino'}
+      </DialogTitle>
       <DialogContent>
         <Stack spacing={3} sx={{ mt: 2 }}>
+          <TextField
+            label="Data de Início (Opcional)"
+            type="date"
+            value={formData.dataInicio}
+            onChange={handleChange('dataInicio')}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+          
           <TextField
             label="Ano"
             type="number"
@@ -487,32 +545,108 @@ function NovaSemanaDialog({ open, onClose, onSave }) {
 }
 
 
-function SemanaTable({ semana, navigate }) {
+function SemanaTable({ semana, navigate, onEdit }) {
   return (
-    <Box mb={6}>
-      <Stack direction="row" alignItems="left" spacing={2} mb={2}>
-        <Typography variant="h6" fontWeight="700">
-          Semana {String(semana.numeroSemana).padStart(2, '0')} — {semana.focoSemana?.nome}
-          {semana.focoSemana?.intensidade && ` (${semana.focoSemana.intensidade}%)`}
-        </Typography>
-        <Chip label={semana.semestre} size="small" />
-        {semana.focoSemana && (
-          <Chip
-            label={`Foco: ${semana.focoSemana.nome}`}
-            color="primary"
-            variant="outlined"
+    <Box mb={4}>
+      {/* Compact Header */}
+      <Box 
+        sx={{ 
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          mb: 2
+        }}
+      >
+        {/* Linha principal */}
+        <Stack 
+          direction="row" 
+          justifyContent="space-between" 
+          alignItems="center" 
+          sx={{ 
+            bgcolor: 'grey.50',
+            px: 2,
+            py: 1.5,
+            borderBottom: '1px solid',
+            borderColor: 'divider'
+          }}
+        >
+          <Typography variant="h6" fontWeight="600" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            📚 Semana {String(semana.numeroSemana).padStart(2, '0')}
+          </Typography>
+          <Button
             size="small"
-          />
-        )}
-      </Stack>
+            variant="contained"
+            onClick={() => onEdit(semana)}
+            sx={{ 
+               bgcolor: 'rgba(255,255,255,0.2)',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+              borderRadius: 2,
+              minWidth: 'auto',
+              textTransform: 'none',
+              fontWeight: 500,
+              color: 'primary.main'
+            }}
+          >
+            Editar
+          </Button>
+        </Stack>
+
+        {/* Linha de informações */}
+        <Box sx={{ px: 2, py: 1, bgcolor: 'background.paper' }}>
+          <Stack 
+            direction="row" 
+            spacing={2} 
+            alignItems="center"
+            flexWrap="wrap"
+          >
+            {/* Foco */}
+            {semana.focoSemana && (
+              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                🎯 <strong>{semana.focoSemana.nome}</strong>
+                {semana.focoSemana.intensidade && ` (${semana.focoSemana.intensidade}%)`}
+              </Typography>
+            )}
+            
+            {/* Data de início */}
+            {semana.data_inicio && (
+              <>
+                <Typography variant="body2" color="text.secondary">•</Typography>
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  📅 Início: {new Date(semana.data_inicio).toLocaleDateString('pt-BR')} • {semana.semestre}
+                </Typography>
+              </>
+            )} 
+          </Stack>
+        </Box>
+      </Box>
 
       <TableContainer component={Paper} sx={{ mb: 4, maxWidth: '100%', overflowX: 'auto' }}>
-        <Table size="small">
+        <Table size="small" sx={{ minWidth: '800px' }}>
           <TableHead>
             <TableRow>
-              <TableCell />
+              <TableCell sx={{ 
+                fontWeight: 600, 
+                position: 'sticky', 
+                left: 0, 
+                zIndex: 2, 
+                bgcolor: 'background.paper',
+                minWidth: '120px',
+                maxWidth: '120px',
+                wordWrap: 'break-word',
+                whiteSpace: 'normal'
+              }} />
               {diasSemana.map((dia) => (
-                <TableCell key={dia.key} align="left">
+                <TableCell 
+                  key={dia.key} 
+                  align="left" 
+                  sx={{ 
+                    fontWeight: 600,
+                    minWidth: '150px',
+                    width: `${100 / diasSemana.length}%`,
+                    wordWrap: 'break-word',
+                    whiteSpace: 'normal'
+                  }}
+                >
                   {dia.label}
                 </TableCell>
               ))}
@@ -523,16 +657,40 @@ function SemanaTable({ semana, navigate }) {
             {linhasTabela.map((linha) => (
               <TableRow key={linha.key}>
                 {/* Coluna fixa da esquerda */}
-                <TableCell sx={{ fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
+                <TableCell sx={{ 
+                  fontWeight: 600, 
+                  position: 'sticky', 
+                  left: 0, 
+                  zIndex: 1, 
+                  bgcolor: 'background.paper',
+                  minWidth: '120px',
+                  maxWidth: '120px',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'normal',
+                  borderRight: '1px solid rgba(224, 224, 224, 1)'
+                }}>
                   {linha.label}
                 </TableCell>
 
                 {/* Colunas dos dias */}
                 {diasSemana.map((dia) => {
-                  const treino = semana.treinos[dia.key]
+                  // Encontra o treino para este dia da semana
+                  const treino = semana.treinos.find(t => 
+                    t.diaSemana?.toLowerCase() === dia.label.toLowerCase()
+                  )
 
                   return (
-                    <TableCell key={dia.key} align="left">
+                    <TableCell 
+                      key={dia.key} 
+                      align="left" 
+                      sx={{ 
+                        minWidth: '150px',
+                        width: `${100 / diasSemana.length}%`,
+                        wordWrap: 'break-word',
+                        whiteSpace: 'normal',
+                        verticalAlign: 'top'
+                      }}
+                    >
                       {renderCell(treino, linha.key, navigate)}
                     </TableCell>
                   )
@@ -550,9 +708,104 @@ function Semanas() {
   const navigate = useNavigate()
   const [semanas, setSemanas] = useState(semanasMock)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingSemana, setEditingSemana] = useState(null)
+  
+  // Estados dos filtros
+  const [filtros, setFiltros] = useState({
+    ano: '',
+    semestre: '',
+    focoSemana: '',
+    buscaLivre: ''
+  })
 
-  const handleNovaSemana = (novaSemana) => {
-    setSemanas(prev => [...prev, novaSemana])
+  // Função para filtrar semanas
+  const semanasFiltradas = semanas.filter(semana => {
+    // Filtro por Ano
+    if (filtros.ano) {
+      const anoSemana = semana.semestre.split('.')[0]
+      if (anoSemana !== filtros.ano) return false
+    }
+
+    // Filtro por Semestre
+    if (filtros.semestre) {
+      const semestreSemana = semana.semestre.split('.')[1]
+      if (semestreSemana !== filtros.semestre) return false
+    }
+
+    // Filtro por Foco da Semana
+    if (filtros.focoSemana) {
+      if (semana.focoSemana?.nome !== filtros.focoSemana) return false
+    }
+
+    // Busca Livre - busca em múltiplos campos
+    if (filtros.buscaLivre) {
+      const termo = filtros.buscaLivre.toLowerCase()
+      const buscaEm = [
+        semana.focoSemana?.nome || '',
+        semana.focoSemana?.descricao || '',
+        semana.semestre,
+        semana.numeroSemana.toString(),
+        ...semana.treinos.map(t => (
+          [
+            t.nome || '',
+            t.diaSemana || '',
+            ...(t.padroes_movimento || []),
+            ...(t.mobilidade || []),
+            t.neural || ''
+          ].join(' ')
+        ))
+      ].join(' ').toLowerCase()
+
+      if (!buscaEm.includes(termo)) return false
+    }
+
+    return true
+  })
+
+  // Handler para mudanças nos filtros
+  const handleFiltroChange = (campo) => (event) => {
+    setFiltros(prev => ({
+      ...prev,
+      [campo]: event.target.value
+    }))
+  }
+
+  // Função para limpar todos os filtros
+  const limparFiltros = () => {
+    setFiltros({
+      ano: '',
+      semestre: '',
+      focoSemana: '',
+      buscaLivre: ''
+    })
+  }
+
+  // Opções para os filtros
+  const anosDisponiveis = [...new Set(semanas.map(s => s.semestre.split('.')[0]))].sort()
+  const semestresDisponiveis = [...new Set(semanas.map(s => s.semestre.split('.')[1]))].sort()
+  const focosDisponiveis = [...new Set(semanas.map(s => s.focoSemana?.nome).filter(Boolean))].sort()
+
+  const handleNovaSemana = (semanaData, isEditing = false) => {
+    if (isEditing) {
+      setSemanas(prev => prev.map(semana => 
+        semana.numeroSemana === editingSemana.numeroSemana && 
+        semana.semestre === editingSemana.semestre
+          ? { ...semana, ...semanaData }
+          : semana
+      ))
+    } else {
+      setSemanas(prev => [...prev, semanaData])
+    }
+  }
+
+  const handleEditSemana = (semana) => {
+    setEditingSemana(semana)
+    setDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false)
+    setEditingSemana(null)
   }
 
   return (
@@ -563,25 +816,144 @@ function Semanas() {
         </Typography>
         <Button
           variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
-          sx={{ minWidth: 150 }}
+          sx={{ 
+            minWidth: { xs: 'auto', md: 150 },
+            px: { xs: 1, md: 2 }
+          }}
         >
-          + Nova Semana
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Nova Semana</Box>
         </Button>
       </Stack>
 
-      {semanas.map((semana) => (
-        <SemanaTable
-          key={`${semana.semestre}-${semana.numeroSemana}`}
-          semana={semana}
-          navigate={navigate}
-        />
-      ))}
+      {/* Filtros */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ py: 2 }}>
+          <Stack 
+            direction={{ xs: 'column', md: 'row' }} 
+            spacing={2} 
+            alignItems={{ xs: 'stretch', md: 'center' }}
+          >
+            {/* Título e botão limpar */}
+            <Box display="flex" alignItems="center" gap={1}>
+              <FilterListIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+              <Typography variant="body1" fontWeight="600">
+                Filtros:
+              </Typography>
+            </Box>
+            
+            {/* Campos de filtro em uma linha */}
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              spacing={2} 
+              flex={1}
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+            >
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Ano</InputLabel>
+                <Select
+                  value={filtros.ano}
+                  onChange={handleFiltroChange('ano')}
+                  label="Ano"
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  {anosDisponiveis.map(ano => (
+                    <MenuItem key={ano} value={ano}>{ano}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <InputLabel>Semestre</InputLabel>
+                <Select
+                  value={filtros.semestre}
+                  onChange={handleFiltroChange('semestre')}
+                  label="Semestre"
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  {semestresDisponiveis.map(semestre => (
+                    <MenuItem key={semestre} value={semestre}>
+                      {semestre}º Semestre
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Foco da Semana</InputLabel>
+                <Select
+                  value={filtros.focoSemana}
+                  onChange={handleFiltroChange('focoSemana')}
+                  label="Foco da Semana"
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  {focosDisponiveis.map(foco => (
+                    <MenuItem key={foco} value={foco}>{foco}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                size="small"
+                label="Busca Livre"
+                value={filtros.buscaLivre}
+                onChange={handleFiltroChange('buscaLivre')}
+                placeholder="Hipertrofia, Agachar..."
+                sx={{ minWidth: 200, flex: 1 }}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 0.5, color: 'text.secondary', fontSize: 18 }} />
+                }}
+              />
+            </Stack>
+
+            {/* Botão limpar e contador */}
+            <Box display="flex" alignItems="center" gap={2}>
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                {semanasFiltradas.length === semanas.length 
+                  ? `${semanas.length} semanas` 
+                  : `${semanasFiltradas.length}/${semanas.length}`
+                }
+              </Typography>
+              <Button
+                size="small"
+                startIcon={<ClearIcon />}
+                onClick={limparFiltros}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                Limpar
+              </Button>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* Mensagem quando não há resultados */}
+      {semanasFiltradas.length === 0 ? (
+        <Paper sx={{ p: 4, textAlign: 'center', mt: 4 }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Nenhuma semana encontrada
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Tente ajustar os filtros ou limpar a busca
+          </Typography>
+        </Paper>
+      ) : (
+        semanasFiltradas.map((semana) => (
+          <SemanaTable
+            key={`${semana.semestre}-${semana.numeroSemana}`}
+            semana={semana}
+            navigate={navigate}
+            onEdit={handleEditSemana}
+          />
+        ))
+      )}
 
       <NovaSemanaDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={handleCloseDialog}
         onSave={handleNovaSemana}
+        editData={editingSemana}
       />
     </Container>
   )

@@ -26,6 +26,9 @@ import {
   TextField,
   MenuItem,
   Chip,
+  Switch,
+  FormControlLabel,
+  Alert,
 } from '@mui/material'
 
 import {
@@ -36,6 +39,8 @@ import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Timer as TimerIcon,
+  Share as ShareIcon,
+  ContentCopy as CopyIcon,
 } from '@mui/icons-material'
 
 import {
@@ -44,10 +49,11 @@ import {
   FormDatePicker,
   FormCheckbox,
 } from '../components/form'
+import { supabase } from '../lib/supabase'
 
 // Schema de validação (Yup)
 const validationSchema = yup.object().shape({
-  data: yup.date().typeError('Data inválida').required('Data é obrigatória'),
+  data: yup.date().typeError('Data inválida').nullable(),
   semana: yup.string().required('Semana é obrigatória'),
   padrao_movimento: yup.string().required('Padrão de movimento é obrigatório'),
   observacoes: yup.string(),
@@ -69,12 +75,12 @@ function TreinoDetalhesForm() {
     { nome: 'OHS', series: 3, tempo: 30 },
   ])
   const [treinoBloco1, setTreinoBloco1] = useState([
-    { nome: 'Levantamento Terra', series: 4, repeticoes: '8-10', carga: '80kg', tempo: 90 },
-    { nome: 'Cadeira Flexora', series: 3, repeticoes: '12-15', carga: '50kg', tempo: 60 },
+    { nome: 'Levantamento Terra', series: 4, repeticoes: '8-10', tempo: null, intervalo: null },
+    { nome: 'Cadeira Flexora', series: 3, repeticoes: '12-15', tempo: null, intervalo: null },
   ])
   const [treinoBloco2, setTreinoBloco2] = useState([])
   const [condicionamentoItems, setCondicionamentoItems] = useState([
-    { nome: 'Burpee - Tabata', duracao: '4 min' },
+    { nome: 'Burpee', series: null, repeticoes: null, tempo: 20, intervalo: 10 },
   ])
 
   // Estados para dialogs
@@ -82,6 +88,14 @@ function TreinoDetalhesForm() {
   const [currentSection, setCurrentSection] = useState('')
   const [editingItem, setEditingItem] = useState(null)
   const [formData, setFormData] = useState({})
+  
+  // Estados para compartilhamento
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [shareLink, setShareLink] = useState('')
+  const [linkExpiresAt, setLinkExpiresAt] = useState('')
+  const [linkActive, setLinkActive] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [treinoId, setTreinoId] = useState(null) // ID do treino salvo
 
   // Configuração do React Hook Form
   const methods = useForm({
@@ -120,6 +134,36 @@ function TreinoDetalhesForm() {
   ]
 
   const mobilidadeOptions = ['Ombro', 'Tronco', 'Quadril', 'Tornozelo', 'Joelho', 'Coluna', 'Punho']
+
+  // Lista de exercícios para os selects
+  const exerciciosOptions = [
+    'Agachamento',
+    'Levantamento Terra',
+    'Supino',
+    'Desenvolvimento',
+    'Remada',
+    'Barra Fixa',
+    'Flexão',
+    'Afundo',
+    'Stiff',
+    'Cadeira Flexora',
+    'Cadeira Extensora',
+    'Leg Press',
+    'Panturrilha',
+    'Rosca Bíceps',
+    'Tríceps Pulley',
+    'Elevação Lateral',
+    'Abdominal',
+    'Prancha',
+    'Burpee',
+    'Mountain Climber',
+    'Jump Squat',
+    'Box Jump',
+    'Kettlebell Swing',
+    'Turkish Get-up',
+    'Dead Bug',
+    'Bird Dog'
+  ]
 
   // Handlers para abrir dialogs
   const handleOpenDialog = (section, item = null) => {
@@ -242,8 +286,71 @@ function TreinoDetalhesForm() {
     return `${minutos}min ${segundos}s`
   }
 
+  // Funções de compartilhamento
+  const generateShareLink = async () => {
+    if (!treinoId) {
+      alert('Primeiro salve o treino para poder compartilhá-lo!')
+      return
+    }
+
+    const newToken = crypto.randomUUID()
+    try {
+      const { error } = await supabase.from('treinos')
+        .update({
+          token_compartilhamento: newToken,
+          link_active: true,
+          link_expires_at: null
+        })
+        .eq('id', treinoId)
+
+      if (error) throw error
+
+      const baseUrl = window.location.origin
+      const link = `${baseUrl}/treino-publico/${newToken}`
+      setShareLink(link)
+      setLinkActive(true)
+      setLinkExpiresAt('')
+      
+      await navigator.clipboard.writeText(link)
+      alert('Link de compartilhamento gerado e copiado!')
+    } catch (error) {
+      alert('Erro ao gerar link: ' + error.message)
+    }
+  }
+
+  const updateShareSettings = async () => {
+    if (!treinoId) return
+
+    setSaving(true)
+    try {
+      const updates = {
+        link_active: linkActive,
+        link_expires_at: linkExpiresAt || null
+      }
+
+      const { error } = await supabase.from('treinos')
+        .update(updates)
+        .eq('id', treinoId)
+
+      if (error) throw error
+
+      alert('Configurações de compartilhamento atualizadas!')
+    } catch (error) {
+      alert('Erro ao atualizar configurações: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const copyShareLink = async () => {
+    if (shareLink) {
+      await navigator.clipboard.writeText(shareLink)
+      alert('Link copiado para a área de transferência!')
+    }
+  }
+
   // Handler do submit
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     const treinoCompleto = {
       ...data,
       mobilidade: mobilidadeItems,
@@ -253,8 +360,18 @@ function TreinoDetalhesForm() {
       treino_bloco2: treinoBloco2,
       condicionamento: condicionamentoItems,
     }
-    console.log('📋 Dados do formulário completo:', treinoCompleto)
-    alert('✅ Treino salvo! Veja o console para os dados completos.')
+    
+    try {
+      // Simular salvamento do treino e obter ID
+      // Na implementação real, você faria a requisição para salvar no banco
+      const mockTreinoId = `treino-${Date.now()}`
+      setTreinoId(mockTreinoId)
+      
+      console.log('📋 Dados do formulário completo:', treinoCompleto)
+      alert('✅ Treino salvo! Agora você pode compartilhá-lo.')
+    } catch (error) {
+      alert('Erro ao salvar treino: ' + error.message)
+    }
   }
 
   return (
@@ -280,20 +397,6 @@ function TreinoDetalhesForm() {
           Preencha os campos abaixo para criar um treino completo
         </Typography>
       </Box>
-
-      {/* Botão Submit no topo */}
-      <Button
-        variant="contained"
-        size="large"
-        startIcon={<SaveIcon />}
-        onClick={handleSubmit(onSubmit)}
-        sx={{
-          mb: 3,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        }}
-      >
-        SALVAR TREINO
-      </Button>
 
       {/* Formulário */}
       <FormProvider {...methods}>
@@ -329,8 +432,7 @@ function TreinoDetalhesForm() {
                   <Grid item size={{ xs: 12, md: 4 }}>
                     <FormDatePicker
                       name="data"
-                      label="Data do Treino"
-                      required
+                      label="Data do Treino (Opcional)"
                     />
                   </Grid>
 
@@ -452,7 +554,13 @@ function TreinoDetalhesForm() {
                           >
                             <ListItemText
                               primary={item.nome}
-                              secondary={`${item.series}x - ${item.tempo}s on / ${item.intervalo}s off`}
+                              secondary={
+                                item.series && item.repeticoes 
+                                  ? `${item.series} séries × ${item.repeticoes} reps${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.tempo && item.intervalo
+                                  ? `${item.tempo}s on / ${item.intervalo}s off${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.descricao || 'Configuração pendente'
+                              }
                             />
                           </ListItem>
                         ))
@@ -522,15 +630,6 @@ function TreinoDetalhesForm() {
                         <Typography variant="subtitle1" fontWeight="600">
                           Treino Bloco 01
                         </Typography>
-                        {treinoBloco1.length > 0 && (
-                          <Chip
-                            icon={<TimerIcon />}
-                            label={`Tempo total: ${calcularTempoTotal(treinoBloco1)}`}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
                       </Box>
                       <Button
                         size="small"
@@ -573,7 +672,13 @@ function TreinoDetalhesForm() {
                           >
                             <ListItemText
                               primary={`${index + 1}. ${item.nome}`}
-                              secondary={`${item.series} séries × ${item.repeticoes} reps • ${item.carga} • ~${item.tempo}s/série`}
+                              secondary={
+                                item.series && item.repeticoes 
+                                  ? `${item.series} séries × ${item.repeticoes} reps${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.tempo && item.intervalo
+                                  ? `${item.tempo}s on / ${item.intervalo}s off${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.descricao || 'Configuração pendente'
+                              }
                             />
                           </ListItem>
                         ))
@@ -588,15 +693,6 @@ function TreinoDetalhesForm() {
                         <Typography variant="subtitle1" fontWeight="600">
                           Treino Bloco 02 <Chip label="Opcional" size="small" />
                         </Typography>
-                        {treinoBloco2.length > 0 && (
-                          <Chip
-                            icon={<TimerIcon />}
-                            label={`Tempo total: ${calcularTempoTotal(treinoBloco2)}`}
-                            size="small"
-                            color="secondary"
-                            variant="outlined"
-                          />
-                        )}
                       </Box>
                       <Button
                         size="small"
@@ -637,7 +733,13 @@ function TreinoDetalhesForm() {
                               </Stack>}                          >
                             <ListItemText
                               primary={`${index + 1}. ${item.nome}`}
-                              secondary={`${item.series} séries × ${item.repeticoes} reps • ${item.carga} • ~${item.tempo}s/série`}
+                              secondary={
+                                item.series && item.repeticoes 
+                                  ? `${item.series} séries × ${item.repeticoes} reps${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.tempo && item.intervalo
+                                  ? `${item.tempo}s on / ${item.intervalo}s off${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.descricao || 'Configuração pendente'
+                              }
                             />
                           </ListItem>
                         ))
@@ -649,7 +751,7 @@ function TreinoDetalhesForm() {
                   <Grid item size={{ xs: 12, md: 4 }}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Typography variant="subtitle1" fontWeight="600">
-                        Condicionamento Físico
+                        Condicionamento Físico <Chip label="Opcional" size="small" />
                       </Typography>
                       <Button
                         size="small"
@@ -692,7 +794,13 @@ function TreinoDetalhesForm() {
                           >
                             <ListItemText
                               primary={item.nome}
-                              secondary={item.duracao}
+                              secondary={
+                                item.series && item.repeticoes 
+                                  ? `${item.series} séries × ${item.repeticoes} reps${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.tempo && item.intervalo
+                                  ? `${item.tempo}s on / ${item.intervalo}s off${item.descricao ? ` • ${item.descricao}` : ''}`
+                                  : item.descricao || 'Configuração pendente'
+                              }
                             />
                           </ListItem>
                         ))
@@ -754,6 +862,17 @@ function TreinoDetalhesForm() {
             >
               Salvar Treino
             </Button>
+            
+            <Button
+              variant="outlined"
+              startIcon={<ShareIcon />}
+              onClick={() => setShareDialogOpen(true)}
+              disabled={!treinoId}
+              size="large"
+            >
+              Compartilhar
+            </Button>
+            
             <Button
               variant="outlined"
               onClick={() => navigate('/treinos')}
@@ -794,15 +913,21 @@ function TreinoDetalhesForm() {
               </TextField>
             )}
 
-            {/* Core: nome, séries, tempo, intervalo */}
+            {/* Core: select de exercício e campos flexíveis */}
             {currentSection === 'core' && (
               <>
                 <TextField
-                  label="Nome do Exercício"
+                  select
+                  label="Exercício"
                   value={formData.nome || ''}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   fullWidth
-                />
+                >
+                  {exerciciosOptions.map((exercicio) => (
+                    <MenuItem key={exercicio} value={exercicio}>{exercicio}</MenuItem>
+                  ))}
+                </TextField>
+                
                 <TextField
                   label="Séries"
                   type="number"
@@ -810,6 +935,14 @@ function TreinoDetalhesForm() {
                   onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
                   fullWidth
                 />
+                <TextField
+                  label="Repetições"
+                  type="number"
+                  value={formData.repeticoes || ''}
+                  onChange={(e) => setFormData({ ...formData, repeticoes: parseInt(e.target.value) })}
+                  fullWidth
+                />
+
                 <TextField
                   label="Tempo (segundos)"
                   type="number"
@@ -824,18 +957,33 @@ function TreinoDetalhesForm() {
                   onChange={(e) => setFormData({ ...formData, intervalo: parseInt(e.target.value) })}
                   fullWidth
                 />
+                
+                <TextField
+                  label="Descrição"
+                  value={formData.descricao || ''}
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  multiline
+                  rows={2}
+                  fullWidth
+                  placeholder="Ex: 3 repetições de 30 segundos de exercício por 15 segundos de intervalo"
+                />
               </>
             )}
 
-            {/* Neural: nome, séries, tempo */}
+            {/* Neural: select de exercício, séries, tempo */}
             {currentSection === 'neural' && (
               <>
                 <TextField
-                  label="Nome do Exercício"
+                  select
+                  label="Exercício"
                   value={formData.nome || ''}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   fullWidth
-                />
+                >
+                  {exerciciosOptions.map((exercicio) => (
+                    <MenuItem key={exercicio} value={exercicio}>{exercicio}</MenuItem>
+                  ))}
+                </TextField>
                 <TextField
                   label="Séries"
                   type="number"
@@ -853,28 +1001,34 @@ function TreinoDetalhesForm() {
               </>
             )}
 
-            {/* Treino 1 e 2: nome, séries, repetições, carga, tempo */}
+            {/* Treino 1 e 2: select de exercício e campos flexíveis */}
             {(currentSection === 'treino1' || currentSection === 'treino2') && (
               <>
                 <TextField
-                  label="Nome do Exercício"
+                  select
+                  label="Exercício"
                   value={formData.nome || ''}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   fullWidth
-                />
+                >
+                  {exerciciosOptions.map((exercicio) => (
+                    <MenuItem key={exercicio} value={exercicio}>{exercicio}</MenuItem>
+                  ))}
+                </TextField>
+                
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <TextField
-                      label="Séries"
+                      label="Séries (opcional)"
                       type="number"
                       value={formData.series || ''}
-                      onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
+                      onChange={(e) => setFormData({ ...formData, series: e.target.value ? parseInt(e.target.value) : null })}
                       fullWidth
                     />
                   </Grid>
                   <Grid item xs={6}>
                     <TextField
-                      label="Repetições"
+                      label="Repetições (opcional)"
                       value={formData.repeticoes || ''}
                       onChange={(e) => setFormData({ ...formData, repeticoes: e.target.value })}
                       placeholder="Ex: 8-10"
@@ -882,39 +1036,108 @@ function TreinoDetalhesForm() {
                     />
                   </Grid>
                 </Grid>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Tempo (segundos)"
+                      type="number"
+                      value={formData.tempo || ''}
+                      onChange={(e) => setFormData({ ...formData, tempo: e.target.value ? parseInt(e.target.value) : null })}
+                      fullWidth
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Intervalo (segundos)"
+                      type="number"
+                      value={formData.intervalo || ''}
+                      onChange={(e) => setFormData({ ...formData, intervalo: e.target.value ? parseInt(e.target.value) : null })}
+                      fullWidth
+                    />
+                  </Grid>
+                </Grid>
+                
                 <TextField
-                  label="Carga"
-                  value={formData.carga || ''}
-                  onChange={(e) => setFormData({ ...formData, carga: e.target.value })}
-                  placeholder="Ex: 80kg ou Corporal"
+                  label="Descrição (opcional)"
+                  value={formData.descricao || ''}
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  multiline
+                  rows={2}
+                  placeholder="Ex: 3 repetições de 30s de exercício por 15s de intervalo"
                   fullWidth
-                />
-                <TextField
-                  label="Tempo estimado por série (segundos)"
-                  type="number"
-                  value={formData.tempo || ''}
-                  onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
-                  fullWidth
-                  helperText="Usado para calcular o tempo total do treino"
+                  helperText="Campo livre para especificar detalhes do exercício"
                 />
               </>
             )}
-
-            {/* Condicionamento: nome e duração */}
+          
+            
+            {/* Condicionamento: select de exercício, campos flexíveis e descrição */}
             {currentSection === 'condicionamento' && (
               <>
                 <TextField
-                  label="Nome do Exercício"
+                  select
+                  label="Exercício"
                   value={formData.nome || ''}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   fullWidth
-                />
+                >
+                  {exerciciosOptions.map((exercicio) => (
+                    <MenuItem key={exercicio} value={exercicio}>{exercicio}</MenuItem>
+                  ))}
+                </TextField>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Séries (opcional)"
+                      type="number"
+                      value={formData.series || ''}
+                      onChange={(e) => setFormData({ ...formData, series: e.target.value ? parseInt(e.target.value) : null })}
+                      fullWidth
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Repetições (opcional)"
+                      value={formData.repeticoes || ''}
+                      onChange={(e) => setFormData({ ...formData, repeticoes: e.target.value })}
+                      placeholder="Ex: 8-10"
+                      fullWidth
+                    />
+                  </Grid>
+                </Grid>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Tempo (segundos)"
+                      type="number"
+                      value={formData.tempo || ''}
+                      onChange={(e) => setFormData({ ...formData, tempo: e.target.value ? parseInt(e.target.value) : null })}
+                      fullWidth
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      label="Intervalo (segundos)"
+                      type="number"
+                      value={formData.intervalo || ''}
+                      onChange={(e) => setFormData({ ...formData, intervalo: e.target.value ? parseInt(e.target.value) : null })}
+                      fullWidth
+                    />
+                  </Grid>
+                </Grid>
+                
                 <TextField
-                  label="Duração"
-                  value={formData.duracao || ''}
-                  onChange={(e) => setFormData({ ...formData, duracao: e.target.value })}
-                  placeholder="Ex: 4 min, 20 min, Tabata 8 rounds"
+                  label="Descrição (opcional)"
+                  value={formData.descricao || ''}
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                  multiline
+                  rows={2}
+                  placeholder="Ex: 3 repetições de 30s de exercício por 15s de intervalo"
                   fullWidth
+                  helperText="Campo livre para especificar detalhes do exercício"
                 />
               </>
             )}
@@ -928,6 +1151,109 @@ function TreinoDetalhesForm() {
             disabled={!formData.nome}
           >
             Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Compartilhamento */}
+      <Dialog 
+        open={shareDialogOpen} 
+        onClose={() => setShareDialogOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>
+          🔗 Compartilhar Treino
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 2 }}>
+            {!treinoId ? (
+              <Alert severity="info">
+                Primeiro salve o treino para poder compartilhá-lo!
+              </Alert>
+            ) : (
+              <>
+                {!shareLink ? (
+                  <Box textAlign="center">
+                    <Typography variant="body1" color="text.secondary" gutterBottom>
+                      Nenhum link de compartilhamento gerado ainda.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<ShareIcon />}
+                      onClick={generateShareLink}
+                      fullWidth
+                      sx={{ mt: 2 }}
+                    >
+                      Gerar Link de Compartilhamento
+                    </Button>
+                  </Box>
+                ) : (
+                  <>
+                    <Alert severity="success">
+                      Link de compartilhamento ativo! Os alunos podem acessar este treino através do link abaixo.
+                    </Alert>
+
+                    <TextField
+                      label="Link de Compartilhamento"
+                      value={shareLink}
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: (
+                          <IconButton onClick={copyShareLink} edge="end">
+                            <CopyIcon />
+                          </IconButton>
+                        )
+                      }}
+                      fullWidth
+                      variant="outlined"
+                    />
+
+                    <Divider />
+
+                    <Typography variant="h6" gutterBottom>
+                      Configurações do Link
+                    </Typography>
+
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={linkActive}
+                          onChange={(e) => setLinkActive(e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label="Link Ativo"
+                    />
+
+                    <TextField
+                      label="Data de Expiração (opcional)"
+                      type="datetime-local"
+                      value={linkExpiresAt}
+                      onChange={(e) => setLinkExpiresAt(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                      helperText="Deixe em branco para link sem expiração"
+                    />
+
+                    <Button
+                      variant="contained"
+                      onClick={updateShareSettings}
+                      disabled={saving}
+                      fullWidth
+                      sx={{ mt: 2 }}
+                    >
+                      {saving ? '💾 Salvando...' : '💾 Salvar Configurações'}
+                    </Button>
+                  </>
+                )}
+              </>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShareDialogOpen(false)}>
+            Fechar
           </Button>
         </DialogActions>
       </Dialog>

@@ -420,9 +420,12 @@ function Treinos() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => navigate('/treinos/novo')}
-          sx={{ minWidth: 150 }}
+          sx={{ 
+            minWidth: { xs: 'auto', md: 150 },
+            px: { xs: 1, md: 2 }
+          }}
         >
-          + Novo Treino
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Novo Treino</Box>
         </Button>
       </Stack>
 
