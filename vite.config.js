@@ -10,5 +10,9 @@ export default defineConfig(({ mode }) => ({
     outDir: 'dist',
     sourcemap: false,
   },
+  server: {
+    port: 3000,
+    open: false,
+  },
 }))
 

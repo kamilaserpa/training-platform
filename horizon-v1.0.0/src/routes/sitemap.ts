@@ -29,6 +29,36 @@ const sitemap: MenuItem[] = [
   },
   {
     id: 2,
+    subheader: 'Semanas',
+    path: paths.semanas,
+    icon: 'ic:round-calendar-today',
+  },
+  {
+    id: 3,
+    subheader: 'Treinos',
+    path: paths.treinos,
+    icon: 'ic:round-fitness-center',
+  },
+  {
+    id: 4,
+    subheader: 'Exercícios',
+    path: paths.exercicios,
+    icon: 'ic:round-directions-run',
+  },
+  {
+    id: 5,
+    subheader: 'Configurações',
+    path: paths.configuracoes,
+    icon: 'ic:round-settings',
+  },
+  {
+    id: 6,
+    subheader: 'Treino Detalhes Form',
+    path: paths.treinoDetalhesForm,
+    icon: 'ic:round-add-circle',
+  },
+  {
+    id: 2,
     subheader: 'NFT Marketplace',
     path: '#!',
     icon: 'ic:outline-shopping-cart',
