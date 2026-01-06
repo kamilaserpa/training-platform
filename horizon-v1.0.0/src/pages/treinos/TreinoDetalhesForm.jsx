@@ -1,9 +1,9 @@
 // Página TreinoDetalhes com React Hook Form - Versão Completa
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Container,
   Grid,
@@ -57,25 +57,47 @@ const validationSchema = yup.object().shape({
 
 function TreinoDetalhesForm() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const searchParams = new URLSearchParams(location.search)
+  const shouldUseDefaultBlocks = searchParams.get('defaultBlocks') === 'true'
+
+  // Função para criar blocos padrão do treino
+  const createDefaultBlocks = () => {
+    return {
+      mobilidade: ['Ombro', 'Tronco', 'Quadril', 'Tornozelo'],
+      core: [
+        { nome: 'Prancha', series: 3, tempo: 30, intervalo: 10 },
+        { nome: 'Respiração diafragmática', series: 3, tempo: 30, intervalo: 10 }
+      ],
+      neural: [
+        { nome: 'Polichinelos', series: 3, tempo: 20 },
+        { nome: 'Corrida estacionária', series: 3, tempo: 20 }
+      ],
+      bloco1: [],
+      bloco2: [],
+      condicionamento: []
+    }
+  }
 
   // Estados para cada seção do treino
-  const [mobilidadeItems, setMobilidadeItems] = useState(['Ombro', 'Tronco', 'Quadril', 'Tornozelo'])
-  const [coreItems, setCoreItems] = useState([
-    { nome: 'Prancha', series: 3, tempo: 30, intervalo: 10 },
-    { nome: 'OHS', series: 3, tempo: 45, intervalo: 15 },
-  ])
-  const [neuralItems, setNeuralItems] = useState([
-    { nome: 'Burpee', series: 3, tempo: 20 },
-    { nome: 'OHS', series: 3, tempo: 30 },
-  ])
-  const [treinoBloco1, setTreinoBloco1] = useState([
-    { nome: 'Levantamento Terra', series: 4, repeticoes: '8-10', carga: '80kg', tempo: 90 },
-    { nome: 'Cadeira Flexora', series: 3, repeticoes: '12-15', carga: '50kg', tempo: 60 },
-  ])
-  const [treinoBloco2, setTreinoBloco2] = useState([])
-  const [condicionamentoItems, setCondicionamentoItems] = useState([
-    { nome: 'Burpee - Tabata', duracao: '4 min' },
-  ])
+  const [mobilidadeItems, setMobilidadeItems] = useState(() => 
+    shouldUseDefaultBlocks ? createDefaultBlocks().mobilidade : []
+  )
+  const [coreItems, setCoreItems] = useState(() => 
+    shouldUseDefaultBlocks ? createDefaultBlocks().core : []
+  )
+  const [neuralItems, setNeuralItems] = useState(() => 
+    shouldUseDefaultBlocks ? createDefaultBlocks().neural : []
+  )
+  const [treinoBloco1, setTreinoBloco1] = useState(() => 
+    shouldUseDefaultBlocks ? createDefaultBlocks().bloco1 : []
+  )
+  const [treinoBloco2, setTreinoBloco2] = useState(() => 
+    shouldUseDefaultBlocks ? createDefaultBlocks().bloco2 : []
+  )
+  const [condicionamentoItems, setCondicionamentoItems] = useState(() => 
+    shouldUseDefaultBlocks ? createDefaultBlocks().condicionamento : []
+  )
 
   // Estados para dialogs
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -141,6 +163,27 @@ function TreinoDetalhesForm() {
     setCurrentSection('')
     setEditingItem(null)
     setFormData({})
+  }
+
+  // Função para aplicar blocos padrão
+  const handleApplyDefaultBlocks = () => {
+    const defaultBlocks = createDefaultBlocks()
+    setMobilidadeItems(defaultBlocks.mobilidade)
+    setCoreItems(defaultBlocks.core)
+    setNeuralItems(defaultBlocks.neural)
+    setTreinoBloco1(defaultBlocks.bloco1)
+    setTreinoBloco2(defaultBlocks.bloco2)
+    setCondicionamentoItems(defaultBlocks.condicionamento)
+  }
+
+  // Função para limpar todos os blocos
+  const handleClearAllBlocks = () => {
+    setMobilidadeItems([])
+    setCoreItems([])
+    setNeuralItems([])
+    setTreinoBloco1([])
+    setTreinoBloco2([])
+    setCondicionamentoItems([])
   }
 
   // Handler para salvar item
@@ -258,42 +301,25 @@ function TreinoDetalhesForm() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
-      <Box mb={4}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+        <Box>
+          <Typography variant="h4" fontWeight="700" mb={1}>
+            Criar Treino
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Preencha os campos abaixo para criar um treino completo.
+          </Typography>
+        </Box>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/treinos')}
-          sx={{ mb: 2 }}
+          variant="outlined"
         >
           Voltar
         </Button>
-
-        <Box display="flex" alignItems="center" gap={2} mb={2}>
-          <FitnessCenterIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-          <Typography variant="h4" fontWeight="700">
-            Criar Treino
-          </Typography>
-        </Box>
-
-        <Typography variant="body1" color="text.secondary">
-          Preencha os campos abaixo para criar um treino completo.
-        </Typography>
-      </Box>
-
-      {/* Botão Submit no topo */}
-      <Button
-        variant="contained"
-        size="large"
-        startIcon={<SaveIcon />}
-        onClick={handleSubmit(onSubmit)}
-        sx={{
-          mb: 3,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        }}
-      >
-        SALVAR TREINO
-      </Button>
+      </Stack>
 
       {/* Formulário */}
       <FormProvider {...methods}>
@@ -359,9 +385,42 @@ function TreinoDetalhesForm() {
             {/* Card: Estrutura do Treino */}
             <Card>
               <CardContent>
-                <Typography variant="h6" fontWeight="600" gutterBottom>
-                  🏋️ Estrutura do Treino
-                </Typography>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="h6" fontWeight="600">
+                    🏋️ Estrutura do Treino
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<FitnessCenterIcon />}
+                      onClick={handleApplyDefaultBlocks}
+                      color="primary"
+                    >
+                      Aplicar Blocos Padrão
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DeleteIcon />}
+                      onClick={handleClearAllBlocks}
+                      color="error"
+                    >
+                      Limpar Tudo
+                    </Button>
+                  </Stack>
+                </Box>
+                {shouldUseDefaultBlocks && (
+                  <Box sx={{ mb: 2 }}>
+                    <Chip 
+                      label="Blocos padrão aplicados automaticamente: Mobilidade Articular, Ativação de Core e Ativação Neural" 
+                      color="primary" 
+                      variant="outlined"
+                      size="small"
+                      sx={{ mb: 1 }}
+                    />
+                  </Box>
+                )}
                 <Divider sx={{ mb: 3 }} />
 
                 <Grid container spacing={3}>
@@ -464,7 +523,7 @@ function TreinoDetalhesForm() {
                   </Grid>
 
                   {/* Ativação Neural */}
-                  <Grid item size={{ xs: 12, md: 6, lg: 4 }}>
+                  <Grid item md={6} lg={4} xs={12}> 
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Typography variant="subtitle1" fontWeight="600">
                         Ativação Neural
@@ -519,7 +578,7 @@ function TreinoDetalhesForm() {
                   </Grid>
 
                   {/* Treino Bloco 01 */}
-                  <Grid size={{ xs: 12, md: 6, lg:4 }}>
+                  <Grid item md={6} lg={4} xs={12}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle1" fontWeight="600">
@@ -585,7 +644,7 @@ function TreinoDetalhesForm() {
                   </Grid>
 
                   {/* Treino Bloco 02 (Opcional) */}
-                  <Grid item size={{ xs: 12, md: 6, lg:4 }}>
+                  <Grid item md={6} lg={4} xs={12}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="subtitle1" fontWeight="600">
@@ -649,10 +708,10 @@ function TreinoDetalhesForm() {
                   </Grid>
 
                   {/* Condicionamento Físico */}
-                  <Grid item size={{ xs: 12, md: 4 }}>
+                  <Grid item md={6} lg={4} xs={12}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Typography variant="subtitle1" fontWeight="600">
-                        Condicionamento Físico
+                        Condicionamento Físico <Chip label="Opcional" size="small" />
                       </Typography>
                       <Button
                         size="small"
@@ -751,9 +810,6 @@ function TreinoDetalhesForm() {
               variant="contained"
               startIcon={<SaveIcon />}
               size="large"
-              sx={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              }}
             >
               Salvar Treino
             </Button>
