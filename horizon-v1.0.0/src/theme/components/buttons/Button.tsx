@@ -26,6 +26,15 @@ const Button: Components<Omit<Theme, 'components'>>['MuiButton'] = {
       backgroundColor: theme.palette.info.dark,
       '&:hover': { backgroundColor: theme.palette.info.dark },
     }),
+    outlined: ({ theme }) => ({
+      color: theme.palette.primary.main,
+      borderColor: theme.palette.primary.main,
+      '&:hover': {
+        backgroundColor: theme.palette.primary.main,
+        color: theme.palette.info.light,
+        borderColor: theme.palette.primary.main,
+      },
+    }),
     sizeLarge: ({ theme }) => ({
       padding: theme.spacing(1.25, 3),
       fontSize: theme.typography.body1.fontSize,

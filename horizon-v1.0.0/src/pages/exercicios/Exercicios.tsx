@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Container,
+  Grid,
   Typography,
   Button,
   Box,
@@ -25,125 +26,96 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  Alert,
+  SelectChangeEvent,
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  FilterList as FilterListIcon,
+} from '@mui/icons-material';
 
-// Dados mockados de exercícios
-const exerciciosMock = [
-  {
-    id: 1,
-    nome: 'Agachamento Livre',
-    padrao_movimento: 'Agachar',
-    observacoes: 'Manter o core ativo e descer até 90 graus no joelho',
-  },
-  {
-    id: 2,
-    nome: 'Supino Reto',
-    padrao_movimento: 'Empurrar Horizontal',
-    observacoes: 'Controlar a descida e explodir na subida',
-  },
-  {
-    id: 3,
-    nome: 'Barra Fixa',
-    padrao_movimento: 'Puxar Vertical',
-    observacoes: 'Pegada pronada, descer até extensão completa dos braços',
-  },
-  {
-    id: 4,
-    nome: 'Levantamento Terra',
-    padrao_movimento: 'Dobrar',
-    observacoes: 'Manter coluna neutra durante todo movimento, iniciar movimento pelo quadril',
-  },
-  {
-    id: 5,
-    nome: 'Desenvolvimento Militar',
-    padrao_movimento: 'Empurrar Vertical',
-    observacoes: 'Pressionar a barra acima da cabeça mantendo core estável',
-  },
-  {
-    id: 6,
-    nome: 'Remada Curvada',
-    padrao_movimento: 'Puxar Horizontal',
-    observacoes: 'Inclinar tronco a 45 graus, puxar barra em direção ao abdome',
-  },
-  {
-    id: 7,
-    nome: 'Prancha',
-    padrao_movimento: '',
-    observacoes: 'Exercício isométrico para fortalecimento do core',
-  },
-  {
-    id: 8,
-    nome: 'Burpee',
-    padrao_movimento: '',
-    observacoes: 'Movimento completo: agachamento, prancha, flexão, salto',
-  },
-];
+// Serviços e tipos
+import { exerciseService } from '../../services/exerciseService';
+import { movementPatternService } from '../../services/movementPatternService';
+import type { Exercise, MovementPattern, CreateExerciseDTO } from '../../types/database.types';
 
-const padroesList = [
-  'Agachar',
-  'Empurrar Horizontal',
-  'Empurrar Vertical',
-  'Puxar Horizontal',
-  'Puxar Vertical',
-  'Dobrar',
-  'Rotação',
-  'Locomoção',
-  'Unilateral',
-  'Isométrico',
-];
-
-// Tipos TypeScript
-interface Exercicio {
-  id: number;
-  nome: string;
-  padrao_movimento: string;
-  observacoes: string;
-}
-
-interface ExercicioDialogProps {
+// Interface para props do dialog
+interface ExerciseDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Exercicio) => void;
-  editingData: Exercicio | null;
+  onSave: (data: CreateExerciseDTO) => void;
+  editingData: Exercise | null;
+  movementPatterns: MovementPattern[];
 }
 
 // Dialog de formulário para adicionar/editar exercício
-function ExercicioDialog({ open, onClose, onSave, editingData }: ExercicioDialogProps) {
+function ExerciseDialog({
+  open,
+  onClose,
+  onSave,
+  editingData,
+  movementPatterns,
+}: ExerciseDialogProps) {
   const [formData, setFormData] = useState({
-    nome: editingData?.nome || '',
-    padrao_movimento: editingData?.padrao_movimento || '',
-    observacoes: editingData?.observacoes || '',
+    name: editingData?.name || '',
+    muscle_group: editingData?.muscle_group || '',
+    movement_pattern_id: editingData?.movement_pattern_id || '',
+    instructions: editingData?.instructions || '',
+    notes: editingData?.notes || '',
   });
 
-  const handleChange =
-    (field: string) =>
-    (
-      event:
-        | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-        | { target: { value: string } },
-    ) => {
-      setFormData((prev) => ({
-        ...prev,
-        [field]: event.target.value,
-      }));
-    };
+  useEffect(() => {
+    if (editingData) {
+      setFormData({
+        name: editingData.name || '',
+        muscle_group: editingData.muscle_group || '',
+        movement_pattern_id: editingData.movement_pattern_id || '',
+        instructions: editingData.instructions || '',
+        notes: editingData.notes || '',
+      });
+    } else {
+      setFormData({
+        name: '',
+        muscle_group: '',
+        movement_pattern_id: '',
+        instructions: '',
+        notes: '',
+      });
+    }
+  }, [editingData]);
+
+  const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleSelectChange = (field: string) => (event: SelectChangeEvent<string>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
 
   const handleSave = () => {
-    if (!formData.nome.trim()) {
+    if (!formData.name.trim()) {
       alert('Por favor, informe o nome do exercício');
       return;
     }
 
-    const novoExercicio = {
-      id: editingData?.id || Date.now(),
-      nome: formData.nome.trim(),
-      padrao_movimento: formData.padrao_movimento,
-      observacoes: formData.observacoes.trim(),
+    const exerciseData: CreateExerciseDTO = {
+      name: formData.name.trim(),
+      muscle_group: formData.muscle_group.trim() || undefined,
+      movement_pattern_id: formData.movement_pattern_id || undefined,
+      instructions: formData.instructions.trim() || undefined,
+      notes: formData.notes.trim() || undefined,
     };
 
-    onSave(novoExercicio);
-    setFormData({ nome: '', padrao_movimento: '', observacoes: '' });
+    onSave(exerciseData);
     onClose();
   };
 
@@ -154,35 +126,53 @@ function ExercicioDialog({ open, onClose, onSave, editingData }: ExercicioDialog
         <Stack spacing={3} sx={{ mt: 2 }}>
           <TextField
             label="Nome do Exercício *"
-            value={formData.nome}
-            onChange={handleChange('nome')}
+            value={formData.name}
+            onChange={handleChange('name')}
             placeholder="ex: Agachamento Livre"
+            fullWidth
+          />
+
+          <TextField
+            label="Grupo Muscular"
+            value={formData.muscle_group}
+            onChange={handleChange('muscle_group')}
+            placeholder="ex: Pernas, Peito, Costas"
             fullWidth
           />
 
           <FormControl fullWidth>
             <InputLabel>Padrão de Movimento</InputLabel>
             <Select
-              value={formData.padrao_movimento}
-              onChange={handleChange('padrao_movimento')}
+              value={formData.movement_pattern_id}
+              onChange={handleSelectChange('movement_pattern_id')}
               label="Padrão de Movimento"
             >
               <MenuItem value="">Nenhum</MenuItem>
-              {padroesList.map((padrao) => (
-                <MenuItem key={padrao} value={padrao}>
-                  {padrao}
+              {movementPatterns.map((pattern) => (
+                <MenuItem key={pattern.id} value={pattern.id}>
+                  {pattern.name}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <TextField
-            label="Observações"
-            value={formData.observacoes}
-            onChange={handleChange('observacoes')}
-            placeholder="Dicas de execução, cuidados, variações..."
+            label="Instruções"
+            value={formData.instructions}
+            onChange={handleChange('instructions')}
+            placeholder="Como executar o exercício"
             multiline
-            rows={4}
+            rows={3}
+            fullWidth
+          />
+
+          <TextField
+            label="Observações"
+            value={formData.notes}
+            onChange={handleChange('notes')}
+            placeholder="Dicas importantes, cuidados especiais"
+            multiline
+            rows={2}
             fullWidth
           />
         </Stack>
@@ -190,63 +180,121 @@ function ExercicioDialog({ open, onClose, onSave, editingData }: ExercicioDialog
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
         <Button onClick={handleSave} variant="contained">
-          Salvar
+          {editingData ? 'Salvar' : 'Adicionar'}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
 
-const Exercicios = () => {
-  const [exercicios, setExercicios] = useState(exerciciosMock);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingExercicio, setEditingExercicio] = useState<Exercicio | null>(null);
+function ExerciciosPage() {
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [movementPatterns, setMovementPatterns] = useState<MovementPattern[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPadrao, setSelectedPadrao] = useState('Todos');
+  const [filterPadrao, setFilterPadrao] = useState('todos');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
 
-  // Filtros aplicados
-  const exerciciosFiltrados = useMemo(() => {
-    return exercicios.filter((exercicio) => {
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [exercisesData, patternsData] = await Promise.all([
+        exerciseService.getAllExercises(),
+        movementPatternService.getAllMovementPatterns(),
+      ]);
+
+      setExercises(exercisesData);
+      setMovementPatterns(patternsData);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+      setError('Erro ao carregar dados. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Exercícios filtrados
+  const exercisesFiltrados = useMemo(() => {
+    return exercises.filter((exercise) => {
       const matchesSearch =
-        exercicio.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exercicio.observacoes.toLowerCase().includes(searchTerm.toLowerCase());
+        exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exercise.muscle_group?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exercise.movement_pattern?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesPadrao =
-        selectedPadrao === 'Todos' || exercicio.padrao_movimento === selectedPadrao;
+      const matchesFilter =
+        filterPadrao === 'todos' || exercise.movement_pattern?.name === filterPadrao;
 
-      return matchesSearch && matchesPadrao;
+      return matchesSearch && matchesFilter;
     });
-  }, [exercicios, searchTerm, selectedPadrao]);
+  }, [exercises, searchTerm, filterPadrao]);
 
-  // Handlers
-  const handleOpenDialog = (exercicio: Exercicio | null = null) => {
-    setEditingExercicio(exercicio);
-    setDialogOpen(true);
-  };
+  const handleSaveExercise = async (exerciseData: CreateExerciseDTO) => {
+    try {
+      if (editingExercise) {
+        const updated = await exerciseService.updateExercise(editingExercise.id, exerciseData);
+        setExercises((prev) => prev.map((ex) => (ex.id === updated.id ? updated : ex)));
+      } else {
+        const newExercise = await exerciseService.createExercise(exerciseData);
+        setExercises((prev) => [newExercise, ...prev]);
+      }
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditingExercicio(null);
-  };
-
-  const handleSaveExercicio = (novoExercicio: Exercicio) => {
-    if (editingExercicio) {
-      setExercicios((exercicios) =>
-        exercicios.map((ex) => (ex.id === novoExercicio.id ? novoExercicio : ex)),
-      );
-    } else {
-      setExercicios((exercicios) => [...exercicios, novoExercicio]);
+      setOpenDialog(false);
+      setEditingExercise(null);
+    } catch (err) {
+      console.error('Erro ao salvar exercício:', err);
+      setError('Erro ao salvar exercício. Tente novamente.');
     }
   };
 
-  const handleDeleteExercicio = (id: number) => {
-    if (confirm('Tem certeza que deseja excluir este exercício?')) {
-      setExercicios((exercicios) => exercicios.filter((ex) => ex.id !== id));
+  const handleDeleteExercise = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este exercício?')) return;
+
+    try {
+      await exerciseService.deleteExercise(id);
+      setExercises((prev) => prev.filter((ex) => ex.id !== id));
+    } catch (err) {
+      console.error('Erro ao deletar exercício:', err);
+      setError('Erro ao deletar exercício. Tente novamente.');
     }
   };
+
+  const handleEditExercise = (exercise: Exercise) => {
+    setEditingExercise(exercise);
+    setOpenDialog(true);
+  };
+
+  const handleAddExercise = () => {
+    setEditingExercise(null);
+    setOpenDialog(true);
+  };
+
+  if (loading) {
+    return (
+      <Grid container spacing={2.5} justifyContent="center" alignItems="center" minHeight="400px">
+        <Grid item>
+          <CircularProgress size={60} />
+        </Grid>
+      </Grid>
+    );
+  }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4, px: { xs: 1, sm: 3 } }}>
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4" fontWeight="700">
@@ -255,135 +303,135 @@ const Exercicios = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
+          onClick={handleAddExercise}
           sx={{
             minWidth: { xs: 'auto', md: 150 },
             px: { xs: 1, md: 2 },
           }}
         >
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Novo Exercício</Box>
+          <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Novo</Box>
         </Button>
       </Stack>
 
       {/* Filtros */}
       <Card sx={{ mb: 4 }}>
         <CardContent>
+          <Box display="flex" alignItems="center" gap={1} mb={2}>
+            <FilterListIcon />
+            <Typography variant="h6" fontWeight="600">
+              Filtros
+            </Typography>
+          </Box>
+
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={2}
             alignItems={{ xs: 'stretch', sm: 'center' }}
           >
             <TextField
-              label="Buscar exercício"
+              label="Buscar exercícios"
               variant="outlined"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Nome ou observações..."
+              placeholder="Nome, grupo muscular ou padrão..."
               size="small"
               sx={{ flex: 1 }}
             />
 
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Padrão de Movimento</InputLabel>
+              <InputLabel>Filtrar por Padrão</InputLabel>
               <Select
-                value={selectedPadrao}
-                onChange={(e) => setSelectedPadrao(e.target.value)}
-                label="Padrão de Movimento"
+                value={filterPadrao}
+                onChange={(e) => setFilterPadrao(e.target.value)}
+                label="Filtrar por Padrão"
               >
-                <MenuItem value="Todos">Todos</MenuItem>
-                {padroesList.map((padrao) => (
-                  <MenuItem key={padrao} value={padrao}>
-                    {padrao}
+                <MenuItem value="todos">Todos</MenuItem>
+                {movementPatterns.map((pattern) => (
+                  <MenuItem key={pattern.id} value={pattern.name}>
+                    {pattern.name}
                   </MenuItem>
                 ))}
-                <MenuItem value="">Sem padrão</MenuItem>
               </Select>
             </FormControl>
           </Stack>
         </CardContent>
       </Card>
 
-      {/* Tabela de Exercícios */}
+      {/* Lista de Exercícios */}
       <Card>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
             <Typography variant="h6" fontWeight="600">
-              Lista de Exercícios ({exerciciosFiltrados.length})
+              Exercícios Encontrados ({exercisesFiltrados.length})
             </Typography>
           </Box>
-
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>
-                    <strong>Nome</strong>
+                    <Typography variant="subtitle2">Nome</Typography>
                   </TableCell>
                   <TableCell>
-                    <strong>Padrão de Movimento</strong>
+                    <Typography variant="subtitle2">Grupo Muscular</Typography>
                   </TableCell>
                   <TableCell>
-                    <strong>Observações</strong>
+                    <Typography variant="subtitle2">Padrão de Movimento</Typography>
                   </TableCell>
-                  <TableCell align="center" width="120">
-                    <strong>Ações</strong>
+                  <TableCell>
+                    <Typography variant="subtitle2">Observações</Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="subtitle2">Ações</Typography>
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {exerciciosFiltrados.length === 0 ? (
+                {exercisesFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
-                        {searchTerm || selectedPadrao !== 'Todos'
+                        {searchTerm || filterPadrao !== 'todos'
                           ? 'Nenhum exercício encontrado com os filtros aplicados'
                           : 'Nenhum exercício cadastrado'}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  exerciciosFiltrados.map((exercicio) => (
-                    <TableRow key={exercicio.id} hover>
+                  exercisesFiltrados.map((exercise) => (
+                    <TableRow key={exercise.id} hover>
                       <TableCell>
-                        <Typography fontWeight="600">{exercicio.nome}</Typography>
+                        <Typography variant="body2" fontWeight="medium">
+                          {exercise.name}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        {exercicio.padrao_movimento || (
-                          <Typography variant="body2" color="text.secondary">
-                            Sem padrão definido
-                          </Typography>
-                        )}
+                        <Typography variant="body2" color="text.secondary">
+                          {exercise.muscle_group || '-'}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            maxWidth: '300px',
-                          }}
-                        >
-                          {exercicio.observacoes || 'Sem observações'}
+                        <Typography variant="body2" color="text.secondary">
+                          {exercise.movement_pattern?.name || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {exercise.notes || exercise.instructions || '-'}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <Stack direction="row" spacing={0.5} justifyContent="center">
-                          <Tooltip title="Editar exercício">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenDialog(exercicio)}
-                              color="primary"
-                            >
+                        <Stack direction="row" justifyContent="center" spacing={1}>
+                          <Tooltip title="Editar">
+                            <IconButton size="small" onClick={() => handleEditExercise(exercise)}>
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Excluir exercício">
+                          <Tooltip title="Excluir">
                             <IconButton
                               size="small"
-                              onClick={() => handleDeleteExercicio(exercicio.id)}
+                              onClick={() => handleDeleteExercise(exercise.id)}
                               color="error"
                             >
                               <DeleteIcon fontSize="small" />
@@ -397,18 +445,26 @@ const Exercicios = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* Summary */}
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Mostrando {exercisesFiltrados.length} de {exercises.length} exercícios
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
 
-      {/* Dialog de formulário */}
-      <ExercicioDialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        onSave={handleSaveExercicio}
-        editingData={editingExercicio}
+      {/* Dialog para adicionar/editar */}
+      <ExerciseDialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        onSave={handleSaveExercise}
+        editingData={editingExercise}
+        movementPatterns={movementPatterns}
       />
     </Container>
   );
-};
+}
 
-export default Exercicios;
+export default ExerciciosPage;

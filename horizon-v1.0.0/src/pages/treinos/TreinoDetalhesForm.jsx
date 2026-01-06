@@ -4,6 +4,12 @@ import { useForm, FormProvider } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import { useNavigate, useLocation } from 'react-router-dom'
+
+// Imports dos serviços
+import { weekService } from '../../services/weekService'
+import { movementPatternService } from '../../services/movementPatternService'
+import { exerciseService } from '../../services/exerciseService'
+
 import {
   Container,
   Grid,
@@ -26,6 +32,7 @@ import {
   TextField,
   MenuItem,
   Chip,
+  Autocomplete,
 } from '@mui/material'
 
 import {
@@ -80,22 +87,22 @@ function TreinoDetalhesForm() {
   }
 
   // Estados para cada seção do treino
-  const [mobilidadeItems, setMobilidadeItems] = useState(() => 
+  const [mobilidadeItems, setMobilidadeItems] = useState(() =>
     shouldUseDefaultBlocks ? createDefaultBlocks().mobilidade : []
   )
-  const [coreItems, setCoreItems] = useState(() => 
+  const [coreItems, setCoreItems] = useState(() =>
     shouldUseDefaultBlocks ? createDefaultBlocks().core : []
   )
-  const [neuralItems, setNeuralItems] = useState(() => 
+  const [neuralItems, setNeuralItems] = useState(() =>
     shouldUseDefaultBlocks ? createDefaultBlocks().neural : []
   )
-  const [treinoBloco1, setTreinoBloco1] = useState(() => 
+  const [treinoBloco1, setTreinoBloco1] = useState(() =>
     shouldUseDefaultBlocks ? createDefaultBlocks().bloco1 : []
   )
-  const [treinoBloco2, setTreinoBloco2] = useState(() => 
+  const [treinoBloco2, setTreinoBloco2] = useState(() =>
     shouldUseDefaultBlocks ? createDefaultBlocks().bloco2 : []
   )
-  const [condicionamentoItems, setCondicionamentoItems] = useState(() => 
+  const [condicionamentoItems, setCondicionamentoItems] = useState(() =>
     shouldUseDefaultBlocks ? createDefaultBlocks().condicionamento : []
   )
 
@@ -120,26 +127,72 @@ function TreinoDetalhesForm() {
 
   const { handleSubmit, formState: { errors } } = methods
 
-  // Dados mockados para os selects
-  const semanasOptions = [
-    { id: 'sem1', label: 'Semana 1 - Força 85%' },
-    { id: 'sem2', label: 'Semana 2 - Hipertrofia 65%' },
-    { id: 'sem3', label: 'Semana 3 - Hipertrofia 75%' },
-    { id: 'sem4', label: 'Semana 4 - Potência 90%' },
-  ]
+  // Estados para dados dos selects
+  const [semanasOptions, setSemanasOptions] = useState([])
+  const [padroesMovimentoOptions, setPadroesMovimentoOptions] = useState([])
+  const [exerciciosOptions, setExerciciosOptions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
 
-  const padroesMovimentoOptions = [
-    { id: 'agachar', label: 'Agachar' },
-    { id: 'empurrar_horizontal', label: 'Empurrar Horizontal' },
-    { id: 'empurrar_vertical', label: 'Empurrar Vertical' },
-    { id: 'puxar_horizontal', label: 'Puxar Horizontal' },
-    { id: 'puxar_vertical', label: 'Puxar Vertical' },
-    { id: 'dobrar', label: 'Dobrar' },
-    { id: 'rotacao', label: 'Rotação' },
-    { id: 'locomocao', label: 'Locomoção' },
-    { id: 'unilateral', label: 'Unilateral' },
-    { id: 'isometrico', label: 'Isométrico' },
-  ]
+  // Carregar dados dos selects ao montar o componente
+  useEffect(() => {
+    const loadSelectData = async () => {
+      try {
+        setLoading(true)
+        setLoadError(null)
+
+        // Buscar semanas de treino
+        const semanas = await weekService.getAllTrainingWeeks()
+        const semanasFormatted = semanas.map(semana => ({
+          id: semana.id,
+          label: `${semana.name} - ${semana.week_focus?.name || 'Sem foco'}`
+        }))
+
+        // Buscar padrões de movimento
+        const padroes = await movementPatternService.getAllMovementPatterns()
+        const padroesFormatted = padroes.map(padrao => ({
+          id: padrao.id,
+          label: padrao.name
+        }))
+
+        // Buscar exercícios
+        const exercicios = await exerciseService.getAllExercises()
+        const exerciciosFormatted = exercicios.map(exercicio => ({
+          id: exercicio.id,
+          label: exercicio.name
+        }))
+
+        setSemanasOptions(semanasFormatted)
+        setPadroesMovimentoOptions(padroesFormatted)
+        setExerciciosOptions(exerciciosFormatted)
+
+        console.log('✅ Dados dos selects carregados:', {
+          semanas: semanasFormatted.length,
+          padroes: padroesFormatted.length,
+          exercicios: exerciciosFormatted.length
+        })
+
+      } catch (error) {
+        console.error('❌ Erro ao carregar dados dos selects:', error)
+        setLoadError(error.message)
+
+        // Fallback para dados básicos em caso de erro
+        setSemanasOptions([
+          { id: 'erro', label: 'Erro ao carregar semanas' }
+        ])
+        setPadroesMovimentoOptions([
+          { id: 'erro', label: 'Erro ao carregar padrões' }
+        ])
+        setExerciciosOptions([
+          { id: 'erro', label: 'Erro ao carregar exercícios' }
+        ])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSelectData()
+  }, [])
 
   const mobilidadeOptions = ['Ombro', 'Tronco', 'Quadril', 'Tornozelo', 'Joelho', 'Coluna', 'Punho']
 
@@ -277,9 +330,9 @@ function TreinoDetalhesForm() {
     }
   }
 
-  // Calcular tempo total do treino bloco 1
+  // Calcular tempo total do treino bloco
   const calcularTempoTotal = (items) => {
-    const totalSegundos = items.reduce((acc, item) => acc + (item.tempo || 0), 0)
+    const totalSegundos = items.reduce((acc, item) => acc + (item.tempoTotal || 0), 0)
     const minutos = Math.floor(totalSegundos / 60)
     const segundos = totalSegundos % 60
     return `${minutos}min ${segundos}s`
@@ -324,7 +377,7 @@ function TreinoDetalhesForm() {
       {/* Formulário */}
       <FormProvider {...methods}>
         <form>
-          <Stack direction="column" spacing={3}>
+          <Stack direction="column" spacing={4}>
             {/* Card: Informações Básicas */}
             <Card>
               <CardContent>
@@ -339,18 +392,30 @@ function TreinoDetalhesForm() {
                     <FormSelect
                       name="padrao_movimento"
                       label="Padrão de Movimento"
-                      options={padroesMovimentoOptions}
+                      options={loading ? [{ id: '', label: 'Carregando...' }] : padroesMovimentoOptions}
+                      disabled={loading}
                       required
                     />
+                    {loadError && (
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                        Erro ao carregar padrões: {loadError}
+                      </Typography>
+                    )}
                   </Grid>
 
                   <Grid item xs={12} md={4}>
                     <FormSelect
                       name="semana"
                       label="Semana"
-                      options={semanasOptions}
+                      options={loading ? [{ id: '', label: 'Carregando...' }] : semanasOptions}
+                      disabled={loading}
                       required
                     />
+                    {loadError && (
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                        Erro ao carregar semanas: {loadError}
+                      </Typography>
+                    )}
                   </Grid>
 
                   <Grid item xs={12} md={4}>
@@ -412,12 +477,23 @@ function TreinoDetalhesForm() {
                 </Box>
                 {shouldUseDefaultBlocks && (
                   <Box sx={{ mb: 2 }}>
-                    <Chip 
-                      label="Blocos padrão aplicados automaticamente: Mobilidade Articular, Ativação de Core e Ativação Neural" 
-                      color="primary" 
+                    <Chip
+                      label="Blocos padrão aplicados automaticamente: Mobilidade Articular, Ativação de Core e Ativação Neural"
+                      color="primary"
                       variant="outlined"
                       size="small"
-                      sx={{ mb: 1 }}
+                      sx={{ 
+                        mb: 1,
+                        backgroundColor: 'info.main', // #F4F7FE
+                        color: 'primary.main', // #4318FF
+                        border: 'none',
+                        fontWeight: 700,
+                        '&.MuiChip-colorPrimary': {
+                          backgroundColor: 'info.main',
+                          color: 'primary.main',
+                          border: 'none'
+                        }
+                      }}
                     />
                   </Box>
                 )}
@@ -425,7 +501,7 @@ function TreinoDetalhesForm() {
 
                 <Grid container spacing={3}>
                   {/* Mobilidade Articular */}
-                  <Grid item  md={6} lg={4} xs={12}>
+                  <Grid item md={6} lg={4} xs={12}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Typography variant="subtitle1" fontWeight="600">
                         Mobilidade Articular
@@ -523,7 +599,7 @@ function TreinoDetalhesForm() {
                   </Grid>
 
                   {/* Ativação Neural */}
-                  <Grid item md={6} lg={4} xs={12}> 
+                  <Grid item md={6} lg={4} xs={12}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Typography variant="subtitle1" fontWeight="600">
                         Ativação Neural
@@ -635,7 +711,7 @@ function TreinoDetalhesForm() {
                           >
                             <ListItemText
                               primary={`${index + 1}. ${item.nome}`}
-                              secondary={`${item.series} séries × ${item.repeticoes} reps • ${item.carga} • ~${item.tempo}s/série`}
+                              secondary={`${item.series} séries × ${item.repeticoes} reps • ${item.carga} • Tempo: ${item.tempoSegundos || 0}s • Intervalo: ${item.intervaloSegundos || 0}s • Total: ${item.tempoTotal || 0}s`}
                             />
                           </ListItem>
                         ))
@@ -699,7 +775,7 @@ function TreinoDetalhesForm() {
                               </Stack>}                          >
                             <ListItemText
                               primary={`${index + 1}. ${item.nome}`}
-                              secondary={`${item.series} séries × ${item.repeticoes} reps • ${item.carga} • ~${item.tempo}s/série`}
+                              secondary={`${item.series} séries × ${item.repeticoes} reps • ${item.carga} • Tempo: ${item.tempoSegundos || 0}s • Intervalo: ${item.intervaloSegundos || 0}s • Total: ${item.tempoTotal || 0}s`}
                             />
                           </ListItem>
                         ))
@@ -837,7 +913,7 @@ function TreinoDetalhesForm() {
           }
         </DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
+          <Stack spacing={3} sx={{ mt: 4 }}>
             {/* Mobilidade: apenas select */}
             {currentSection === 'mobilidade' && (
               <TextField
@@ -855,127 +931,261 @@ function TreinoDetalhesForm() {
 
             {/* Core: nome, séries, tempo, intervalo */}
             {currentSection === 'core' && (
-              <>
-                <TextField
-                  label="Nome do Exercício"
-                  value={formData.nome || ''}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  fullWidth
-                />
-                <TextField
-                  label="Séries"
-                  type="number"
-                  value={formData.series || ''}
-                  onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
-                  fullWidth
-                />
-                <TextField
+              <Grid container spacing={4}>
+                <Grid item xs={12} sm={12}>
+                  <Autocomplete
+                    options={exerciciosOptions}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício do banco de dados"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    label="Séries"
+                    type="number"
+                    value={formData.series || ''}
+                    onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>                <TextField
                   label="Tempo (segundos)"
                   type="number"
                   value={formData.tempo || ''}
                   onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
                   fullWidth
                 />
-                <TextField
-                  label="Intervalo (segundos)"
-                  type="number"
-                  value={formData.intervalo || ''}
-                  onChange={(e) => setFormData({ ...formData, intervalo: parseInt(e.target.value) })}
-                  fullWidth
-                />
-              </>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    label="Intervalo (segundos)"
+                    type="number"
+                    value={formData.intervalo || ''}
+                    onChange={(e) => setFormData({ ...formData, intervalo: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
             )}
 
             {/* Neural: nome, séries, tempo */}
             {currentSection === 'neural' && (
-              <>
-                <TextField
-                  label="Nome do Exercício"
-                  value={formData.nome || ''}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  fullWidth
-                />
-                <TextField
-                  label="Séries"
-                  type="number"
-                  value={formData.series || ''}
-                  onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
-                  fullWidth
-                />
-                <TextField
-                  label="Tempo (segundos)"
-                  type="number"
-                  value={formData.tempo || ''}
-                  onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
-                  fullWidth
-                />
-              </>
+              <Grid container spacing={4}>
+                <Grid item xs={12} sm={6}>
+                  <Autocomplete
+                    options={exerciciosOptions}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício do banco de dados"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Séries"
+                    type="number"
+                    value={formData.series || ''}
+                    onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Tempo (segundos)"
+                    type="number"
+                    value={formData.tempo || ''}
+                    onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
             )}
 
-            {/* Treino 1 e 2: nome, séries, repetições, carga, tempo */}
+            {/* Treino 1 e 2: nome, séries, repetições, carga, tempo, intervalo */}
             {(currentSection === 'treino1' || currentSection === 'treino2') && (
-              <>
-                <TextField
-                  label="Nome do Exercício"
-                  value={formData.nome || ''}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  fullWidth
-                />
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <TextField
-                      label="Séries"
-                      type="number"
-                      value={formData.series || ''}
-                      onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
-                      fullWidth
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <TextField
-                      label="Repetições"
-                      value={formData.repeticoes || ''}
-                      onChange={(e) => setFormData({ ...formData, repeticoes: e.target.value })}
-                      placeholder="Ex: 8-10"
-                      fullWidth
-                    />
-                  </Grid>
+              <Grid container spacing={4}>
+                <Grid item xs={12}>
+                  <Autocomplete
+                    options={exerciciosOptions}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício do banco de dados"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                  />
                 </Grid>
-                <TextField
-                  label="Carga"
-                  value={formData.carga || ''}
-                  onChange={(e) => setFormData({ ...formData, carga: e.target.value })}
-                  placeholder="Ex: 80kg ou Corporal"
-                  fullWidth
-                />
-                <TextField
-                  label="Tempo estimado por série (segundos)"
-                  type="number"
-                  value={formData.tempo || ''}
-                  onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
-                  fullWidth
-                  helperText="Usado para calcular o tempo total do treino"
-                />
-              </>
+
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Séries"
+                    type="number"
+                    value={formData.series || ''}
+                    onChange={(e) => {
+                      const series = parseInt(e.target.value) || 0
+                      const tempo = formData.tempoSegundos || 0
+                      const intervalo = formData.intervaloSegundos || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        series: series,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Repetições"
+                    value={formData.repeticoes || ''}
+                    onChange={(e) => setFormData({ ...formData, repeticoes: e.target.value })}
+                    placeholder="Ex: 8-10"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Carga"
+                    value={formData.carga || ''}
+                    onChange={(e) => setFormData({ ...formData, carga: e.target.value })}
+                    placeholder="Ex: 80kg ou Corporal"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Tempo (seg)"
+                    type="number"
+                    value={formData.tempoSegundos || ''}
+                    onChange={(e) => {
+                      const tempo = parseInt(e.target.value) || 0
+                      const intervalo = formData.intervaloSegundos || 0
+                      const series = formData.series || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        tempoSegundos: tempo,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                    helperText="Duração de cada série em segundos"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Intervalo (seg)"
+                    type="number"
+                    value={formData.intervaloSegundos || ''}
+                    onChange={(e) => {
+                      const intervalo = parseInt(e.target.value) || 0
+                      const tempo = formData.tempoSegundos || 0
+                      const series = formData.series || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        intervaloSegundos: intervalo,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                    helperText="Descanso entre séries em segundos"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    label="Tempo Total"
+                    value={formData.tempoTotal || 0}
+                    fullWidth
+                    disabled
+                    helperText="Calculado automaticamente: (Tempo + Intervalo) × Séries"
+                    InputProps={{
+                      endAdornment: <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                    }}
+                  />
+                </Grid>
+              </Grid>
             )}
 
             {/* Condicionamento: nome e duração */}
             {currentSection === 'condicionamento' && (
-              <>
-                <TextField
-                  label="Nome do Exercício"
-                  value={formData.nome || ''}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  fullWidth
-                />
-                <TextField
-                  label="Duração"
-                  value={formData.duracao || ''}
-                  onChange={(e) => setFormData({ ...formData, duracao: e.target.value })}
-                  placeholder="Ex: 4 min, 20 min, Tabata 8 rounds"
-                  fullWidth
-                />
-              </>
+              <Grid container spacing={4}>
+                <Grid item xs={12} sm={8}>
+                  <Autocomplete
+                    options={exerciciosOptions}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício do banco de dados"
+                        sx={{ mb: 2 }}
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    label="Duração"
+                    value={formData.duracao || ''}
+                    onChange={(e) => setFormData({ ...formData, duracao: e.target.value })}
+                    placeholder="Ex: 4 min, 20 min, Tabata 8 rounds"
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
             )}
           </Stack>
         </DialogContent>

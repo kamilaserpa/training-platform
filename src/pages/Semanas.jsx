@@ -477,62 +477,72 @@ function NovaSemanaDialog({ open, onClose, onSave, editData = null }) {
         {isEditing ? 'Editar Semana de Treino' : 'Nova Semana de Treino'}
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={3} sx={{ mt: 2 }}>
-          <TextField
-            label="Data de Início (Opcional)"
-            type="date"
-            value={formData.dataInicio}
-            onChange={handleChange('dataInicio')}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-          />
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12}>
+            <TextField
+              label="Data de Início (Opcional)"
+              type="date"
+              value={formData.dataInicio}
+              onChange={handleChange('dataInicio')}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+          </Grid>
           
-          <TextField
-            label="Ano"
-            type="number"
-            value={formData.ano}
-            onChange={handleChange('ano')}
-            inputProps={{ min: 2020, max: 2030 }}
-            fullWidth
-          />
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Ano"
+              type="number"
+              value={formData.ano}
+              onChange={handleChange('ano')}
+              inputProps={{ min: 2020, max: 2030 }}
+              fullWidth
+            />
+          </Grid>
 
-          <FormControl fullWidth>
-            <InputLabel>Semestre</InputLabel>
-            <Select
-              value={formData.semestre}
-              onChange={handleChange('semestre')}
-              label="Semestre"
-            >
-              <MenuItem value={1}>1º Semestre</MenuItem>
-              <MenuItem value={2}>2º Semestre</MenuItem>
-            </Select>
-          </FormControl>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Semestre</InputLabel>
+              <Select
+                value={formData.semestre}
+                onChange={handleChange('semestre')}
+                label="Semestre"
+              >
+                <MenuItem value={1}>1º Semestre</MenuItem>
+                <MenuItem value={2}>2º Semestre</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
 
-          <TextField
-            label="Número da Semana"
-            type="number"
-            value={formData.numeroSemana}
-            onChange={handleChange('numeroSemana')}
-            inputProps={{ min: 1, max: 52 }}
-            helperText="Ordem de aparição da semana (1, 2, 3...)"
-            fullWidth
-          />
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Número da Semana"
+              type="number"
+              value={formData.numeroSemana}
+              onChange={handleChange('numeroSemana')}
+              inputProps={{ min: 1, max: 52 }}
+              helperText="Ordem de aparição da semana (1, 2, 3...)"
+              fullWidth
+            />
+          </Grid>
 
-          <FormControl fullWidth>
-            <InputLabel>Foco da Semana</InputLabel>
-            <Select
-              value={formData.focoSemanaId}
-              onChange={handleChange('focoSemanaId')}
-              label="Foco da Semana"
-            >
-              {focosSemanaMock.map((foco) => (
-                <MenuItem key={foco.id} value={foco.id}>
-                  {foco.nome} {foco.intensidade && `(${foco.intensidade}%)`}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>Foco da Semana</InputLabel>
+              <Select
+                value={formData.focoSemanaId}
+                onChange={handleChange('focoSemanaId')}
+                label="Foco da Semana"
+              >
+                {focosSemanaMock.map((foco) => (
+                  <MenuItem key={foco.id} value={foco.id}>
+                    {foco.nome} {foco.intensidade && `(${foco.intensidade}%)`}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>

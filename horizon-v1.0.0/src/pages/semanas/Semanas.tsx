@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Container,
+  Grid,
   Typography,
   Table,
   TableBody,
@@ -24,260 +24,116 @@ import {
   Select,
   Card,
   CardContent,
+  CircularProgress,
+  Alert,
+  IconButton,
+  Tooltip,
+  SelectChangeEvent,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Search as SearchIcon,
-  FilterList as FilterListIcon,
   Clear as ClearIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 
-// Tipos TypeScript
-interface FocoSemana {
-  nome: string;
-  intensidade: number;
-  descricao: string;
-}
+// Serviços e tipos
+import { weekService } from '../../services/weekService';
+import { useAuth } from '../../contexts/AuthContext';
+import type { TrainingWeek, WeekFocus, CreateTrainingWeekDTO } from '../../types/database.types';
+import { DatabaseSetupAlert } from '../../components/DatabaseSetupAlert';
 
-interface Core {
-  protocolo: string;
-  exercicios: string[];
-}
-
-interface TreinoBloco {
-  protocolo: string;
-  exercicios: string[];
-}
-
-interface Treino {
-  nome: string;
-  diaSemana: string;
-  padroes_movimento: string[];
-  mobilidade: string[];
-  core: Core;
-  neural: string;
-  treino_bloco1: TreinoBloco;
-  treino_bloco2: TreinoBloco | string;
-  condicionamento: string;
-  [key: string]: unknown; // Index signature para renderCell
-}
-
-interface Semana {
-  semestre: string;
-  numeroSemana: number;
-  data_inicio?: string;
-  focoSemana: FocoSemana;
-  treinos: Treino[];
-}
-import { useNavigate } from 'react-router-dom';
-
-function TreinoCell({ treino }: { treino: Treino | null }) {
-  if (!treino) {
-    return <Typography align="center">-</Typography>;
-  }
-
-  return (
-    <Stack spacing={0.5} alignItems="left">
-      <strong>{treino.nome}</strong>
-    </Stack>
-  );
-}
-
-// Dias da semana (colunas)
-const diasSemana = [
-  { key: 'segunda', label: 'Segunda' },
-  { key: 'terca', label: 'Terça' },
-  { key: 'quarta', label: 'Quarta' },
-  { key: 'quinta', label: 'Quinta' },
-  { key: 'sexta', label: 'Sexta' },
-];
-
-// Focos da semana mockados
-const focosSemanaMock = [
-  { id: 1, nome: 'Hipertrofia', intensidade: 65, descricao: 'Foco em hipertrofia muscular' },
-  { id: 2, nome: 'Resistência', intensidade: 50, descricao: 'Foco em resistência muscular' },
-  { id: 3, nome: 'Força Máxima', intensidade: 85, descricao: 'Foco em força máxima' },
-  { id: 4, nome: 'Potência', intensidade: 70, descricao: 'Foco em potência muscular' },
-  { id: 5, nome: 'Funcional', intensidade: 60, descricao: 'Treino funcional' },
-];
-
-// Definição das linhas da tabela
-const linhasTabela = [
-  { key: 'nome', label: 'Treino' },
-  { key: 'diaSemana', label: 'Dia' },
-  { key: 'padroes_movimento', label: 'Padrões Mov.' },
-  { key: 'mobilidade', label: 'Mob. Artic.' },
-  { key: 'core', label: 'Ativ. Core' },
-  { key: 'neural', label: 'Ativ. Neural' },
-  { key: 'treino_bloco1', label: 'Tr. Bl 01' },
-  { key: 'treino_bloco2', label: 'Tr. Bl 02' },
-  { key: 'condicionamento', label: 'Cond. Físico' },
-  { key: 'acoes', label: 'Detalhes' },
-];
-
-const semanasMock = [
-  {
-    semestre: '2025.1',
-    numeroSemana: 1,
-    data_inicio: '2025-03-03',
-    focoSemana: { nome: 'Hipertrofia', intensidade: 65, descricao: 'Foco em hipertrofia muscular' },
-    treinos: [
-      {
-        nome: 'Treino 01',
-        diaSemana: 'Segunda',
-        padroes_movimento: ['Dobrar', 'Puxar Vertical'],
-        mobilidade: ['Ombro, Tronco, Quadril, Tornozelo'],
-        core: {
-          protocolo: '2 x 30"x15"',
-          exercicios: ['Prancha', 'OHS'],
-        },
-        neural: 'Burpee',
-        treino_bloco1: {
-          protocolo: '8 x 30"x15"',
-          exercicios: ['Lev. Terra', 'Cad. Flexora'],
-        },
-        treino_bloco2: '-',
-        condicionamento: 'Burpee Tabata',
-      },
-      // Mais treinos...
-    ],
-  },
-  {
-    semestre: '2025.1',
-    numeroSemana: 2,
-    focoSemana: { nome: 'Resistência', intensidade: 50, descricao: 'Foco em resistência muscular' },
-    treinos: [
-      {
-        nome: 'Treino 01',
-        diaSemana: 'Segunda',
-        padroes_movimento: ['Puxar Vertical'],
-        mobilidade: ['Escápula, Ombro'],
-        core: {
-          protocolo: '2 x 45',
-          exercicios: ['Hollow Hold'],
-        },
-        neural: 'Barra Explosiva',
-        treino_bloco1: {
-          protocolo: '2 x 45',
-          exercicios: ['AMRAP 10', 'Barra Fixa', 'Remada'],
-        },
-        treino_bloco2: '-',
-        condicionamento: 'Corrida 1km',
-      },
-    ],
-  },
-];
-
-function renderCell(
-  treino: Treino | null,
-  key: string,
-  navigate: (path: string) => void,
-): React.ReactNode {
-  if (!treino) return <Typography variant="body2">-</Typography>;
-
-  switch (key) {
-    case 'nome':
-      return <TreinoCell treino={treino} />;
-
-    case 'diaSemana':
-      return treino.diaSemana || '-';
-
-    case 'padroes_movimento':
-      return treino.padroes_movimento ? (
-        <Stack direction="row" spacing={0.5} flexWrap="wrap">
-          {treino.padroes_movimento.map((padrao: string, index: number) => (
-            <Chip key={index} label={padrao} size="small" variant="outlined" />
-          ))}
-        </Stack>
-      ) : (
-        '-'
-      );
-
-    case 'mobilidade':
-      return treino.mobilidade?.join(', ');
-
-    case 'core':
-      return (
-        <>
-          <Typography variant="body2">{treino.core?.protocolo}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            {treino.core?.exercicios?.join(', ')}
-          </Typography>
-        </>
-      );
-
-    case 'treino_bloco1':
-      return (
-        <>
-          <Typography variant="body2">{treino.treino_bloco1?.protocolo}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            {treino.treino_bloco1?.exercicios?.join(', ')}
-          </Typography>
-        </>
-      );
-
-    case 'treino_bloco2':
-      if (typeof treino.treino_bloco2 === 'string') {
-        return treino.treino_bloco2 === '-' ? '-' : treino.treino_bloco2;
-      }
-      return (
-        <>
-          <Typography variant="body2">{treino.treino_bloco2?.protocolo}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            {treino.treino_bloco2?.exercicios?.join(', ')}
-          </Typography>
-        </>
-      );
-
-    case 'acoes':
-      return treino ? (
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => navigate(`/pages/treino-detalhes-form`)}
-          sx={{
-            '@media print': {
-              display: 'none',
-            },
-          }}
-        >
-          Ver
-        </Button>
-      ) : (
-        '-'
-      );
-
-    default: {
-      const value = treino[key];
-      if (typeof value === 'string' || typeof value === 'number') {
-        return <Typography variant="body2">{value || '-'}</Typography>;
-      }
-      return <Typography variant="body2">-</Typography>;
-    }
-  }
-}
-
-// Interfaces para props
-interface NovaSemanaDialogProps {
+// Interface para props do dialog
+interface WeekDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Semana) => void;
-  editData?: Semana | null;
+  onSave: (data: CreateTrainingWeekDTO) => void;
+  editingData: TrainingWeek | null;
+  weekFocuses: WeekFocus[];
 }
 
-// Componente do formulário de nova semana
-function NovaSemanaDialog({ open, onClose, onSave, editData = null }: NovaSemanaDialogProps) {
-  const isEditing = !!editData;
+// Utilitários para formatação
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('pt-BR');
+};
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'active':
+      return 'success';
+    case 'completed':
+      return 'primary';
+    case 'draft':
+      return 'warning';
+    case 'archived':
+      return 'default';
+    default:
+      return 'default';
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'active':
+      return 'Ativa';
+    case 'completed':
+      return 'Concluída';
+    case 'draft':
+      return 'Rascunho';
+    case 'archived':
+      return 'Arquivada';
+    default:
+      return status;
+  }
+};
+
+// Dialog de formulário para adicionar/editar semana
+function WeekDialog({ open, onClose, onSave, editingData, weekFocuses }: WeekDialogProps) {
   const [formData, setFormData] = useState({
-    ano: new Date().getFullYear(),
-    semestre: 1,
-    numeroSemana: 1,
-    focoSemanaId: '',
-    dataInicio: '',
+    name: editingData?.name || '',
+    week_focus_id: editingData?.week_focus_id || '',
+    start_date: editingData?.start_date || '',
+    end_date: editingData?.end_date || '',
+    notes: editingData?.notes || '',
   });
 
-  const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (editingData) {
+      setFormData({
+        name: editingData.name || '',
+        week_focus_id: editingData.week_focus_id || '',
+        start_date: editingData.start_date || '',
+        end_date: editingData.end_date || '',
+        notes: editingData.notes || '',
+      });
+    } else {
+      // Para nova semana, definir datas padrão (semana atual)
+      const today = new Date();
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - today.getDay() + 1);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      setFormData({
+        name: '',
+        week_focus_id: '',
+        start_date: monday.toISOString().split('T')[0],
+        end_date: sunday.toISOString().split('T')[0],
+        notes: '',
+      });
+    }
+  }, [editingData]);
+
+  const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleSelectChange = (field: string) => (event: SelectChangeEvent<string>) => {
     setFormData((prev) => ({
       ...prev,
       [field]: event.target.value,
@@ -285,529 +141,436 @@ function NovaSemanaDialog({ open, onClose, onSave, editData = null }: NovaSemana
   };
 
   const handleSave = () => {
-    if (!formData.focoSemanaId) {
-      alert('Por favor, selecione um foco da semana');
+    if (!formData.name.trim()) {
+      alert('Por favor, informe o nome da semana');
       return;
     }
 
-    const focoSemana = focosSemanaMock.find((foco) => foco.id === Number(formData.focoSemanaId));
-    if (!focoSemana) {
-      alert('Foco da semana não encontrado');
+    if (!formData.week_focus_id) {
+      alert('Por favor, selecione um foco para a semana');
       return;
     }
-    const semanaData: Semana = {
-      semestre: `${formData.ano}.${formData.semestre}`,
-      numeroSemana: formData.numeroSemana,
-      focoSemana: focoSemana,
-      data_inicio: formData.dataInicio || new Date().toISOString().split('T')[0],
-      treinos: editData?.treinos || [],
+
+    if (!formData.start_date || !formData.end_date) {
+      alert('Por favor, informe as datas de início e fim');
+      return;
+    }
+
+    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+      alert('A data de fim deve ser posterior à data de início');
+      return;
+    }
+
+    const weekData: CreateTrainingWeekDTO = {
+      name: formData.name.trim(),
+      week_focus_id: formData.week_focus_id,
+      start_date: formData.start_date,
+      end_date: formData.end_date,
+      notes: formData.notes.trim() || undefined,
+      // created_by será preenchido automaticamente pelo trigger
     };
 
-    onSave(semanaData);
+    onSave(weekData);
     onClose();
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{isEditing ? 'Editar Semana de Treino' : 'Nova Semana de Treino'}</DialogTitle>
-      <DialogContent>
-        <Stack spacing={3} sx={{ mt: 2 }}>
-          <TextField
-            label="Data de Início (Opcional)"
-            type="date"
-            value={formData.dataInicio}
-            onChange={handleChange('dataInicio')}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-          />
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>{editingData ? 'Editar Semana' : 'Nova Semana'}</DialogTitle>
+      <DialogContent sx={{ p: 0 }}>
+        <Grid container spacing={4} sx={{ mt: 3 }}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Nome da Semana *"
+              value={formData.name}
+              onChange={handleChange('name')}
+              placeholder="ex: Semana 1 - Janeiro 2026"
+              fullWidth
+            />
+          </Grid>
 
-          <TextField
-            label="Ano"
-            type="number"
-            value={formData.ano}
-            onChange={handleChange('ano')}
-            inputProps={{ min: 2020, max: 2030 }}
-            fullWidth
-          />
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth required>
+              <InputLabel>Foco da Semana</InputLabel>
+              <Select
+                value={formData.week_focus_id}
+                onChange={handleSelectChange('week_focus_id')}
+                label="Foco da Semana"
+              >
+                {weekFocuses.map((focus) => (
+                  <MenuItem key={focus.id} value={focus.id}>
+                    {focus.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
 
-          <FormControl fullWidth>
-            <InputLabel>Semestre</InputLabel>
-            <Select value={formData.semestre} onChange={handleChange('semestre')} label="Semestre">
-              <MenuItem value={1}>1º Semestre</MenuItem>
-              <MenuItem value={2}>2º Semestre</MenuItem>
-            </Select>
-          </FormControl>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Data de Início *"
+              type="date"
+              value={formData.start_date}
+              onChange={handleChange('start_date')}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+          </Grid>
 
-          <TextField
-            label="Número da Semana"
-            type="number"
-            value={formData.numeroSemana}
-            onChange={handleChange('numeroSemana')}
-            inputProps={{ min: 1, max: 52 }}
-            helperText="Ordem de aparição da semana (1, 2, 3...)"
-            fullWidth
-          />
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Data de Fim *"
+              type="date"
+              value={formData.end_date}
+              onChange={handleChange('end_date')}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+          </Grid>
 
-          <FormControl fullWidth>
-            <InputLabel>Foco da Semana</InputLabel>
-            <Select
-              value={formData.focoSemanaId}
-              onChange={handleChange('focoSemanaId')}
-              label="Foco da Semana"
-            >
-              {focosSemanaMock.map((foco) => (
-                <MenuItem key={foco.id} value={foco.id}>
-                  {foco.nome} {foco.intensidade && `(${foco.intensidade}%)`}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
+          <Grid item xs={12}>
+            <TextField
+              label="Observações"
+              value={formData.notes}
+              onChange={handleChange('notes')}
+              placeholder="Objetivos, observações especiais..."
+              multiline
+              rows={3}
+              fullWidth
+            />
+          </Grid>
+        </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
         <Button onClick={handleSave} variant="contained">
-          Salvar
+          {editingData ? 'Salvar' : 'Criar'}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
 
-interface SemanaTableProps {
-  semana: Semana;
-  navigate: (path: string) => void;
-  onEdit: (semana: Semana) => void;
-}
+function SemanasPage() {
+  const auth = useAuth();
+  const [trainingWeeks, setTrainingWeeks] = useState<TrainingWeek[]>([]);
+  const [weekFocuses, setWeekFocuses] = useState<WeekFocus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('todos');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingWeek, setEditingWeek] = useState<TrainingWeek | null>(null);
 
-function SemanaTable({ semana, navigate, onEdit }: SemanaTableProps) {
-  return (
-    <Box mb={4}>
-      {/* Compact Header */}
-      <Box
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          mb: 2,
-        }}
-      >
-        {/* Linha principal */}
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          sx={{
-            bgcolor: 'grey.50',
-            px: 2,
-            py: 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography
-            variant="h6"
-            fontWeight="600"
-            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-          >
-            📚 Semana {String(semana.numeroSemana).padStart(2, '0')}
-          </Typography>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={() => onEdit(semana)}
-            sx={{
-              bgcolor: 'rgba(255,255,255,0.2)',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-              borderRadius: 2,
-              minWidth: 'auto',
-              textTransform: 'none',
-              fontWeight: 500,
-              color: 'primary.main',
-            }}
-          >
-            Editar
-          </Button>
-        </Stack>
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadInitialData();
+  }, []);
 
-        {/* Linha de informações */}
-        <Box sx={{ px: 2, py: 1, bgcolor: 'background.paper' }}>
-          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-            {/* Foco */}
-            {semana.focoSemana && (
-              <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                🎯 <strong>{semana.focoSemana.nome}</strong>
-                {semana.focoSemana.intensidade && ` (${semana.focoSemana.intensidade}%)`}
-              </Typography>
-            )}
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-            {/* Data de início */}
-            {semana.data_inicio && (
-              <>
-                <Typography variant="body2" color="text.secondary">
-                  •
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                >
-                  📅 Início: {new Date(semana.data_inicio).toLocaleDateString('pt-BR')} •{' '}
-                  {semana.semestre}
-                </Typography>
-              </>
-            )}
-          </Stack>
-        </Box>
-      </Box>
+      const [weeksData, focusesData] = await Promise.all([
+        weekService.getAllTrainingWeeks(),
+        weekService.getAllWeekFocuses(),
+      ]);
 
-      <TableContainer component={Paper} sx={{ mb: 4, maxWidth: '100%', overflowX: 'auto' }}>
-        <Table size="small" sx={{ minWidth: '800px' }}>
-          <TableHead>
-            <TableRow>
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  position: 'sticky',
-                  left: 0,
-                  zIndex: 2,
-                  bgcolor: 'background.paper',
-                  minWidth: '120px',
-                  maxWidth: '120px',
-                  wordWrap: 'break-word',
-                  whiteSpace: 'normal',
-                }}
-              />
-              {diasSemana.map((dia) => (
-                <TableCell
-                  key={dia.key}
-                  align="left"
-                  sx={{
-                    fontWeight: 600,
-                    minWidth: '150px',
-                    width: `${100 / diasSemana.length}%`,
-                    wordWrap: 'break-word',
-                    whiteSpace: 'normal',
-                  }}
-                >
-                  {dia.label}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
+      setTrainingWeeks(weeksData);
+      setWeekFocuses(focusesData);
+    } catch (err: any) {
+      console.error('Erro ao carregar dados:', err);
+      
+      // Verificar se é erro de autenticação
+      if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found') || err?.code === '42501') {
+        console.log('🔄 [Auth] Token inválido detectado na inicialização, limpando sessão...');
+        await auth.clearSession();
+        setError('Sessão expirada. Execute o script de limpeza ou faça login novamente.');
+      } else {
+        setError('Erro ao carregar dados. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-          <TableBody>
-            {linhasTabela.map((linha) => (
-              <TableRow key={linha.key}>
-                {/* Coluna fixa da esquerda */}
-                <TableCell
-                  sx={{
-                    fontWeight: 600,
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 1,
-                    bgcolor: 'background.paper',
-                    minWidth: '120px',
-                    maxWidth: '120px',
-                    wordWrap: 'break-word',
-                    whiteSpace: 'normal',
-                    borderRight: '1px solid rgba(224, 224, 224, 1)',
-                  }}
-                >
-                  {linha.label}
-                </TableCell>
+  // Semanas filtradas
+  const weeksFiltradas = trainingWeeks.filter((week) => {
+    const matchesSearch =
+      week.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      week.week_focus?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-                {/* Colunas dos dias */}
-                {diasSemana.map((dia) => {
-                  // Encontra o treino para este dia da semana
-                  const treino = semana.treinos.find(
-                    (t: Treino) => t.diaSemana?.toLowerCase() === dia.label.toLowerCase(),
-                  );
+    const matchesStatus = filterStatus === 'todos' || week.status === filterStatus;
 
-                  return (
-                    <TableCell
-                      key={dia.key}
-                      align="left"
-                      sx={{
-                        minWidth: '150px',
-                        width: `${100 / diasSemana.length}%`,
-                        wordWrap: 'break-word',
-                        whiteSpace: 'normal',
-                        verticalAlign: 'top',
-                      }}
-                    >
-                      {renderCell(treino || null, linha.key, navigate)}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
-}
-
-function Semanas() {
-  const navigate = useNavigate();
-  const [semanas, setSemanas] = useState<Semana[]>(semanasMock as Semana[]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingSemana, setEditingSemana] = useState<Semana | null>(null);
-
-  // Estados dos filtros
-  const [filtros, setFiltros] = useState({
-    ano: '',
-    semestre: '',
-    focoSemana: '',
-    buscaLivre: '',
+    return matchesSearch && matchesStatus;
   });
 
-  // Função para filtrar semanas
-  const semanasFiltradas = semanas.filter((semana) => {
-    // Filtro por Ano
-    if (filtros.ano) {
-      const anoSemana = semana.semestre.split('.')[0];
-      if (anoSemana !== filtros.ano) return false;
-    }
+  const handleSaveWeek = async (weekData: CreateTrainingWeekDTO) => {
+    try {
+      if (editingWeek) {
+        const updated = await weekService.updateTrainingWeek(editingWeek.id, weekData);
+        setTrainingWeeks((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+      } else {
+        const newWeek = await weekService.createTrainingWeek(weekData);
+        setTrainingWeeks((prev) => [newWeek, ...prev]);
+      }
 
-    // Filtro por Semestre
-    if (filtros.semestre) {
-      const semestreSemana = semana.semestre.split('.')[1];
-      if (semestreSemana !== filtros.semestre) return false;
-    }
-
-    // Filtro por Foco da Semana
-    if (filtros.focoSemana) {
-      if (semana.focoSemana?.nome !== filtros.focoSemana) return false;
-    }
-
-    // Busca Livre - busca em múltiplos campos
-    if (filtros.buscaLivre) {
-      const termo = filtros.buscaLivre.toLowerCase();
-      const buscaEm = [
-        semana.focoSemana?.nome || '',
-        semana.focoSemana?.descricao || '',
-        semana.semestre,
-        semana.numeroSemana.toString(),
-        ...semana.treinos.map((t: Treino) =>
-          [
-            t.nome || '',
-            t.diaSemana || '',
-            ...(t.padroes_movimento || []),
-            ...(t.mobilidade || []),
-            t.neural || '',
-          ].join(' '),
-        ),
-      ]
-        .join(' ')
-        .toLowerCase();
-
-      if (!buscaEm.includes(termo)) return false;
-    }
-
-    return true;
-  });
-
-  // Handler para mudanças nos filtros
-  const handleFiltroChange = (campo: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFiltros((prev) => ({
-      ...prev,
-      [campo]: event.target.value,
-    }));
-  };
-
-  // Função para limpar todos os filtros
-  const limparFiltros = () => {
-    setFiltros({
-      ano: '',
-      semestre: '',
-      focoSemana: '',
-      buscaLivre: '',
-    });
-  };
-
-  // Opções para os filtros
-  const anosDisponiveis = [...new Set(semanas.map((s) => s.semestre.split('.')[0]))].sort();
-  const semestresDisponiveis = [...new Set(semanas.map((s) => s.semestre.split('.')[1]))].sort();
-  const focosDisponiveis = [
-    ...new Set(semanas.map((s) => s.focoSemana?.nome).filter(Boolean)),
-  ].sort();
-
-  const handleNovaSemana = (semanaData: Semana, isEditing = false) => {
-    if (isEditing && editingSemana) {
-      setSemanas((prev) =>
-        prev.map((semana) =>
-          semana.numeroSemana === editingSemana.numeroSemana &&
-          semana.semestre === editingSemana.semestre
-            ? { ...semana, ...semanaData }
-            : semana,
-        ),
-      );
-    } else {
-      setSemanas((prev) => [...prev, semanaData]);
+      setOpenDialog(false);
+      setEditingWeek(null);
+    } catch (err: any) {
+      console.error('Erro ao salvar semana:', err);
+      
+      // Verificar se é erro de autenticação ou RLS
+      if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
+        console.log('🔄 [Auth] Token inválido detectado, limpando sessão...');
+        await auth.clearSession();
+        setError('Sessão expirada. Execute o script de limpeza ou faça login novamente.');
+      } else if (err?.code === '42501') {
+        setError('Erro de permissão: Execute o script fix-training-weeks-rls.sql no Supabase SQL Editor.');
+      } else {
+        setError('Erro ao salvar semana. Tente novamente.');
+      }
     }
   };
 
-  const handleEditSemana = (semana: Semana) => {
-    setEditingSemana(semana);
-    setDialogOpen(true);
+  const handleDeleteWeek = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta semana? Todos os treinos serão removidos.'))
+      return;
+
+    try {
+      await weekService.deleteTrainingWeek(id);
+      setTrainingWeeks((prev) => prev.filter((w) => w.id !== id));
+    } catch (err) {
+      console.error('Erro ao deletar semana:', err);
+      setError('Erro ao deletar semana. Tente novamente.');
+    }
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditingSemana(null);
+  const handleEditWeek = (week: TrainingWeek) => {
+    setEditingWeek(week);
+    setOpenDialog(true);
   };
+
+  const handleAddWeek = () => {
+    setEditingWeek(null);
+    setOpenDialog(true);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('todos');
+  };
+
+  if (loading) {
+    return (
+      <Grid container spacing={2.5} justifyContent="center" alignItems="center" minHeight="400px">
+        <Grid item>
+          <CircularProgress size={60} />
+        </Grid>
+      </Grid>
+    );
+  }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" fontWeight="700">
-          Semanas de Treino
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setDialogOpen(true)}
-          sx={{
-            minWidth: { xs: 'auto', md: 150 },
-            px: { xs: 1, md: 2 },
-          }}
-        >
-          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Nova Semana</Box>
-        </Button>
-      </Stack>
-
-      {/* Filtros */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent sx={{ py: 2 }}>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            alignItems={{ xs: 'stretch', md: 'center' }}
-          >
-            {/* Título e botão limpar */}
-            <Box display="flex" alignItems="center" gap={1}>
-              <FilterListIcon sx={{ fontSize: 20, color: 'primary.main' }} />
-              <Typography variant="body1" fontWeight="600">
-                Filtros:
-              </Typography>
-            </Box>
-
-            {/* Campos de filtro em uma linha */}
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={2}
-              flex={1}
-              alignItems={{ xs: 'stretch', sm: 'center' }}
-            >
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Ano</InputLabel>
-                <Select value={filtros.ano} onChange={handleFiltroChange('ano')} label="Ano">
-                  <MenuItem value="">Todos</MenuItem>
-                  {anosDisponiveis.map((ano) => (
-                    <MenuItem key={ano} value={ano}>
-                      {ano}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel>Semestre</InputLabel>
-                <Select
-                  value={filtros.semestre}
-                  onChange={handleFiltroChange('semestre')}
-                  label="Semestre"
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  {semestresDisponiveis.map((semestre) => (
-                    <MenuItem key={semestre} value={semestre}>
-                      {semestre}º Semestre
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Foco da Semana</InputLabel>
-                <Select
-                  value={filtros.focoSemana}
-                  onChange={handleFiltroChange('focoSemana')}
-                  label="Foco da Semana"
-                >
-                  <MenuItem value="">Todos</MenuItem>
-                  {focosDisponiveis.map((foco) => (
-                    <MenuItem key={foco} value={foco}>
-                      {foco}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <TextField
-                size="small"
-                label="Busca Livre"
-                value={filtros.buscaLivre}
-                onChange={handleFiltroChange('buscaLivre')}
-                placeholder="Hipertrofia, Agachar..."
-                sx={{ minWidth: 200, flex: 1 }}
-                InputProps={{
-                  startAdornment: (
-                    <SearchIcon sx={{ mr: 0.5, color: 'text.secondary', fontSize: 18 }} />
-                  ),
-                }}
-              />
-            </Stack>
-
-            {/* Botão limpar e contador */}
-            <Box display="flex" alignItems="center" gap={2}>
-              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-                {semanasFiltradas.length === semanas.length
-                  ? `${semanas.length} semanas`
-                  : `${semanasFiltradas.length}/${semanas.length}`}
-              </Typography>
-              <Button
-                size="small"
-                startIcon={<ClearIcon />}
-                onClick={limparFiltros}
-                sx={{ whiteSpace: 'nowrap' }}
-              >
-                Limpar
-              </Button>
-            </Box>
-          </Stack>
-        </CardContent>
-      </Card>
-
-      {/* Mensagem quando não há resultados */}
-      {semanasFiltradas.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center', mt: 4 }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            Nenhuma semana encontrada
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Tente ajustar os filtros ou limpar a busca
-          </Typography>
-        </Paper>
-      ) : (
-        semanasFiltradas.map((semana) => (
-          <SemanaTable
-            key={`${semana.semestre}-${semana.numeroSemana}`}
-            semana={semana}
-            navigate={navigate}
-            onEdit={handleEditSemana}
+    <Grid container spacing={2.5}>
+      {error && (
+        <Grid item xs={12}>
+          <DatabaseSetupAlert 
+            error={error} 
+            onRetry={() => {
+              setError(null);
+              loadInitialData();
+            }} 
           />
-        ))
+        </Grid>
       )}
 
-      <NovaSemanaDialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        onSave={handleNovaSemana}
-        editData={editingSemana}
+      {/* Header */}
+      <Grid item xs={12}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h4" component="h1">
+            Semanas de Treino
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={handleAddWeek}
+            startIcon={<AddIcon />}
+            sx={{ minWidth: 150 }}
+          >
+            Nova Semana
+          </Button>
+        </Stack>
+      </Grid>
+
+      {/* Controles */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Stack direction={{ xs: 'row', md: 'row' }} sx={{ mt: 3 }} spacing={2} alignItems="center" justifyContent="space-between">
+              <TextField
+                label="Buscar semanas"
+                variant="outlined"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Nome da semana ou foco..."
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                }}
+                sx={{ flexGrow: 1, minWidth: { xs: '200px', md: 300 }, maxWidth: { xs: 'calc(100% - 60px)', md: 'none' } }}
+              />
+
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                sx={{ 
+                  minWidth: { xs: '48px', md: 120 },
+                  width: { xs: '48px', md: 'auto' },
+                  px: { xs: 1, md: 2 },
+                  '& .MuiButton-startIcon': {
+                    display: { xs: 'none', md: 'inline-flex' },
+                    marginRight: { xs: 0, md: '6px' }
+                  }
+                }}
+              >
+                <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                  <ClearIcon />
+                </Box>
+                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                  Limpar
+                </Box>
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Tabela de semanas */}
+      <Grid item xs={12}>
+        <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>
+                <Typography variant="subtitle2">Nome</Typography>
+              </TableCell>
+              <TableCell>
+                <Typography variant="subtitle2">Foco</Typography>
+              </TableCell>
+              <TableCell>
+                <Typography variant="subtitle2">Período</Typography>
+              </TableCell>
+              <TableCell>
+                <Typography variant="subtitle2">Status</Typography>
+              </TableCell>
+              <TableCell>
+                <Typography variant="subtitle2">Treinos</Typography>
+              </TableCell>
+              <TableCell align="center">
+                <Typography variant="subtitle2">Ações</Typography>
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {weeksFiltradas.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    {searchTerm || filterStatus !== 'todos'
+                      ? 'Nenhuma semana encontrada com os filtros aplicados'
+                      : 'Nenhuma semana cadastrada'}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              weeksFiltradas.map((week) => (
+                <TableRow key={week.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight="medium">
+                      {week.name}
+                    </Typography>
+                    {week.notes && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {week.notes}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={week.week_focus?.name || 'Sem foco'}
+                      size="small"
+                      sx={{
+                        bgcolor: week.week_focus?.color_hex || '#grey',
+                        color: 'white',
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {formatDate(week.start_date)} - {formatDate(week.end_date)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={getStatusLabel(week.status)}
+                      color={getStatusColor(week.status) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {week.trainings?.length || 0} treino(s)
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Stack direction="row" justifyContent="center" spacing={1}>
+                      <Tooltip title="Editar">
+                        <IconButton size="small" onClick={() => handleEditWeek(week)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Excluir">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteWeek(week.id)}
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        </TableContainer>
+      </Grid>
+
+      {/* Summary */}
+      <Grid item xs={12}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Mostrando {weeksFiltradas.length} de {trainingWeeks.length} semanas
+          </Typography>
+        </Box>
+      </Grid>
+
+      {/* Dialog para adicionar/editar */}
+      <WeekDialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        onSave={handleSaveWeek}
+        editingData={editingWeek}
+        weekFocuses={weekFocuses}
       />
-    </Container>
+    </Grid>
   );
 }
 
-export default Semanas;
+export default SemanasPage;

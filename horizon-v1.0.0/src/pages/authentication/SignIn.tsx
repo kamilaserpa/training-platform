@@ -1,4 +1,5 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
@@ -10,24 +11,114 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import IconifyIcon from 'components/base/IconifyIcon';
 import paths from 'routes/paths';
+import { supabase } from '../../lib/supabase';
 
 interface User {
   [key: string]: string;
 }
 
 const SignIn = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
+    if (error) setError(null); // Limpar erro quando usuário começar a digitar
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(user);
+    
+    if (!user.email || !user.password) {
+      setError('Por favor, preencha todos os campos');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: user.password,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      if (data.user) {
+        // Login bem-sucedido
+        console.log('Login bem-sucedido:', data.user);
+        
+        // Verificar se usuário existe na tabela users
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name, role, email')
+          .eq('id', data.user.id)
+          .single();
+
+        if (userError || !userData) {
+          // Usuário não existe na tabela users
+          setError('Usuário não encontrado no sistema. Entre em contato com o administrador.');
+          await supabase.auth.signOut();
+          return;
+        }
+
+        console.log('Dados do usuário:', userData);
+        
+        // Redirecionar para o dashboard
+        navigate('/');
+      }
+    } catch (error: any) {
+      console.error('Erro no login:', error);
+      
+      let errorMessage = 'Erro ao fazer login';
+      
+      if (error.message === 'Invalid login credentials') {
+        errorMessage = 'Email ou senha incorretos';
+      } else if (error.message === 'Email not confirmed') {
+        errorMessage = 'Por favor, confirme seu email antes de fazer login';
+      } else if (error.message === 'Too many requests') {
+        errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+    } catch (error: any) {
+      console.error('Erro no login com Google:', error);
+      setError('Erro ao fazer login com Google. Tente novamente.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,19 +159,34 @@ const SignIn = () => {
           color="secondary"
           size="large"
           fullWidth
-          startIcon={<IconifyIcon icon="logos:google-icon" />}
+          disabled={loading}
+          onClick={handleGoogleSignIn}
+          startIcon={
+            loading ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              <IconifyIcon icon="logos:google-icon" />
+            )
+          }
           sx={{
             mt: 4,
             fontWeight: 600,
             bgcolor: 'info.main',
             '& .MuiButton-startIcon': { mr: 1.5 },
             '&:hover': { bgcolor: 'info.main' },
+            '&:disabled': { bgcolor: 'info.main', opacity: 0.7 },
           }}
         >
-          Sign in with Google
+          {loading ? 'Conectando...' : 'Sign in with Google'}
         </Button>
 
         <Divider sx={{ my: 3 }}>or</Divider>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
@@ -97,6 +203,8 @@ const SignIn = () => {
             fullWidth
             autoFocus
             required
+            disabled={loading}
+            error={error !== null && !user.email}
           />
           <TextField
             id="password"
@@ -111,6 +219,8 @@ const SignIn = () => {
             sx={{ mt: 6 }}
             fullWidth
             required
+            disabled={loading}
+            error={error !== null && !user.password}
             InputProps={{
               endAdornment: (
                 <InputAdornment
@@ -125,6 +235,7 @@ const SignIn = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     sx={{ border: 'none', bgcolor: 'transparent !important' }}
                     edge="end"
+                    disabled={loading}
                   >
                     <IconifyIcon
                       icon={showPassword ? 'ic:outline-visibility' : 'ic:outline-visibility-off'}
@@ -136,9 +247,19 @@ const SignIn = () => {
             }}
           />
 
-          <Stack mt={1.5} alignItems="center" justifyContent="space-between">
+          <Stack mt={1.5} direction="row" alignItems="center" justifyContent="space-between">
             <FormControlLabel
-              control={<Checkbox id="checkbox" name="checkbox" size="medium" color="primary" />}
+              control={
+                <Checkbox 
+                  id="checkbox" 
+                  name="checkbox" 
+                  size="medium" 
+                  color="primary"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={loading}
+                />
+              }
               label="Keep me logged in"
               sx={{ ml: -0.75 }}
             />
@@ -147,8 +268,16 @@ const SignIn = () => {
             </Link>
           </Stack>
 
-          <Button type="submit" variant="contained" size="large" sx={{ mt: 3 }} fullWidth>
-            Sign In
+          <Button 
+            type="submit" 
+            variant="contained" 
+            size="large" 
+            sx={{ mt: 3 }} 
+            fullWidth
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : undefined}
+          >
+            {loading ? 'Signing In...' : 'Sign In'}
           </Button>
         </Box>
 

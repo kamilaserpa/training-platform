@@ -126,6 +126,21 @@ cp .env.example .env
 3. Adicione URLs permitidas se necessário
 4. Crie um usuário em **Authentication > Users > Add User**
 
+#### Criar usuário owner no projeto Supabase
+Se você já tem um usuário no Authentication e quer torná-lo OWNER:
+
+1. Pegue seu UUID do Authentication:
+Acesse: https://app.supabase.com/project/[SEU-PROJECT]/auth/users
+Copie seu User UID
+2. Execute no SQL Editor:
+```sql
+SELECT create_initial_owner(
+    '<SEU-UUID-DO-AUTH>',  -- UUID do usuário no auth.users
+    'seu@email.com',       -- Seu email
+    'Seu Nome'             -- Seu nome
+);
+```
+
 ### 7. Execute o projeto localmente
 
 ```bash
@@ -497,6 +512,85 @@ O sistema implementa políticas rigorosas de segurança:
 - **INSERT/UPDATE/DELETE**:
 - Apenas usuários autenticados (Owner)
 - Nenhuma escrita permitida para anon
+
+---
+
+## 👨‍💼 Como Criar Conta para Personal Trainers
+
+### 🎯 Setup Inicial (Apenas Primeira Vez)
+
+**1. Configure o Banco de Dados:**
+
+Abra o [Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql/new) e execute os scripts na pasta [`horizon-v1.0.0/supabase-refactor/`](horizon-v1.0.0/supabase-refactor/):
+
+```sql
+-- Execute TODOS os arquivos em ordem:
+\i 00-reset-database.sql      -- ⚠️ Apaga tudo (cuidado!)
+\i 01-create-types.sql        -- Tipos customizados
+\i 02-create-tables.sql       -- Estrutura das tabelas
+\i 03-create-functions.sql    -- Funções auxiliares
+\i 04-create-policies.sql     -- Políticas de segurança
+\i 05-insert-seed-data.sql    -- Dados iniciais
+\i 06-create-indexes.sql      -- Índices de performance
+\i 99-validate-setup.sql      -- Validação final
+
+-- OU execute apenas este:
+\i run-all.sql               -- Script master (faz tudo de uma vez)
+```
+
+### 🧑‍💼 Criar Novo Personal Trainer
+
+**Para cada novo personal trainer que usar o sistema:**
+
+**1. Personal se cadastra normalmente:**
+- Acessa a aplicação
+- Clica em "Cadastrar" 
+- Preenche email e senha
+- Supabase Auth cria o usuário automaticamente
+
+**2. Você (admin) eleva permissão:**
+
+No [Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql/new), execute:
+
+```sql
+-- Substituir pelos dados do personal:
+SELECT create_initial_owner(
+    '<UUID-DO-USUARIO>',    -- Pegar no Supabase Auth > Users
+    'personal@email.com',    -- Email do personal
+    'Nome do Personal'       -- Nome completo
+);
+```
+
+**3. Como pegar o UUID do usuário:**
+- Supabase Dashboard → Authentication → Users
+- Copie o UUID da coluna "ID"
+- Example: `c310a67a-3a94-47f9-b3dd-db5fec871e3b`
+
+**Exemplo completo:**
+```sql
+SELECT create_initial_owner(
+    'c310a67a-3a94-47f9-b3dd-db5fec871e3b',
+    'joao@personaltrainer.com', 
+    'João Silva Personal'
+);
+```
+
+### 🔑 Tipos de Usuário
+
+| **Role** | **Descrição** | **Permissões** |
+|----------|---------------|----------------|
+| **`owner`** | Personal Trainer Principal | ✅ CRUD completo em todos os dados |
+| **`admin`** | Administrador do Sistema | ✅ CRUD completo em todos os dados |
+| **`viewer`** | Usuário Básico | ✅ Leitura própria + Edição própria |
+| **`guest`** | Visitante (sem conta) | ❌ Apenas links compartilhados |
+
+### 🚨 Importante
+
+- **Owner/Admin**: Pode criar treinos, exercícios e compartilhar links
+- **Viewer**: Vê apenas seus próprios dados (se criar conta)
+- **Guest**: Acesso apenas via links compartilhados (treinos específicos)
+- **Novo usuário padrão**: Sempre começa como `viewer`
+- **Para ser Personal**: Admin deve executar `create_initial_owner()`
 
 ## 📄 Licença
 
