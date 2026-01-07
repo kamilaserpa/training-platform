@@ -1,18 +1,17 @@
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
-
-// https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
-  plugins: [react()],
-  // Configuração para GitHub Pages
-  base: mode === 'production' ? '/training-platform/' : '/',
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-  },
-  server: {
-    port: 3000,
-    open: false,
-  },
-}))
-
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
+// https://vitejs.dev/config/
+export default defineConfig({
+    plugins: [
+        tsconfigPaths(),
+        react(),
+    ],
+    preview: {
+        port: 5000,
+    },
+    server: {
+        host: '0.0.0.0',
+        port: 3000,
+    },
+});

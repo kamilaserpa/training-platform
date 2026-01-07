@@ -101,6 +101,9 @@ CREATE INDEX IF NOT EXISTS idx_trainings_user_date ON trainings(created_by, sche
 CREATE INDEX IF NOT EXISTS idx_trainings_expired_tokens ON trainings(share_expires_at) 
     WHERE share_expires_at IS NOT NULL;
 
+-- Índice para padrão de movimento do treino
+CREATE INDEX IF NOT EXISTS idx_trainings_movement_pattern ON trainings(movement_pattern_id);
+
 
 
 -- ==========================================

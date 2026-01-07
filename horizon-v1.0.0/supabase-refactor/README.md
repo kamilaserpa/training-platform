@@ -1,30 +1,63 @@
-# �️ Supabase Database Setup - Versão 2.1 (Desenvolvimento Amigável)
+# 🗄️ Supabase Database Setup - Versão 2.3 (Schema Completo)
 
 Este diretório contém scripts modulares para recriar completamente o banco de dados Supabase com suporte tanto para **desenvolvimento** quanto **produção**.
 
-## ✨ Novas Funcionalidades (v2.1)
+## ✨ Novas Funcionalidades (v2.3)
 
 - 🔄 **Auto-preenchimento de `created_by`** via triggers
-- 🧪 **Políticas RLS flexíveis** para desenvolvimento local
+- 🧪 **Políticas RLS flexíveis** para desenvolvimento local  
 - 🚀 **Script de migração para produção** incluído
 - 🛡️ **Segurança mantida** com RLS sempre habilitado
 - 📱 **Compatível com frontend** sem modificações
+- ⏱️ **Schema otimizado** - campo `duration_seconds` adicionado
+- 🔧 **Bug fixes** - persistência de `weight_kg` corrigida
+- 🎯 **Movement patterns** - treinos com padrões de movimento
+- 🔒 **RLS policies** - exercícios com controle de acesso
+- 🏷️ **Block types** - enum atualizado com valores em português
 
 ## 📁 Estrutura dos Scripts
 
 ```
 supabase-refactor/
 ├── 00-reset-database.sql      # ⚠️  APAGA TUDO - Execute primeiro
-├── 01-create-types.sql        # Tipos customizados (ENUMs)
-├── 02-create-tables.sql       # Estrutura das tabelas (created_by nullable)
+├── 01-create-types.sql        # Tipos customizados (ENUMs) - ATUALIZADO
+├── 02-create-tables.sql       # Estrutura das tabelas - ATUALIZADO
 ├── 03-create-functions.sql    # Funções + triggers auto-preenchimento
 ├── 04-create-policies.sql     # Políticas RLS FLEXÍVEIS
 ├── 05-insert-seed-data.sql    # Dados iniciais
-├── 06-create-indexes.sql      # Índices para performance
-├── 99-validate-setup.sql      # Validação final
-├── 10-production-migration.sql # ⚠️  Migração para produção
-└── run-all.sql               # Script master que executa tudo
+├── 06-create-indexes.sql      # Índices para performance - ATUALIZADO
+├── 07-rls-fixes.sql          # 🆕 Correções avançadas de RLS
+├── 99-validate-setup.sql      # Validação final - ATUALIZADO
+├── 10-production-migration.sql # ⚠️  Migração para produção - ATUALIZADO
+├── SCHEMA_CHANGES_LOG.md      # 📋 Log de mudanças de schema - ATUALIZADO
+└── run-all.sql               # Script master que executa tudo - ATUALIZADO
 ```
+
+## 📊 Mudanças de Schema Recentes
+
+### Exercise Prescriptions (2024-12-19)
+- ✅ **Adicionado**: `duration_seconds INTEGER` - Para exercícios com duração específica
+- ✅ **Mantido**: `weight_kg DECIMAL(5,2)` - Peso/carga do exercício  
+- ✅ **Mantido**: `tempo TEXT` - Cadência do movimento (ex: "2-1-2-1")
+
+### Training Movement Patterns (2024-12-19)  
+- ✅ **Adicionado**: `movement_pattern_id UUID` na tabela `trainings`
+- ✅ **Índice**: `idx_trainings_movement_pattern` para performance
+
+### Exercise Security (2024-12-19)
+- ✅ **RLS Policies**: Controle de acesso por usuário para exercícios
+- ✅ **Campo**: `created_by UUID` para associação de propriedade
+
+### Block Types (2024-12-19)
+- ✅ **Enum atualizado**: Valores em português (`MOBILIDADE_ARTICULAR`, `ATIVACAO_CORE`, etc.)
+
+### RLS Advanced Fixes (2024-12-19)
+- ✅ **Anti-recursão**: Políticas simplificadas para `users` sem subconsultas
+- ✅ **Políticas flexíveis**: `training_weeks` com suporte a desenvolvimento
+- ✅ **Auto-preenchimento**: Trigger automático para `created_by`
+- ✅ **Dados públicos**: `movement_patterns` acessível por todos
+
+📋 **Documentação completa**: Ver `SCHEMA_CHANGES_LOG.md`
 
 ## ⚡ Execução Rápida
 

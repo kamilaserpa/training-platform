@@ -30,14 +30,11 @@ CREATE TYPE share_status AS ENUM (
 
 -- Enum para tipos de blocos de treino
 CREATE TYPE block_type AS ENUM (
-    'warm_up',        -- Aquecimento
-    'strength',       -- Força
-    'cardio',         -- Cardio
-    'flexibility',    -- Flexibilidade
-    'cool_down',      -- Alongamento final
-    'circuit',        -- Circuito
-    'superset',       -- Super série
-    'rest'            -- Descanso
+    'MOBILIDADE_ARTICULAR',     -- Mobilidade articular
+    'ATIVACAO_CORE',           -- Ativação do core
+    'ATIVACAO_NEURAL',         -- Ativação neural
+    'TREINO_PRINCIPAL',        -- Treino principal
+    'CONDICIONAMENTO_FISICO'   -- Condicionamento físico
 );
 
 -- Enum para tipos de prescrição de exercícios

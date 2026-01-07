@@ -44,7 +44,36 @@ ALTER TABLE trainings ALTER COLUMN created_by SET NOT NULL;
 \echo '✅ Campos created_by agora são obrigatórios'
 
 -- ==========================================
--- 2. ATUALIZAR POLÍTICAS PARA PRODUÇÃO
+-- 2. OTIMIZAR SCHEMA EXERCISE_PRESCRIPTIONS
+-- ==========================================
+
+\echo '📊 Otimizando schema de prescrições de exercícios...'
+
+-- Adicionar coluna duration_seconds se não existir
+ALTER TABLE exercise_prescriptions 
+ADD COLUMN IF NOT EXISTS duration_seconds INTEGER;
+
+-- Adicionar constraint para duration_seconds
+DO $$ 
+BEGIN
+    -- Remover constraint anterior se existir
+    ALTER TABLE exercise_prescriptions 
+    DROP CONSTRAINT IF EXISTS check_duration_seconds;
+    
+    -- Adicionar nova constraint
+    ALTER TABLE exercise_prescriptions 
+    ADD CONSTRAINT check_duration_seconds 
+    CHECK (duration_seconds IS NULL OR duration_seconds > 0);
+END $$;
+
+-- Comentário para documentar o campo
+COMMENT ON COLUMN exercise_prescriptions.duration_seconds IS 
+'Duração do exercício em segundos - usado principalmente para exercícios de tempo determinado como isometrias ou cardio';
+
+\echo '✅ Schema de prescrições otimizado - duration_seconds adicionado'
+
+-- ==========================================
+-- 3. ATUALIZAR POLÍTICAS PARA PRODUÇÃO
 -- ==========================================
 
 -- Remover políticas flexíveis de desenvolvimento
@@ -98,7 +127,7 @@ CREATE POLICY "exercises_delete_production" ON exercises
 \echo '✅ Políticas de produção implementadas'
 
 -- ==========================================
--- 3. VALIDAÇÃO FINAL
+-- 4. VALIDAÇÃO FINAL
 -- ==========================================
 
 -- Verificar se não há registros órfãos
@@ -117,6 +146,16 @@ SELECT
     COUNT(*) as quantidade
 FROM exercises 
 WHERE created_by IS NULL;
+
+-- Verificar se o campo duration_seconds foi adicionado
+SELECT 
+    'Schema Update' as info,
+    'duration_seconds column exists' as tipo,
+    CASE WHEN EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'exercise_prescriptions' 
+        AND column_name = 'duration_seconds'
+    ) THEN 1 ELSE 0 END as quantidade;
 
 -- Verificar políticas ativas
 SELECT 

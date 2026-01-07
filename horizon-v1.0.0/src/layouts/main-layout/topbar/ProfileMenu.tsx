@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
 import Stack from '@mui/material/Stack';
@@ -11,8 +10,6 @@ import ButtonBase from '@mui/material/ButtonBase';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import IconifyIcon from 'components/base/IconifyIcon';
 import ProfileImage from 'assets/images/avatars/avatar1.png';
-import { useAuth } from 'contexts/AuthContext';
-import paths from 'routes/paths';
 
 interface MenuItems {
   id: number;
@@ -54,8 +51,6 @@ const menuItems: MenuItems[] = [
 ];
 
 const ProfileMenu = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -65,16 +60,6 @@ const ProfileMenu = () => {
 
   const handleProfileMenuClose = () => {
     setAnchorEl(null);
-  };
-
-  const handleMenuItemClick = async (item: MenuItems) => {
-    setAnchorEl(null);
-    
-    if (item.title === 'Logout') {
-      await signOut();
-      navigate(paths.signin);
-    }
-    // Adicionar outras funcionalidades aqui no futuro
   };
 
   return (
@@ -117,10 +102,10 @@ const ProfileMenu = () => {
             <Avatar src={ProfileImage} sx={{ mr: 1, height: 42, width: 42 }} />
             <Stack direction="column">
               <Typography variant="body2" color="text.primary" fontWeight={600}>
-                {user?.name || 'Usuário'}
+                Jason Statham
               </Typography>
               <Typography variant="caption" color="text.secondary" fontWeight={400}>
-                {user?.email || 'No email'}
+                jason@example.com
               </Typography>
             </Stack>
           </MenuItem>
@@ -131,11 +116,7 @@ const ProfileMenu = () => {
         <Box p={1}>
           {menuItems.map((item) => {
             return (
-              <MenuItem 
-                key={item.id} 
-                onClick={() => handleMenuItemClick(item)} 
-                sx={{ py: 1 }}
-              >
+              <MenuItem key={item.id} onClick={handleProfileMenuClose} sx={{ py: 1 }}>
                 <ListItemIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 'h5.fontSize' }}>
                   <IconifyIcon icon={item.icon} />
                 </ListItemIcon>

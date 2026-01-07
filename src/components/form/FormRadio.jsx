@@ -2,7 +2,7 @@
 import { useFormContext, Controller } from 'react-hook-form'
 import { FormControl, FormLabel, RadioGroup, FormControlLabel, Radio } from '@mui/material'
 
-export default function FormRadio({ name, label, options, ...props }) {
+export default function FormRadio({ name, label, options, fullWidth, ...props }) {
   const { control } = useFormContext()
 
   return (
@@ -16,11 +16,11 @@ export default function FormRadio({ name, label, options, ...props }) {
           <RadioGroup {...field} row {...props}>
             {options.map((item) => (
               <FormControlLabel
-                fullWidth
                 key={item.value}
                 value={item.value}
                 control={<Radio />}
                 label={item.label}
+                sx={fullWidth ? { width: '100%' } : {}}
               />
             ))}
           </RadioGroup>

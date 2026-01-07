@@ -60,6 +60,24 @@ AND tc.table_name IN ('users', 'movement_patterns', 'week_focuses', 'exercises',
 GROUP BY tc.table_name, tc.constraint_type
 ORDER BY tc.table_name, tc.constraint_type;
 
+-- Validação específica de campos críticos
+\echo '📊 Validando campos específicos da tabela exercise_prescriptions:'
+
+SELECT 
+    'Campo: ' || column_name as "Campo",
+    data_type as "Tipo",
+    CASE WHEN is_nullable = 'YES' THEN '✅ Nullable' ELSE '❌ Not Null' END as "Nullable",
+    COALESCE(character_maximum_length::text, numeric_precision::text, 'N/A') as "Tamanho/Precisão"
+FROM information_schema.columns 
+WHERE table_name = 'exercise_prescriptions' 
+AND column_name IN ('weight_kg', 'duration_seconds', 'tempo')
+ORDER BY 
+    CASE column_name 
+        WHEN 'weight_kg' THEN 1
+        WHEN 'duration_seconds' THEN 2  
+        WHEN 'tempo' THEN 3
+    END;
+
 -- ==========================================
 -- 3. VALIDAÇÃO DE FUNÇÕES
 -- ==========================================
@@ -251,7 +269,7 @@ SELECT
 
 SELECT 
     'Database Schema Version' as item,
-    '2.0 - RBAC Complete' as valor
+    '2.3 - Schema Completo + RLS' as valor
 UNION ALL
 SELECT 
     'Total de Tabelas' as item,

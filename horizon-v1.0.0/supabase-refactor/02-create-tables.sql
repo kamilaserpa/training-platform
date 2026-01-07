@@ -166,6 +166,7 @@ CREATE TABLE exercise_prescriptions (
     reps TEXT, -- Ex: "8-12", "máximo", "30s"
     weight_kg DECIMAL(5,2) CHECK (weight_kg >= 0),
     rest_seconds INTEGER DEFAULT 60 CHECK (rest_seconds >= 0),
+    duration_seconds INTEGER CHECK (duration_seconds > 0), -- Duração do exercício em segundos
     tempo TEXT, -- Ex: "2-1-2-1" (excêntrico-pausa-concêntrico-pausa)
     rpe INTEGER CHECK (rpe BETWEEN 1 AND 10), -- Rate of Perceived Exertion
     percentage_1rm INTEGER CHECK (percentage_1rm BETWEEN 1 AND 100),

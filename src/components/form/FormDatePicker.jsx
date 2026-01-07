@@ -3,6 +3,7 @@ import { useFormContext, Controller } from 'react-hook-form'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import dayjs from 'dayjs'
 import 'dayjs/locale/pt-br'
 
 export default function FormDatePicker({ name, label, required, ...props }) {
@@ -20,6 +21,10 @@ export default function FormDatePicker({ name, label, required, ...props }) {
           <DatePicker
             fullWidth
             {...field}
+            value={field.value ? (dayjs.isDayjs(field.value) ? field.value : dayjs(field.value)) : null}
+            onChange={(newValue) => {
+              field.onChange(newValue)
+            }}
             label={label}
             format="DD/MM/YYYY"
             slotProps={{

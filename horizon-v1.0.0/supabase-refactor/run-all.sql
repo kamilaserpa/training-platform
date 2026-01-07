@@ -1,11 +1,11 @@
 -- =============================================
 -- RUN-ALL.sql  
 -- Script mestre para executar toda a reconfiguração do banco
--- VERSÃO 2.1: Com suporte a desenvolvimento e produção
+-- VERSÃO 2.3: Schema completo com correções RLS e otimizações
 -- =============================================
 
-\echo '🚀 INICIANDO RECONFIGURAÇÃO COMPLETA DO BANCO DE DADOS (v2.1)...'
-\echo '✨ Novidades: Triggers automáticos, políticas flexíveis, migração para produção'
+\echo '🚀 INICIANDO RECONFIGURAÇÃO COMPLETA DO BANCO DE DADOS (v2.3)...'
+\echo '✨ Novidades: RLS fixes, duration_seconds, movement patterns, políticas otimizadas'
 \echo '⏰ Início:' \echo `date`
 \echo ''
 
@@ -94,16 +94,25 @@ SELECT pg_sleep(5);
 -- ETAPA 6: ÍNDICES DE PERFORMANCE
 -- ==========================================
 
-\echo '⚡ ETAPA 6/8: CRIANDO ÍNDICES DE PERFORMANCE'
+\echo '⚡ ETAPA 6/9: CRIANDO ÍNDICES DE PERFORMANCE'
 \i 06-create-indexes.sql
 \echo '✅ Índices de performance criados!'
+\echo ''
+
+-- ==========================================
+-- ETAPA 7: CORREÇÕES AVANÇADAS DE RLS
+-- ==========================================
+
+\echo '🔧 ETAPA 7/9: APLICANDO CORREÇÕES AVANÇADAS DE RLS'
+\i 07-rls-fixes.sql
+\echo '✅ Correções de RLS aplicadas!'
 \echo ''
 
 -- ==========================================
 -- ETAPA 7: VALIDAÇÃO FINAL
 -- ==========================================
 
-\echo '🔍 ETAPA 7/8: VALIDAÇÃO FINAL DO SETUP (DESENVOLVIMENTO)'
+\echo '🔍 ETAPA 8/9: VALIDAÇÃO FINAL DO SETUP (DESENVOLVIMENTO)'
 \i 99-validate-setup.sql
 \echo ''
 
@@ -111,7 +120,7 @@ SELECT pg_sleep(5);
 -- ETAPA 8: INFORMAÇÕES DE MIGRAÇÃO
 -- ==========================================
 
-\echo '📋 ETAPA 8/8: INFORMAÇÕES SOBRE MIGRAÇÃO PARA PRODUÇÃO'
+\echo '📋 ETAPA 9/9: INFORMAÇÕES SOBRE MIGRAÇÃO PARA PRODUÇÃO'
 \echo ''
 \echo '🧪 BANCO CONFIGURADO PARA DESENVOLVIMENTO:'
 \echo '• created_by pode ser NULL (triggers preenchem automaticamente)'
