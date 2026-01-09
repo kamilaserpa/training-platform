@@ -87,19 +87,19 @@ export const routes = [
           },
 
           // ==========================================
-          // Usuários (Owner e Admin)
-          // ==========================================
-          {
-            path: paths.usuarios,
-            element: <Usuarios />,
-          },
-
-          // ==========================================
           // Configurações
           // ==========================================
           {
             path: paths.configuracoes,
             element: <Configuracoes />,
+          },
+
+          // ==========================================
+          // Usuários (Owner e Admin)
+          // ==========================================
+          {
+            path: paths.usuarios,
+            element: <Usuarios />,
           },
 
           // ==========================================

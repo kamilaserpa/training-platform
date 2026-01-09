@@ -53,11 +53,10 @@ const DrawerItems = ({ onItemClick }: DrawerItemsProps) => {
           <Image src={HorizonLogo} alt="logo" height={44} width={44} sx={{ mr: 1.75 }} />
           <Typography
             variant="h3"
-            textTransform="uppercase"
             letterSpacing={1}
             fontFamily={fontFamily.poppins}
           >
-            Horizon
+            Training Platform
           </Typography>
         </ButtonBase>
       </Stack>

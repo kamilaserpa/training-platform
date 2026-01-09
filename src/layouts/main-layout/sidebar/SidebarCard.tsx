@@ -1,7 +1,7 @@
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import HorizonLogo from 'assets/images/logo-white.png';
+import HorizonLogo from 'assets/images/logo-dumbbell-white.png';
 import Image from 'components/base/Image';
 
 const Logo = () => {
