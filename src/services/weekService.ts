@@ -93,7 +93,7 @@ class WeekService {
   // Week Focuses CRUD
   // ========================
   async getAllWeekFocuses(): Promise<WeekFocus[]> {
-    console.log('🔄 [WeekService] Iniciando busca de focos da semana...');
+    console.log('🔄 [WeekService] Buscando focos...');
     
     if (useMock) {
       console.log('🎭 [WeekService] Usando dados mockados para focos');
@@ -106,7 +106,7 @@ class WeekService {
 
       if (error) throw error;
 
-      console.log('✅ [WeekService] Encontrados', data?.length || 0, 'focos da semana');
+      console.log(`✅ [WeekService] ${data?.length || 0} focos`);
       return data || [];
     } catch (error) {
       console.error('❌ [WeekService] Erro ao buscar focos de semana:', error);

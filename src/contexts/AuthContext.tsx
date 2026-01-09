@@ -221,6 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Efeito para inicializar a autenticação
   useEffect(() => {
     let mounted = true;
+    let isInitialLoad = true;
 
     if (useMock) {
       console.log('🎭 [Auth] Modo mock ativado - auto-login');
@@ -272,22 +273,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      console.log('🔐 [Auth] Mudança de estado:', event);
-      setSession(session);
-
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
-        if (mounted) {
-          setUser(profile);
-        }
-      } else {
-        if (mounted) {
-          setUser(null);
-        }
+      // Ignorar eventos INITIAL_SESSION e SIGNED_IN repetidos após o carregamento inicial
+      if (isInitialLoad && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+        console.log('🔐 [Auth] Ignorando evento inicial:', event);
+        isInitialLoad = false;
+        return;
       }
 
-      if (mounted) {
-        setLoading(false);
+      // Apenas processar eventos relevantes que indicam mudança real de estado
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        console.log('🔐 [Auth] Mudança de estado:', event);
+        setSession(session);
+
+        if (session?.user && event !== 'SIGNED_OUT') {
+          const profile = await fetchUserProfile(session.user.id);
+          if (mounted) {
+            setUser(profile);
+          }
+        } else {
+          if (mounted) {
+            setUser(null);
+          }
+        }
+
+        if (mounted) {
+          setLoading(false);
+        }
       }
     });
 
@@ -295,7 +306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchUserProfile]); // Dependência para evitar re-renders desnecessários
+  }, []); // Sem dependências para evitar re-criação do listener
 
   const value: AuthContextType = {
     user,

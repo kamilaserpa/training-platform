@@ -174,20 +174,12 @@ function TreinoDetalhesForm() {
 
     return parts.join(' • ')
   }
+  
+  // Estados para controle de loading
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
-
-  // Watch para mudanças na data e semana para atualizar nome do treino automaticamente
-  const watchedValues = watch(['data', 'semana'])
-
-  useEffect(() => {
-    const [data, semana] = watchedValues
-    if (data && semana && semanasOptions.length > 0) {
-      const newName = generateTrainingName(semana, data)
-      console.log('🔄 Nome do treino atualizado automaticamente:', newName)
-    }
-  }, [watchedValues, semanasOptions])
-
+  const [loadingTrainingData, setLoadingTrainingData] = useState(isEditMode)
+  
   // Estados para feedback
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -196,7 +188,20 @@ function TreinoDetalhesForm() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [submittingMessage, setSubmittingMessage] = useState('')
-  const [loadingTrainingData, setLoadingTrainingData] = useState(isEditMode)
+
+  // Watch para mudanças na data e semana para atualizar nome do treino automaticamente
+  const watchedValues = watch(['data', 'semana'])
+
+  useEffect(() => {
+    // Evitar execuções durante o carregamento inicial ou quando não há dados
+    if (loading || loadingTrainingData) return;
+    
+    const [data, semana] = watchedValues
+    if (data && semana && semanasOptions.length > 0) {
+      const newName = generateTrainingName(semana, data)
+      console.log('🔄 Nome do treino atualizado automaticamente:', newName)
+    }
+  }, [watchedValues, semanasOptions, loading, loadingTrainingData])
 
   // Estados para compartilhamento
   const [shareLink, setShareLink] = useState('')
@@ -301,6 +306,8 @@ function TreinoDetalhesForm() {
 
   // Hook para carregar dados do treino em modo de edição
   useEffect(() => {
+    let isMounted = true;
+    
     const loadTrainingData = async () => {
       if (!isEditMode || !editingTrainingId || loading ||
         semanasOptions.length === 0 || padroesMovimentoOptions.length === 0) {
@@ -312,6 +319,8 @@ function TreinoDetalhesForm() {
         console.log('🔄 Carregando dados do treino:', editingTrainingId)
 
         const trainingData = await trainingService.getTrainingById(editingTrainingId)
+
+        if (!isMounted) return; // Evitar atualização se o componente foi desmontado
 
         if (!trainingData) {
           throw new Error('Treino não encontrado')
@@ -363,17 +372,25 @@ function TreinoDetalhesForm() {
 
       } catch (error) {
         console.error('❌ Erro ao carregar dados do treino:', error)
-        setSnackbar({
-          open: true,
-          message: 'Erro ao carregar dados do treino',
-          severity: 'error'
-        })
+        if (isMounted) {
+          setSnackbar({
+            open: true,
+            message: 'Erro ao carregar dados do treino',
+            severity: 'error'
+          })
+        }
       } finally {
-        setLoadingTrainingData(false)
+        if (isMounted) {
+          setLoadingTrainingData(false)
+        }
       }
     }
 
     loadTrainingData()
+    
+    return () => {
+      isMounted = false;
+    }
   }, [isEditMode, editingTrainingId, loading, semanasOptions.length, padroesMovimentoOptions.length])
 
   // Função para popular os blocos do treino

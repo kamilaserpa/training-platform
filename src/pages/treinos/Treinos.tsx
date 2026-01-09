@@ -188,13 +188,17 @@ const Treinos = () => {
 
   // Carregar treinos do banco de dados
   useEffect(() => {
+    let isMounted = true;
+    
     const loadTreinos = async () => {
       try {
         setLoading(true)
         setError(null)
 
-        console.log('🔄 [Treinos] Carregando treinos do banco...')
+        console.log('🔄 [Treinos] Carregando...')
         const treinosData = await trainingService.getAllTrainings()
+
+        if (!isMounted) return;
 
         // Mapear blocos e exercícios com estrutura do banco
         const treinosFormatted = treinosData.map(treino => ({
@@ -225,18 +229,24 @@ const Treinos = () => {
         }))
 
         setTreinos(treinosFormatted)
-        console.log('✅ [Treinos] Carregados', treinosFormatted.length, 'treinos')
-        console.log('🔍 [DEBUG] Primeiro treino com estrutura completa:', treinosFormatted[0])
+        console.log(`✅ [Treinos] ${treinosFormatted.length} treinos carregados`)
 
       } catch (err: any) {
-        console.error('❌ [Treinos] Erro ao carregar treinos:', err)
+        if (!isMounted) return;
+        console.error('❌ [Treinos] Erro:', err)
         setError(err.message || 'Erro ao carregar treinos')
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     loadTreinos()
+    
+    return () => {
+      isMounted = false;
+    };
   }, [])
 
   // Filtros aplicados

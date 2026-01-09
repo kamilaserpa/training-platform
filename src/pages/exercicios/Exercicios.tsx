@@ -226,27 +226,29 @@ function ExerciciosPage() {
 
   // Carregar dados iniciais
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    let isMounted = true;
+    
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('🔄 [Exercicios] Carregando dados...');
 
-  const loadInitialData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('🔄 [Exercicios] Iniciando carregamento dos dados...');
+        const [exercisesData, patternsData] = await Promise.all([
+          exerciseService.getAllExercises(),
+          movementPatternService.getAllMovementPatterns(),
+        ]);
 
-      const [exercisesData, patternsData] = await Promise.all([
-        exerciseService.getAllExercises(),
-        movementPatternService.getAllMovementPatterns(),
-      ]);
+        if (!isMounted) return;
 
-      console.log(`✅ [Exercicios] Dados carregados: ${exercisesData.length} exercícios, ${patternsData.length} padrões`);
+        console.log(`✅ [Exercicios] ${exercisesData.length} exercícios, ${patternsData.length} padrões`);
 
       setExercises(exercisesData);
       setMovementPatterns(patternsData);
     } catch (err: any) {
-      console.error('❌ [Exercicios] Erro ao carregar dados:', err);
+      if (!isMounted) return;
+      console.error('❌ [Exercicios] Erro:', err);
       
       let errorMessage = 'Erro ao carregar dados do banco. ';
       
@@ -258,6 +260,52 @@ function ExerciciosPage() {
         errorMessage += 'Problema de conexão. Verifique sua internet e configurações do Supabase.';
       } else {
         errorMessage += `Detalhes: ${err.message || 'Erro desconhecido'}.`;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      if (isMounted) {
+        setLoading(false);
+      }
+    }
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔄 [Exercicios] Recarregando dados...');
+
+      const [exercisesData, patternsData] = await Promise.all([
+        exerciseService.getAllExercises(),
+        movementPatternService.getAllMovementPatterns(),
+      ]);
+
+      console.log(`✅ [Exercicios] ${exercisesData.length} exercícios, ${patternsData.length} padrões`);
+
+      setExercises(exercisesData);
+      setMovementPatterns(patternsData);
+    } catch (err: any) {
+      console.error('❌ [Exercicios] Erro:', err);
+      
+      let errorMessage = 'Erro ao carregar dados do banco. ';
+      
+      if (err.code === '42501') {
+        errorMessage += 'Problema de permissão. Verifique as políticas RLS no Supabase.';
+      } else if (err.code === 'PGRST116') {
+        errorMessage += 'Tabelas não encontradas. Execute o script de setup do banco.';
+      } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
+        errorMessage += 'Problema de conexão. Verifique sua internet e configurações do Supabase.';
+      } else {
+        errorMessage += err.message || 'Erro desconhecido';
       }
       
       setError(errorMessage);
