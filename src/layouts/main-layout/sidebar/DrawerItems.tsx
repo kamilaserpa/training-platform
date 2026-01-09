@@ -18,13 +18,20 @@ interface DrawerItemsProps {
 }
 
 const DrawerItems = ({ onItemClick }: DrawerItemsProps) => {
-  const { user } = useAuth();
+  const { user, canManageUsers } = useAuth();
 
-  // Filtrar itens do menu baseado na autenticação
+  // Filtrar itens do menu baseado na autenticação e permissões
   const filteredSitemap = sitemap.filter((route) => {
+    // Verificar se requer permissão para gerenciar usuários
+    if (route.requireManageUsers) {
+      return canManageUsers; // Mostrar apenas para Owner ou Admin
+    }
+    
+    // Verificar se requer autenticação
     if (route.requireAuth) {
       return !!user; // Mostrar apenas se estiver autenticado
     }
+    
     return true; // Mostrar itens públicos sempre
   });
 

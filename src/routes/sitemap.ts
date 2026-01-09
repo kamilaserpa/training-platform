@@ -18,6 +18,7 @@ export interface MenuItem {
   active?: boolean;
   items?: SubMenuItem[];
   requireAuth?: boolean; // Nova propriedade para controlar visibilidade
+  requireManageUsers?: boolean; // Requer permissão para gerenciar usuários (Owner ou Admin)
   isLogout?: boolean; // Nova propriedade para identificar o botão de logout
 }
 
@@ -52,13 +53,21 @@ const sitemap: MenuItem[] = [
   },
   {
     id: 5,
+    subheader: 'Usuários',
+    path: paths.usuarios,
+    icon: 'ic:round-people',
+    requireAuth: true,
+    requireManageUsers: true, // Apenas Owner e Admin veem este item
+  },
+  {
+    id: 6,
     subheader: 'Configurações',
     path: paths.configuracoes,
     icon: 'ic:round-settings',
     requireAuth: true,
   },
   {
-    id: 6,
+    id: 7,
     subheader: 'Logout',
     icon: 'ic:round-logout',
     requireAuth: true,

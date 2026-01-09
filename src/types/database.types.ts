@@ -17,7 +17,9 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  owner_id?: string; // ID do owner que criou este usuário (para multi-tenancy)
   avatar_url?: string;
+  active?: boolean; // Se o usuário está ativo ou não
   created_at: string;
   updated_at: string;
 }

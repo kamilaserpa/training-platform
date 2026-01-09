@@ -16,6 +16,7 @@ const SemanasRefactored = lazy(() => import('../pages/semanas/SemanasRefactored'
 const Treinos = lazy(() => import('../pages/treinos/Treinos'));
 const Configuracoes = lazy(() => import('../pages/configuracoes/Configuracoes'));
 const Exercicios = lazy(() => import('../pages/exercicios/Exercicios'));
+const Usuarios = lazy(() => import('../pages/usuarios/Usuarios'));
 const ThemePlayground = lazy(() => import('../pages/ThemePlayground'));
 
 const SignIn = lazy(() => import('../pages/authentication/SignIn'));
@@ -83,6 +84,14 @@ export const routes = [
           {
             path: paths.semanas,
             element: <SemanasRefactored />,
+          },
+
+          // ==========================================
+          // Usuários (Owner e Admin)
+          // ==========================================
+          {
+            path: paths.usuarios,
+            element: <Usuarios />,
           },
 
           // ==========================================

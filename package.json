@@ -6,11 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:mock": "VITE_USE_MOCK=true npm run build",
+    "build:prod": "npm run build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --fix",
     "preview": "vite preview",
+    "preview:mock": "VITE_USE_MOCK=true npm run preview",
     "predeploy": "vite build && cp ./dist/index.html ./dist/404.html",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "deploy:setup": "node scripts/switch-deploy.js"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",

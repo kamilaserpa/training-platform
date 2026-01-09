@@ -27,6 +27,12 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   clearSession: () => Promise<void>;
 
+  // Verificações de permissão
+  isOwner: boolean;
+  isAdmin: boolean;
+  isViewer: boolean;
+  canManageUsers: boolean; // Owner ou Admin podem gerenciar usuários
+
   // Estado de modo mock
   isMockMode: boolean;
 }
@@ -308,6 +314,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []); // Sem dependências para evitar re-criação do listener
 
+  // Computar permissões baseadas na role do usuário
+  const isOwner = user?.role === 'owner';
+  const isAdmin = user?.role === 'admin';
+  const isViewer = user?.role === 'viewer';
+  const canManageUsers = isOwner || isAdmin;
+
   const value: AuthContextType = {
     user,
     session,
@@ -316,6 +328,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     clearSession,
+    isOwner,
+    isAdmin,
+    isViewer,
+    canManageUsers,
     isMockMode: useMock,
   };
 

@@ -23,7 +23,7 @@ interface MenuItems {
 const menuItems: MenuItems[] = [
   {
     id: 1,
-    title: 'View Profile',
+    title: 'Ver perfil',
     icon: 'material-symbols:account-circle-outline',
   },
   {

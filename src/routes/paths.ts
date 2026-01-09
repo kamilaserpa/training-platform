@@ -49,6 +49,11 @@ export default {
   configuracoes: `/${rootPaths.pagesRoot}/configuracoes`,
   
   // ==========================================
+  // Usuários (apenas Owner e Admin)
+  // ==========================================
+  usuarios: `/${rootPaths.pagesRoot}/usuarios`,
+  
+  // ==========================================
   // Desenvolvimento
   // ==========================================
   themePlayground: `/${rootPaths.pagesRoot}/theme-playground`,
