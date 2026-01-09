@@ -11,6 +11,7 @@ const TreinoPublico = lazy(() => import('../pages/treinos/TreinoPublico'));
 
 // Novas páginas adicionadas
 const Semanas = lazy(() => import('../pages/semanas/Semanas'));
+const SemanasRefactored = lazy(() => import('../pages/semanas/SemanasRefactored'));
 const Treinos = lazy(() => import('../pages/treinos/Treinos'));
 const Configuracoes = lazy(() => import('../pages/configuracoes/Configuracoes'));
 const Exercicios = lazy(() => import('../pages/exercicios/Exercicios'));
@@ -78,7 +79,7 @@ export const routes = [
           // ==========================================
           {
             path: paths.semanas,
-            element: <Semanas />,
+            element: <SemanasRefactored />,
           },
 
           // ==========================================

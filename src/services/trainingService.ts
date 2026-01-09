@@ -633,6 +633,67 @@ class TrainingService {
       throw error;
     }
   }
+
+  /**
+   * Busca semanas com treinos organizados por dia da semana
+   */
+  async getWeeksWithTrainings(): Promise<any[]> {
+    console.log('🔄 [TrainingService] Buscando semanas com treinos organizados por dia...');
+
+    try {
+      // Buscar todas as semanas com seus focos
+      const { data: weeks, error: weeksError } = await supabase
+        .from('training_weeks')
+        .select(`
+          *,
+          week_focus:week_focuses(*)
+        `)
+        .order('start_date', { ascending: false });
+
+      if (weeksError) throw weeksError;
+
+      if (!weeks || weeks.length === 0) {
+        console.log('⚠️ [TrainingService] Nenhuma semana encontrada');
+        return [];
+      }
+
+      // Para cada semana, buscar seus treinos com blocos e exercícios
+      const weeksWithTrainings = await Promise.all(
+        weeks.map(async (week) => {
+          const { data: trainings, error: trainingsError } = await supabase
+            .from('trainings')
+            .select(`
+              *,
+              training_blocks(
+                *,
+                exercise_prescriptions(
+                  *,
+                  exercise:exercises(*)
+                )
+              )
+            `)
+            .eq('training_week_id', week.id)
+            .order('scheduled_date');
+
+          if (trainingsError) {
+            console.error('❌ Erro ao buscar treinos da semana:', week.id, trainingsError);
+            return { ...week, trainings: [] };
+          }
+
+          return {
+            ...week,
+            trainings: trainings || []
+          };
+        })
+      );
+
+      console.log('✅ [TrainingService] Encontradas', weeksWithTrainings.length, 'semanas com treinos');
+      return weeksWithTrainings;
+    } catch (error) {
+      console.error('❌ [TrainingService] Erro ao buscar semanas com treinos:', error);
+      throw error;
+    }
+  }
 }
 
 export const trainingService = new TrainingService();

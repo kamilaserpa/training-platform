@@ -135,12 +135,17 @@ function TreinoForm() {
     },
   })
 
-  const { handleSubmit, formState: { errors }, watch } = methods
+  const { handleSubmit, formState: { errors }, watch, setValue } = methods
 
   // Estados para dados dos selects
   const [semanasOptions, setSemanasOptions] = useState([])
+  const [semanasCompletas, setSemanasCompletas] = useState([]) // Semanas com todas as informações
   const [padroesMovimentoOptions, setPadroesMovimentoOptions] = useState([])
   const [exerciciosOptions, setExerciciosOptions] = useState([])
+  
+  // Estados para destacar dias da semana no date picker
+  const [weekStartDate, setWeekStartDate] = useState(null)
+  const [weekEndDate, setWeekEndDate] = useState(null)
 
   // Função helper para formatar protocolo do exercício
   const formatProtocol = (item) => {
@@ -191,6 +196,7 @@ function TreinoForm() {
 
   // Watch para mudanças na data e semana para atualizar nome do treino automaticamente
   const watchedValues = watch(['data', 'semana'])
+  const watchedSemana = watch('semana')
 
   useEffect(() => {
     // Evitar execuções durante o carregamento inicial ou quando não há dados
@@ -270,6 +276,7 @@ function TreinoForm() {
         }))
 
         setSemanasOptions(semanasFormatted)
+        setSemanasCompletas(semanas) // Armazenar semanas completas com datas
         setPadroesMovimentoOptions(padroesFormatted)
         setExerciciosOptions(exerciciosFormatted)
 
@@ -303,6 +310,44 @@ function TreinoForm() {
 
     loadSelectData()
   }, [])
+
+  // Hook para preencher semana automaticamente via query param
+  useEffect(() => {
+    const semanaParam = searchParams.get('semana')
+    
+    if (semanaParam && !isEditMode && semanasOptions.length > 0) {
+      // Verificar se a semana existe nas opções
+      const semanaValida = semanasOptions.find(s => s.id === semanaParam)
+      
+      if (semanaValida) {
+        console.log('✅ Preenchendo semana automaticamente:', semanaValida.label)
+        setValue('semana', semanaParam, { shouldValidate: false, shouldDirty: false })
+      } else {
+        console.warn('⚠️ Semana não encontrada nas opções:', semanaParam)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [semanasOptions.length, isEditMode])
+
+  // Hook para atualizar datas de destaque quando semana é selecionada
+  useEffect(() => {
+    if (watchedSemana && semanasCompletas.length > 0) {
+      const semanaCompleta = semanasCompletas.find(s => s.id === watchedSemana)
+      
+      if (semanaCompleta && semanaCompleta.start_date && semanaCompleta.end_date) {
+        console.log('📅 Destacando dias da semana:', semanaCompleta.start_date, '-', semanaCompleta.end_date)
+        setWeekStartDate(semanaCompleta.start_date)
+        setWeekEndDate(semanaCompleta.end_date)
+      } else {
+        console.log('⚠️ Semana sem datas definidas, não destacando dias')
+        setWeekStartDate(null)
+        setWeekEndDate(null)
+      }
+    } else {
+      setWeekStartDate(null)
+      setWeekEndDate(null)
+    }
+  }, [watchedSemana, semanasCompletas])
 
   // Hook para carregar dados do treino em modo de edição
   useEffect(() => {
@@ -1307,14 +1352,17 @@ function TreinoForm() {
         open: true,
         message: isEditMode
           ? 'Treino atualizado com sucesso!'
-          : 'Treino criado com blocos e exercícios!',
+          : 'Treino criado com sucesso! Agora você pode gerar o link de compartilhamento.',
         severity: 'success'
       })
 
-      // Aguardar um pouco antes de navegar
-      setTimeout(() => {
-        navigate('/pages/treinos')
-      }, 2000)
+      // Se for criação, redirecionar para o modo de edição do treino recém-criado
+      if (!isEditMode) {
+        console.log('🔄 Redirecionando para modo de edição do treino:', training.id)
+        setTimeout(() => {
+          navigate(`/pages/treinos/${training.id}/editar`)
+        }, 1500)
+      }
 
     } catch (error) {
       console.error('❌ Erro ao criar treino:', error)
@@ -1418,6 +1466,8 @@ function TreinoForm() {
                           label="Data do Treino"
                           disabled={submitting}
                           required
+                          highlightStartDate={weekStartDate}
+                          highlightEndDate={weekEndDate}
                         />
                       </Grid>
 
@@ -1850,7 +1900,7 @@ function TreinoForm() {
                 </Card>
 
                 {/* Card: Compartilhamento */}
-                {isEditMode && (
+                {editingTrainingId && (
                   <Card>
                     <CardContent>
                       <Typography variant="h6" fontWeight="600" gutterBottom>
