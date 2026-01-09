@@ -42,7 +42,6 @@ import {
 import {
   Save as SaveIcon,
   ArrowBack as ArrowBackIcon,
-  FitnessCenter as FitnessCenterIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
@@ -74,47 +73,15 @@ function TreinoForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const { id: editingTrainingId } = useParams() // Pegar ID da URL RESTful
-  const searchParams = new URLSearchParams(location.search)
-  const shouldUseDefaultBlocks = searchParams.get('defaultBlocks') === 'true'
   const isEditMode = !!editingTrainingId
 
-  // Função para criar blocos padrão do treino
-  const createDefaultBlocks = () => {
-    return {
-      mobilidade: ['Ombro', 'Tronco', 'Quadril', 'Tornozelo'],
-      core: [
-        { nome: 'Prancha', series: 3, tempo: 30, intervalo: 10 },
-        { nome: 'Respiração diafragmática', series: 3, tempo: 30, intervalo: 10 }
-      ],
-      neural: [
-        { nome: 'Polichinelos', series: 3, tempo: 20 },
-        { nome: 'Corrida estacionária', series: 3, tempo: 20 }
-      ],
-      bloco1: [],
-      bloco2: [],
-      condicionamento: []
-    }
-  }
-
   // Estados para cada seção do treino
-  const [mobilidadeItems, setMobilidadeItems] = useState(() =>
-    shouldUseDefaultBlocks ? createDefaultBlocks().mobilidade : []
-  )
-  const [coreItems, setCoreItems] = useState(() =>
-    shouldUseDefaultBlocks ? createDefaultBlocks().core : []
-  )
-  const [neuralItems, setNeuralItems] = useState(() =>
-    shouldUseDefaultBlocks ? createDefaultBlocks().neural : []
-  )
-  const [treinoBloco1, setTreinoBloco1] = useState(() =>
-    shouldUseDefaultBlocks ? createDefaultBlocks().bloco1 : []
-  )
-  const [treinoBloco2, setTreinoBloco2] = useState(() =>
-    shouldUseDefaultBlocks ? createDefaultBlocks().bloco2 : []
-  )
-  const [condicionamentoItems, setCondicionamentoItems] = useState(() =>
-    shouldUseDefaultBlocks ? createDefaultBlocks().condicionamento : []
-  )
+  const [mobilidadeItems, setMobilidadeItems] = useState([])
+  const [coreItems, setCoreItems] = useState([])
+  const [neuralItems, setNeuralItems] = useState([])
+  const [treinoBloco1, setTreinoBloco1] = useState([])
+  const [treinoBloco2, setTreinoBloco2] = useState([])
+  const [condicionamentoItems, setCondicionamentoItems] = useState([])
 
   // Estados para dialogs
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -602,26 +569,6 @@ function TreinoForm() {
     setFormData({})
   }
 
-  // Função para aplicar blocos padrão
-  const handleApplyDefaultBlocks = () => {
-    const defaultBlocks = createDefaultBlocks()
-    setMobilidadeItems(defaultBlocks.mobilidade)
-    setCoreItems(defaultBlocks.core)
-    setNeuralItems(defaultBlocks.neural)
-    setTreinoBloco1(defaultBlocks.bloco1)
-    setTreinoBloco2(defaultBlocks.bloco2)
-    setCondicionamentoItems(defaultBlocks.condicionamento)
-  }
-
-  // Função para limpar todos os blocos
-  const handleClearAllBlocks = () => {
-    setMobilidadeItems([])
-    setCoreItems([])
-    setNeuralItems([])
-    setTreinoBloco1([])
-    setTreinoBloco2([])
-    setCondicionamentoItems([])
-  }
 
   // Handler para salvar item
   const handleSaveItem = () => {
@@ -1446,18 +1393,38 @@ function TreinoForm() {
                       </Grid>
 
                       <Grid item xs={12} md={4}>
-                        <FormSelect
-                          name="semana"
-                          label="Semana"
-                          options={loading ? [{ id: '', label: 'Carregando...' }] : semanasOptions}
-                          disabled={loading || submitting}
-                          required
-                        />
-                        {loadError && (
-                          <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                            Erro ao carregar semanas: {loadError}
-                          </Typography>
-                        )}
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                          <Box sx={{ flex: 1 }}>
+                            <FormSelect
+                              name="semana"
+                              label="Semana"
+                              options={loading ? [{ id: '', label: 'Carregando...' }] : semanasOptions}
+                              disabled={loading || submitting}
+                              required
+                            />
+                            {loadError && (
+                              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                                Erro ao carregar semanas: {loadError}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Button
+                            variant="outlined"
+                            onClick={() => navigate('/pages/semanas')}
+                            disabled={submitting}
+                            sx={{
+                              minWidth: 'auto',
+                              width: '40px',
+                              height: '40px',
+                              p: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <AddIcon fontSize="small" />
+                          </Button>
+                        </Box>
                       </Grid>
 
                       <Grid item xs={12} md={4}>
@@ -1497,55 +1464,11 @@ function TreinoForm() {
                 {/* Card: Estrutura do Treino */}
                 <Card>
                   <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Box mb={2}>
                       <Typography variant="h6" fontWeight="600">
                         🏋️ Estrutura do Treino
                       </Typography>
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<FitnessCenterIcon />}
-                          onClick={handleApplyDefaultBlocks}
-                          color="primary"
-                          disabled={submitting}
-                        >
-                          Aplicar Blocos Padrão
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<DeleteIcon />}
-                          onClick={handleClearAllBlocks}
-                          color="error"
-                          disabled={submitting}
-                        >
-                          Limpar Tudo
-                        </Button>
-                      </Stack>
                     </Box>
-                    {shouldUseDefaultBlocks && (
-                      <Box sx={{ mb: 2 }}>
-                        <Chip
-                          label="Blocos padrão aplicados automaticamente: Mobilidade Articular, Ativação de Core e Ativação Neural"
-                          color="primary"
-                          variant="outlined"
-                          size="small"
-                          sx={{
-                            mb: 1,
-                            backgroundColor: 'info.main', // #F4F7FE
-                            color: 'primary.main', // #4318FF
-                            border: 'none',
-                            fontWeight: 700,
-                            '&.MuiChip-colorPrimary': {
-                              backgroundColor: 'info.main',
-                              color: 'primary.main',
-                              border: 'none'
-                            }
-                          }}
-                        />
-                      </Box>
-                    )}
                     <Divider sx={{ mb: 3 }} />
 
                     <Grid container spacing={3}>

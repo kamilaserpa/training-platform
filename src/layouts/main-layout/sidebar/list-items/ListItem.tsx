@@ -1,4 +1,5 @@
 import { MenuItem } from 'routes/sitemap';
+import { useLocation } from 'react-router-dom';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -7,7 +8,13 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import IconifyIcon from 'components/base/IconifyIcon';
 
-const ListItem = ({ subheader, icon, path, active }: MenuItem) => {
+const ListItem = ({ subheader, icon, path }: MenuItem) => {
+  const location = useLocation();
+  
+  // Determinar se o item está ativo baseado na rota atual
+  const isActive = location.pathname === path || 
+    (path !== '/' && location.pathname.startsWith(path || ''));
+  
   return (
     <Stack mb={1} component={Link} href={path} alignItems="center" justifyContent="space-between">
       <ListItemButton>
@@ -17,7 +24,7 @@ const ListItem = ({ subheader, icon, path, active }: MenuItem) => {
               icon={icon}
               fontSize="h4.fontSize"
               sx={{
-                color: active ? 'primary.main' : null,
+                color: isActive ? 'primary.main' : null,
               }}
             />
           )}
@@ -26,8 +33,8 @@ const ListItem = ({ subheader, icon, path, active }: MenuItem) => {
           primary={subheader}
           sx={{
             '& .MuiListItemText-primary': {
-              color: active ? 'primary.main' : null,
-              fontWeight: active ? 600 : 500,
+              color: isActive ? 'primary.main' : null,
+              fontWeight: isActive ? 600 : 500,
             },
           }}
         />
@@ -37,7 +44,7 @@ const ListItem = ({ subheader, icon, path, active }: MenuItem) => {
         height={36}
         width={4}
         borderRadius={10}
-        bgcolor={active && path === '/' ? 'primary.main' : 'transparent'}
+        bgcolor={isActive ? 'primary.main' : 'transparent'}
       />
     </Stack>
   );

@@ -417,10 +417,18 @@ function SemanasPage() {
           <Button
             variant="contained"
             onClick={handleAddWeek}
-            startIcon={<AddIcon />}
-            sx={{ minWidth: 150 }}
+            sx={{ 
+              minWidth: { xs: 'auto', sm: 150 },
+              px: { xs: 1.5, sm: 2 },
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
           >
-            Nova Semana
+            <AddIcon />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+              Nova Semana
+            </Box>
           </Button>
         </Stack>
       </Grid>

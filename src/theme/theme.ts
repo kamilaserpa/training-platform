@@ -76,7 +76,6 @@ export const theme = createTheme({
     MuiInputAdornment: InputAdornment,
     MuiInputBase: InputBase,
     MuiOutlinedInput: OutlinedInput,
-    MuiSelect: Select,
     MuiAutocomplete: Autocomplete,
     MuiCollapse: Collapse,
     MuiList: List,

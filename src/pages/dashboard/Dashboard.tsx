@@ -5,7 +5,6 @@ import { Container, Typography, Box } from '@mui/material';
 import CurrentWeek from '../../components/dashboard/CurrentWeek';
 import WeekWorkouts from '../../components/dashboard/WeekWorkouts';
 import RecentWeeks from '../../components/dashboard/RecentWeeks';
-import AlertsAndPendencies from '../../components/dashboard/AlertsAndPendencies';
 
 // Componentes originais do template (mantidos para referência)
 import Calendar from 'components/sections/dashboard/calendar';
@@ -39,11 +38,6 @@ const Dashboard = () => {
         {/* Semanas Recentes */}
         <Grid item xs={12}>
           <RecentWeeks />
-        </Grid>
-
-        {/* Alertas & Pendências */}
-        <Grid item xs={12}>
-          <AlertsAndPendencies />
         </Grid>
 
         {/* Componentes originais do template (comentados para futuro uso) */}

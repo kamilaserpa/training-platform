@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MenuItem } from 'routes/sitemap';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
@@ -9,8 +10,20 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 import IconifyIcon from 'components/base/IconifyIcon';
 
-const CollapseListItem = ({ subheader, active, items, icon }: MenuItem) => {
+const CollapseListItem = ({ subheader, items, icon }: MenuItem) => {
+  const location = useLocation();
   const [open, setOpen] = useState(false);
+  
+  // Verificar se algum item filho está ativo
+  const isAnyChildActive = items?.some(item => location.pathname === item.path);
+  const isActive = isAnyChildActive;
+  
+  // Abrir automaticamente se algum filho estiver ativo
+  useEffect(() => {
+    if (isAnyChildActive) {
+      setOpen(true);
+    }
+  }, [isAnyChildActive]);
 
   const handleClick = () => {
     setOpen(!open);
@@ -24,7 +37,7 @@ const CollapseListItem = ({ subheader, active, items, icon }: MenuItem) => {
             <IconifyIcon
               icon={icon}
               sx={{
-                color: active ? 'primary.main' : null,
+                color: isActive ? 'primary.main' : null,
               }}
             />
           )}
@@ -33,14 +46,14 @@ const CollapseListItem = ({ subheader, active, items, icon }: MenuItem) => {
           primary={subheader}
           sx={{
             '& .MuiListItemText-primary': {
-              color: active ? 'primary.main' : null,
+              color: isActive ? 'primary.main' : null,
             },
           }}
         />
         <IconifyIcon
           icon="iconamoon:arrow-down-2-duotone"
           sx={{
-            color: active ? 'primary.main' : 'text.disabled',
+            color: isActive ? 'primary.main' : 'text.disabled',
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.2s ease-in-out',
           }}
@@ -50,18 +63,20 @@ const CollapseListItem = ({ subheader, active, items, icon }: MenuItem) => {
       <Collapse in={open} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
           {items?.map((route) => {
+            const isItemActive = location.pathname === route.path;
             return (
               <ListItemButton
                 key={route.pathName}
                 component={Link}
                 href={route.path}
-                sx={{ ml: 2.25, bgcolor: route.active ? 'info.main' : null }}
+                sx={{ ml: 2.25, bgcolor: isItemActive ? 'info.main' : null }}
               >
                 <ListItemText
                   primary={route.pathName}
                   sx={{
                     '& .MuiListItemText-primary': {
-                      color: 'text.disabled',
+                      color: isItemActive ? 'primary.main' : 'text.disabled',
+                      fontWeight: isItemActive ? 600 : 400,
                     },
                   }}
                 />

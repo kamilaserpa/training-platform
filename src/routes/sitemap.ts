@@ -25,7 +25,6 @@ const sitemap: MenuItem[] = [
     subheader: 'Dashboard',
     path: rootPaths.root,
     icon: 'ic:round-home',
-    active: true,
   },
   {
     id: 2,
