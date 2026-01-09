@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Outlet, createBrowserRouter } from 'react-router-dom';
 import paths, { rootPaths } from './paths';
+import PrivateRoute from '../components/navigation/PrivateRoute';
 
 const App = lazy(() => import('../App'));
 const MainLayout = lazy(() => import('../layouts/main-layout'));
@@ -35,11 +36,13 @@ export const routes = [
       {
         path: rootPaths.root,
         element: (
-          <MainLayout>
-            <Suspense fallback={<PageLoader />}>
-              <Outlet />
-            </Suspense>
-          </MainLayout>
+          <PrivateRoute>
+            <MainLayout>
+              <Suspense fallback={<PageLoader />}>
+                <Outlet />
+              </Suspense>
+            </MainLayout>
+          </PrivateRoute>
         ),
         children: [
           // ==========================================

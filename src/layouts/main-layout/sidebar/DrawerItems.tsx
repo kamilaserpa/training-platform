@@ -11,8 +11,23 @@ import HorizonLogo from 'assets/images/logo-main.png';
 import Image from 'components/base/Image';
 import SidebarCard from './SidebarCard';
 import sitemap from 'routes/sitemap';
+import { useAuth } from '../../../contexts/AuthContext';
 
-const DrawerItems = () => {
+interface DrawerItemsProps {
+  onItemClick?: () => void;
+}
+
+const DrawerItems = ({ onItemClick }: DrawerItemsProps) => {
+  const { user } = useAuth();
+
+  // Filtrar itens do menu baseado na autenticação
+  const filteredSitemap = sitemap.filter((route) => {
+    if (route.requireAuth) {
+      return !!user; // Mostrar apenas se estiver autenticado
+    }
+    return true; // Mostrar itens públicos sempre
+  });
+
   return (
     <>
       <Stack
@@ -41,11 +56,11 @@ const DrawerItems = () => {
       </Stack>
 
       <List component="nav" sx={{ mt: 2.5, mb: 10, p: 0, pl: 3 }}>
-        {sitemap.map((route) =>
+        {filteredSitemap.map((route) =>
           route.items ? (
-            <CollapseListItem key={route.id} {...route} />
+            <CollapseListItem key={route.id} {...route} onItemClick={onItemClick} />
           ) : (
-            <ListItem key={route.id} {...route} />
+            <ListItem key={route.id} {...route} onItemClick={onItemClick} />
           ),
         )}
       </List>

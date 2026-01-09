@@ -18,6 +18,13 @@ const Sidebar = ({ mobileOpen, setMobileOpen, setIsClosing }: SidebarProps) => {
     setIsClosing(false);
   };
 
+  // Função para fechar o drawer ao clicar em um item do menu (mobile)
+  const handleMenuItemClick = () => {
+    if (mobileOpen) {
+      handleDrawerClose();
+    }
+  };
+
   return (
     <Box
       component="nav"
@@ -33,7 +40,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen, setIsClosing }: SidebarProps) => {
         ModalProps={{ keepMounted: true }}
         sx={{ display: { xs: 'block', lg: 'none' } }}
       >
-        <DrawerItems />
+        <DrawerItems onItemClick={handleMenuItemClick} />
       </Drawer>
 
       <Drawer variant="permanent" sx={{ display: { xs: 'none', lg: 'block' } }} open>

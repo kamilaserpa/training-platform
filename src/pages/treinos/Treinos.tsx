@@ -353,12 +353,16 @@ const Treinos = () => {
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/pages/treinos/novo')}
                 sx={{
-                  minWidth: { xs: 'auto', md: 150 },
-                  px: { xs: 1, md: 2 },
+                  minWidth: { xs: 40, sm: 'auto' },
+                  px: { xs: 1, sm: 2 },
+                  '& .MuiButton-startIcon': {
+                    margin: { xs: 0, sm: '0 8px 0 -4px' },
+                  },
                 }}
               >
-                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Novo Treino</Box>
-                <Box sx={{ display: { xs: 'block', sm: 'none' } }}>Novo</Box>
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Novo Treino
+                </Box>
               </Button>
             </Stack>
           </Stack>

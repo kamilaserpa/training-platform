@@ -479,8 +479,17 @@ const Configuracoes = () => {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => handleOpenFocoDialog()}
+              sx={{
+                minWidth: { xs: 40, sm: 'auto' },
+                px: { xs: 1, sm: 2 },
+                '& .MuiButton-startIcon': {
+                  margin: { xs: 0, sm: '0 8px 0 -4px' },
+                },
+              }}
             >
-              Novo Foco
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                Novo Foco
+              </Box>
             </Button>
           </Box>
 
@@ -599,8 +608,17 @@ const Configuracoes = () => {
               startIcon={<AddIcon />}
               onClick={() => handleOpenPadraoDialog()}
               disabled={loading}
+              sx={{
+                minWidth: { xs: 40, sm: 'auto' },
+                px: { xs: 1, sm: 2 },
+                '& .MuiButton-startIcon': {
+                  margin: { xs: 0, sm: '0 8px 0 -4px' },
+                },
+              }}
             >
-              Novo Padrão
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                Novo Padrão
+              </Box>
             </Button>
           </Box>
 

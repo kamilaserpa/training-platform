@@ -73,6 +73,7 @@ function TreinoForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const { id: editingTrainingId } = useParams() // Pegar ID da URL RESTful
+  const searchParams = new URLSearchParams(location.search)
   const isEditMode = !!editingTrainingId
 
   // Estados para cada seção do treino

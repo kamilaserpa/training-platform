@@ -60,7 +60,7 @@ const WeekWorkouts = () => {
 
       if (currentWeek && currentWeek.trainings) {
         // Ordenar treinos por data
-        const sortedWorkouts = currentWeek.trainings.sort((a, b) => 
+        const sortedWorkouts = currentWeek.trainings.sort((a: any, b: any) => 
           dayjs(a.scheduled_date).diff(dayjs(b.scheduled_date))
         );
         setWorkouts(sortedWorkouts);
@@ -146,8 +146,17 @@ const WeekWorkouts = () => {
             startIcon={<AddIcon />}
             onClick={handleAddWorkout}
             size="small"
+            sx={{
+              minWidth: { xs: 40, sm: 'auto' },
+              px: { xs: 1, sm: 2 },
+              '& .MuiButton-startIcon': {
+                margin: { xs: 0, sm: '0 8px 0 -4px' },
+              },
+            }}
           >
-            Novo Treino
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+              Novo Treino
+            </Box>
           </Button>
         </Stack>
 

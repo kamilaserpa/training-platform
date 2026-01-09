@@ -10,7 +10,11 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 import IconifyIcon from 'components/base/IconifyIcon';
 
-const CollapseListItem = ({ subheader, items, icon }: MenuItem) => {
+interface CollapseListItemProps extends MenuItem {
+  onItemClick?: () => void;
+}
+
+const CollapseListItem = ({ subheader, items, icon, onItemClick }: CollapseListItemProps) => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   
@@ -69,6 +73,7 @@ const CollapseListItem = ({ subheader, items, icon }: MenuItem) => {
                 key={route.pathName}
                 component={Link}
                 href={route.path}
+                onClick={() => onItemClick && onItemClick()}
                 sx={{ ml: 2.25, bgcolor: isItemActive ? 'info.main' : null }}
               >
                 <ListItemText

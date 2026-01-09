@@ -1,10 +1,14 @@
 import Grid from '@mui/material/Grid';
 import { Container, Typography, Box } from '@mui/material';
 
+// Alertas e Notificações
+import { DevModeAlert } from '../../components/DevModeAlert';
+
 // Novos componentes da plataforma de treinos
 import CurrentWeek from '../../components/dashboard/CurrentWeek';
 import WeekWorkouts from '../../components/dashboard/WeekWorkouts';
 import RecentWeeks from '../../components/dashboard/RecentWeeks';
+import AlertsAndPendencies from '../../components/dashboard/AlertsAndPendencies';
 
 // Componentes originais do template (mantidos para referência)
 import Calendar from 'components/sections/dashboard/calendar';
@@ -24,6 +28,9 @@ import BusinessDesign from 'components/sections/dashboard/business-design';
 const Dashboard = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
+      {/* Alertas e Notificações */}
+      <DevModeAlert />
+      
       <Grid container spacing={3}>
         {/* Hero Section - Semana Atual */}
         <Grid item xs={12}>
@@ -38,6 +45,11 @@ const Dashboard = () => {
         {/* Semanas Recentes */}
         <Grid item xs={12}>
           <RecentWeeks />
+        </Grid>
+
+        {/* Alertas e Notificações */}
+        <Grid item xs={12}>
+          <AlertsAndPendencies />
         </Grid>
 
         {/* Componentes originais do template (comentados para futuro uso) */}

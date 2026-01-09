@@ -30,8 +30,8 @@ const Button: Components<Omit<Theme, 'components'>>['MuiButton'] = {
       color: theme.palette.primary.main,
       borderColor: theme.palette.primary.main,
       '&:hover': {
-        backgroundColor: theme.palette.primary.main,
-        color: theme.palette.info.light,
+        backgroundColor: 'rgba(67, 24, 255, 0.08)', // primary.main com 8% de opacidade
+        color: theme.palette.primary.main,
         borderColor: theme.palette.primary.main,
       },
     }),

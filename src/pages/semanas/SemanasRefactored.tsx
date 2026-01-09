@@ -251,18 +251,18 @@ const SemanasRefactored = () => {
               Visualize e gerencie os treinos de cada semana
             </Typography>
           </Box>
-          <Button
+          <Button 
             variant="contained"
+            startIcon={<AddIcon />}
             onClick={handleOpenDialog}
             sx={{ 
-              minWidth: { xs: 'auto', sm: 150 },
-              px: { xs: 1.5, sm: 2 },
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1
+              minWidth: { xs: 40, sm: 'auto' },
+              px: { xs: 1, sm: 2 },
+              '& .MuiButton-startIcon': {
+                margin: { xs: 0, sm: '0 8px 0 -4px' },
+              },
             }}
           >
-            <AddIcon />
             <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
               Nova Semana
             </Box>

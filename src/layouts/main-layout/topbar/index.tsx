@@ -30,8 +30,15 @@ const Topbar = ({ isClosing, mobileOpen, setMobileOpen }: TopbarProps) => {
       height={90}
       alignItems="center"
       justifyContent="space-between"
-      bgcolor="transparent"
+      position="sticky"
+      top={0}
       zIndex={1200}
+      sx={{
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        backdropFilter: 'blur(6px)',
+        backgroundColor: 'info.main',
+      }}
     >
       <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
         <ButtonBase
