@@ -289,7 +289,7 @@ const Treinos = () => {
   };
 
   const handleEdit = (id: string) => {
-    navigate(`/pages/treino-detalhes-form?id=${id}`);
+    navigate(`/pages/treinos/${id}/editar`);
   };
 
   // Helper para formatar data
@@ -351,7 +351,7 @@ const Treinos = () => {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => navigate('/pages/treino-detalhes-form')}
+                onClick={() => navigate('/pages/treinos/novo')}
                 sx={{
                   minWidth: { xs: 'auto', md: 150 },
                   px: { xs: 1, md: 2 },
@@ -445,7 +445,7 @@ const Treinos = () => {
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate('/pages/treino-detalhes-form')}
+                    onClick={() => navigate('/pages/treinos/novo')}
                   >
                     Criar Primeiro Treino
                   </Button>
@@ -661,7 +661,7 @@ const Treinos = () => {
               right: 24,
               display: { xs: 'flex', md: 'none' },
             }}
-            onClick={() => navigate('/pages/treino-detalhes-form')}
+            onClick={() => navigate('/pages/treinos/novo')}
           >
             <AddIcon />
           </Fab>

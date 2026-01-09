@@ -234,7 +234,7 @@ function renderCell(
         <Button
           size="small"
           variant="outlined"
-          onClick={() => navigate(`/pages/treino-detalhes-form`)}
+          onClick={() => navigate(`/pages/treinos/novo`)}
           sx={{
             '@media print': {
               display: 'none',

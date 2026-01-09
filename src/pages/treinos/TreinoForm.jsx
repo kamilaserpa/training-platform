@@ -1,9 +1,9 @@
-// Página TreinoDetalhes com React Hook Form - Versão Completa
+// Formulário de Treino - Criar/Editar
 import { useState, useEffect } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import dayjs from 'dayjs'
 
 // Imports dos serviços
@@ -70,12 +70,12 @@ const validationSchema = yup.object().shape({
   link_ativo: yup.boolean(),
 })
 
-function TreinoDetalhesForm() {
+function TreinoForm() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { id: editingTrainingId } = useParams() // Pegar ID da URL RESTful
   const searchParams = new URLSearchParams(location.search)
   const shouldUseDefaultBlocks = searchParams.get('defaultBlocks') === 'true'
-  const editingTrainingId = searchParams.get('id') // ID do treino para edição
   const isEditMode = !!editingTrainingId
 
   // Função para criar blocos padrão do treino
@@ -1361,7 +1361,7 @@ function TreinoDetalhesForm() {
             </Box>
             <Button
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/treinos')}
+              onClick={() => navigate('/pages/treinos')}
               variant="outlined"
             >
               Voltar
@@ -2019,7 +2019,7 @@ function TreinoDetalhesForm() {
               </Button>
               <Button
                 variant="outlined"
-                onClick={() => navigate('/treinos')}
+                onClick={() => navigate('/pages/treinos')}
                 size="large"
                 disabled={submitting}
               >
@@ -2485,6 +2485,6 @@ function TreinoDetalhesForm() {
   )
 }
 
-export default TreinoDetalhesForm;
+export default TreinoForm;
 
 

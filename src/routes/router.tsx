@@ -6,7 +6,7 @@ const App = lazy(() => import('../App'));
 const MainLayout = lazy(() => import('../layouts/main-layout'));
 const AuthLayout = lazy(() => import('../layouts/auth-layout'));
 const Dashboard = lazy(() => import('../pages/dashboard/Dashboard'));
-const TreinoDetalhesForm = lazy(() => import('../pages/treinos/TreinoDetalhesForm'));
+const TreinoForm = lazy(() => import('../pages/treinos/TreinoForm'));
 const TreinoPublico = lazy(() => import('../pages/treinos/TreinoPublico'));
 
 // Novas páginas adicionadas
@@ -41,33 +41,60 @@ export const routes = [
           </MainLayout>
         ),
         children: [
+          // ==========================================
+          // Dashboard
+          // ==========================================
           {
             index: true,
             element: <Dashboard />,
           },
-          {
-            path: paths.semanas,
-            element: <Semanas />,
-          },
+
+          // ==========================================
+          // Treinos
+          // ==========================================
           {
             path: paths.treinos,
             element: <Treinos />,
           },
           {
-            path: paths.configuracoes,
-            element: <Configuracoes />,
+            path: paths.treinoNovo,
+            element: <TreinoForm />,
           },
+          {
+            path: `${paths.treinos}/:id/editar`,
+            element: <TreinoForm />,
+          },
+
+          // ==========================================
+          // Exercícios
+          // ==========================================
           {
             path: paths.exercicios,
             element: <Exercicios />,
           },
+
+          // ==========================================
+          // Semanas
+          // ==========================================
+          {
+            path: paths.semanas,
+            element: <Semanas />,
+          },
+
+          // ==========================================
+          // Configurações
+          // ==========================================
+          {
+            path: paths.configuracoes,
+            element: <Configuracoes />,
+          },
+
+          // ==========================================
+          // Desenvolvimento
+          // ==========================================
           {
             path: paths.themePlayground,
             element: <ThemePlayground />,
-          },
-          {
-            path: paths.treinoDetalhesForm,
-            element: <TreinoDetalhesForm />,
           },
         ],
       },
