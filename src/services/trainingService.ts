@@ -613,9 +613,10 @@ class TrainingService {
             *,
             exercise_prescriptions (
               *,
-              exercises (
+              exercise:exercises (
                 id,
-                name
+                name,
+                instructions
               )
             )
           )

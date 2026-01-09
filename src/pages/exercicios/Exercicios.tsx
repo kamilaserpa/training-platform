@@ -113,11 +113,6 @@ function ExerciseDialog({
       return;
     }
 
-    if (!formData.movement_pattern_id) {
-      alert('Por favor, selecione um padrão de movimento');
-      return;
-    }
-
     console.log('💾 [ExerciseDialog] Salvando exercício:', formData);
 
     // Preparar dados garantindo que campos vazios sejam null (não undefined)
@@ -161,13 +156,15 @@ function ExerciseDialog({
           {/* Campo Grupo Muscular removido - não relevante no momento */}
           <Grid item xs={12} sm={6} md={4}>
             <FormControl fullWidth>
-              <InputLabel>Padrão de Movimento</InputLabel>
+              <InputLabel>Padrão de Movimento (Opcional)</InputLabel>
               <Select
                 value={formData.movement_pattern_id}
                 onChange={handleSelectChange('movement_pattern_id')}
-                label="Padrão de Movimento"
+                label="Padrão de Movimento (Opcional)"
               >
-                <MenuItem value="">Nenhum</MenuItem>
+                <MenuItem value="">
+                  <em>Nenhum</em>
+                </MenuItem>
                 {movementPatterns.map((pattern) => (
                   <MenuItem key={pattern.id} value={pattern.id}>
                     {pattern.name}
