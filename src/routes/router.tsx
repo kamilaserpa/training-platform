@@ -3,6 +3,10 @@ import { Outlet, createBrowserRouter } from 'react-router-dom';
 import paths, { rootPaths } from './paths';
 import PrivateRoute from '../components/navigation/PrivateRoute';
 
+const basename = import.meta.env.PROD
+  ? '/training-platform'
+  : '/';
+
 const App = lazy(() => import('../App'));
 const MainLayout = lazy(() => import('../layouts/main-layout'));
 const AuthLayout = lazy(() => import('../layouts/auth-layout'));
@@ -147,6 +151,8 @@ export const routes = [
   },
 ];
 
-const router = createBrowserRouter(routes);
+const router = createBrowserRouter(routes, {
+  basename,
+});
 
 export default router;
