@@ -308,28 +308,23 @@ const Configuracoes = () => {
 
   const handleSaveFoco = async (novoFoco: FocoSemana) => {
     try {
-      console.log('💾 [Configuracoes] Salvando foco da semana:', novoFoco);
       setLoading(true);
       setError(null);
 
       if (editingFoco) {
         // Atualizar foco existente
-        console.log('🔄 [Configuracoes] Atualizando foco existente:', editingFoco.id);
         await weekService.updateWeekFocus(editingFoco.id, {
           name: novoFoco.name,
           description: novoFoco.description,
           intensity_percentage: novoFoco.intensity_percentage,
         });
-        console.log('✅ [Configuracoes] Foco atualizado com sucesso');
       } else {
         // Criar novo foco
-        console.log('✨ [Configuracoes] Criando novo foco');
         await weekService.createWeekFocus({
           name: novoFoco.name,
           description: novoFoco.description,
           intensity_percentage: novoFoco.intensity_percentage,
         });
-        console.log('✅ [Configuracoes] Foco criado com sucesso');
       }
 
       setFocoDialogOpen(false);
@@ -343,7 +338,6 @@ const Configuracoes = () => {
       );
       setShowSuccess(true);
     } catch (err: any) {
-      console.error('❌ [Configuracoes] Erro ao salvar foco da semana:', err);
 
       // Verificar se é erro de autenticação
       if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
@@ -391,19 +385,16 @@ const Configuracoes = () => {
 
   const handleSavePadrao = async (novoPadrao: PadraoMovimento) => {
     try {
-      console.log('💾 [Configuracoes] Salvando padrão de movimento:', novoPadrao);
       setError(null);
       
       if (editingPadrao) {
         // Atualizar padrão existente
-        console.log('🔄 [Configuracoes] Atualizando padrão existente:', editingPadrao.id);
         await movementPatternService.updateMovementPattern(
           editingPadrao.id,
           novoPadrao.name,
           novoPadrao.description
         );
         setPadroes((padroes) => padroes.map((p) => (p.id === novoPadrao.id ? novoPadrao : p)));
-        console.log('✅ [Configuracoes] Padrão atualizado com sucesso');
         
         setSuccessMessage(`Padrão de movimento "${novoPadrao.name}" atualizado com sucesso!`);
       } else {
@@ -457,7 +448,7 @@ const Configuracoes = () => {
       {/* Header */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
         <Typography variant="h4" fontWeight="700">
-          Configurações
+          Parâmetros da Semana
         </Typography>
       </Stack>
 

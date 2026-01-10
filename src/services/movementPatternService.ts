@@ -79,30 +79,19 @@ const mockMovementPatterns: MovementPattern[] = [
 class MovementPatternService {
   async getAllMovementPatterns(): Promise<MovementPattern[]> {
     if (useMock) {
-      console.log('🎭 [MovementPatternService] Usando dados mockados');
       return mockMovementPatterns;
     }
-
-    console.log('🔄 [MovementPatternService] Iniciando busca de padrões no Supabase...');
 
     try {
       const { data, error } = await supabase.from('movement_patterns').select('*').order('name');
 
       if (error) {
-        console.error('❌ [MovementPatternService] Erro no Supabase:', error);
         throw error;
       }
 
-      console.log(`✅ [MovementPatternService] Encontrados ${data?.length || 0} padrões`);
       return data || [];
     } catch (error: any) {
-      console.error('❌ [MovementPatternService] Erro ao buscar padrões:', error);
-      
-      // Log detalhado do erro
-      if (error.code) console.error('   Código:', error.code);
-      if (error.message) console.error('   Mensagem:', error.message);
-      if (error.details) console.error('   Detalhes:', error.details);
-      
+      console.error('Erro ao buscar padrões:', error);
       throw error;
     }
   }
@@ -123,14 +112,13 @@ class MovementPatternService {
 
       return data;
     } catch (error) {
-      console.error('❌ [MovementPatternService] Erro ao buscar padrão:', error);
+      console.error('Erro ao buscar padrão:', error);
       throw error;
     }
   }
 
   async createMovementPattern(name: string, description?: string): Promise<MovementPattern> {
     if (useMock) {
-      console.log('🎭 [MovementPatternService] Create simulado para:', name);
       const newPattern: MovementPattern = {
         id: `mock-${Date.now()}`,
         name,
@@ -143,7 +131,6 @@ class MovementPatternService {
       // Simular delay de rede
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      console.log('✅ [MovementPatternService] Padrão criado (mock):', newPattern);
       return newPattern;
     }
 
@@ -156,17 +143,15 @@ class MovementPatternService {
 
       if (error) throw error;
 
-      console.log('✅ [MovementPatternService] Padrão criado:', data);
       return data;
     } catch (error) {
-      console.error('❌ [MovementPatternService] Erro ao criar padrão:', error);
+      console.error('Erro ao criar padrão:', error);
       throw error;
     }
   }
 
   async updateMovementPattern(id: string, name: string, description?: string): Promise<MovementPattern> {
     if (useMock) {
-      console.log('🎭 [MovementPatternService] Update simulado para:', id);
       const index = mockMovementPatterns.findIndex((mp) => mp.id === id);
       if (index !== -1) {
         mockMovementPatterns[index] = {
@@ -179,7 +164,6 @@ class MovementPatternService {
         // Simular delay de rede
         await new Promise(resolve => setTimeout(resolve, 300));
         
-        console.log('✅ [MovementPatternService] Padrão atualizado (mock):', mockMovementPatterns[index]);
         return mockMovementPatterns[index];
       }
       throw new Error('Padrão não encontrado');
@@ -195,25 +179,21 @@ class MovementPatternService {
 
       if (error) throw error;
 
-      console.log('✅ [MovementPatternService] Padrão atualizado:', data);
       return data;
     } catch (error) {
-      console.error('❌ [MovementPatternService] Erro ao atualizar padrão:', error);
+      console.error('Erro ao atualizar padrão:', error);
       throw error;
     }
   }
 
   async deleteMovementPattern(id: string): Promise<void> {
     if (useMock) {
-      console.log('🎭 [MovementPatternService] Delete simulado para:', id);
       const index = mockMovementPatterns.findIndex((mp) => mp.id === id);
       if (index !== -1) {
-        const deleted = mockMovementPatterns.splice(index, 1);
+        mockMovementPatterns.splice(index, 1);
         
         // Simular delay de rede
         await new Promise(resolve => setTimeout(resolve, 200));
-        
-        console.log('✅ [MovementPatternService] Padrão deletado (mock):', deleted[0]);
       }
       return;
     }
@@ -222,10 +202,8 @@ class MovementPatternService {
       const { error } = await supabase.from('movement_patterns').delete().eq('id', id);
 
       if (error) throw error;
-
-      console.log('✅ [MovementPatternService] Padrão deletado:', id);
     } catch (error) {
-      console.error('❌ [MovementPatternService] Erro ao deletar padrão:', error);
+      console.error('Erro ao deletar padrão:', error);
       throw error;
     }
   }

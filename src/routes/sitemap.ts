@@ -61,13 +61,20 @@ const sitemap: MenuItem[] = [
   },
   {
     id: 6,
-    subheader: 'Configurações',
+    subheader: 'Perfil',
+    path: paths.perfil,
+    icon: 'ic:round-account-circle',
+    requireAuth: true,
+  },
+  {
+    id: 7,
+    subheader: 'Parâmetros da Semana',
     path: paths.configuracoes,
     icon: 'ic:round-settings',
     requireAuth: true,
   },
   {
-    id: 7,
+    id: 8,
     subheader: 'Logout',
     icon: 'ic:round-logout',
     requireAuth: true,

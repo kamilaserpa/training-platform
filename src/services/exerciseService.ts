@@ -63,12 +63,9 @@ const mockExercises: Exercise[] = [
 class ExerciseService {
   async getAllExercises(): Promise<Exercise[]> {
     if (useMock) {
-      console.log('🎭 [ExerciseService] Usando dados mockados');
       return mockExercises;
     }
 
-    console.log('🔄 [ExerciseService] Iniciando busca de exercícios no Supabase...');
-    
     try {
       const { data, error } = await supabase
         .from('exercises')
@@ -81,20 +78,12 @@ class ExerciseService {
         .order('name');
 
       if (error) {
-        console.error('❌ [ExerciseService] Erro no Supabase:', error);
         throw error;
       }
 
-      console.log(`✅ [ExerciseService] Encontrados ${data?.length || 0} exercícios`);
       return data || [];
     } catch (error: any) {
-      console.error('❌ [ExerciseService] Erro ao buscar exercícios:', error);
-      
-      // Log detalhado do erro
-      if (error.code) console.error('   Código:', error.code);
-      if (error.message) console.error('   Mensagem:', error.message);
-      if (error.details) console.error('   Detalhes:', error.details);
-      
+      console.error('Erro ao buscar exercícios:', error);
       throw error;
     }
   }
@@ -120,7 +109,7 @@ class ExerciseService {
 
       return data;
     } catch (error) {
-      console.error('❌ [ExerciseService] Erro ao buscar exercício:', error);
+      console.error('Erro ao buscar exercício:', error);
       throw error;
     }
   }
@@ -166,14 +155,12 @@ class ExerciseService {
 
       return data;
     } catch (error) {
-      console.error('❌ [ExerciseService] Erro ao criar exercício:', error);
+      console.error('Erro ao criar exercício:', error);
       throw error;
     }
   }
 
   async updateExercise(id: string, updates: Partial<CreateExerciseDTO>): Promise<Exercise> {
-    console.log('🔄 [ExerciseService] Atualizando exercício:', id, 'com dados:', updates);
-    
     if (useMock) {
       const index = mockExercises.findIndex((ex) => ex.id === id);
       if (index === -1) throw new Error('Exercício não encontrado');
@@ -184,19 +171,14 @@ class ExerciseService {
         updated_at: new Date().toISOString(),
       };
 
-      console.log('✅ [ExerciseService] Mock atualizado:', mockExercises[index]);
       return mockExercises[index];
     }
 
     try {
-      console.log('� [ExerciseService] Atualizando exercício diretamente:', id, 'com dados:', updates);
-      
       const updateData = {
         ...updates,
         updated_at: new Date().toISOString(),
       };
-
-      console.log('📤 [ExerciseService] Enviando para Supabase:', updateData);
 
       const { data, error } = await supabase
         .from('exercises')
@@ -210,23 +192,13 @@ class ExerciseService {
         )
         .single();
 
-      console.log('📋 [ExerciseService] Resposta raw do Supabase:', { data, error });
-
       if (error) {
-        console.error('❌ [ExerciseService] Erro do Supabase:', error);
         throw error;
       }
 
-      console.log('✅ [ExerciseService] Exercício atualizado com sucesso:', data);
       return data;
     } catch (error: any) {
-      console.error('❌ [ExerciseService] Erro ao atualizar exercício:', error);
-      
-      // Log detalhado do erro
-      if (error.code) console.error('   Código:', error.code);
-      if (error.message) console.error('   Mensagem:', error.message);
-      if (error.details) console.error('   Detalhes:', error.details);
-      
+      console.error('Erro ao atualizar exercício:', error);
       throw error;
     }
   }
@@ -245,7 +217,7 @@ class ExerciseService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('❌ [ExerciseService] Erro ao deletar exercício:', error);
+      console.error('Erro ao deletar exercício:', error);
       throw error;
     }
   }
@@ -275,7 +247,7 @@ class ExerciseService {
 
       return data || [];
     } catch (error) {
-      console.error('❌ [ExerciseService] Erro ao pesquisar exercícios:', error);
+      console.error('Erro ao pesquisar exercícios:', error);
       throw error;
     }
   }

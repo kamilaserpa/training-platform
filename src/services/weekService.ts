@@ -93,11 +93,7 @@ class WeekService {
   // Week Focuses CRUD
   // ========================
   async getAllWeekFocuses(): Promise<WeekFocus[]> {
-    console.log('🔄 [WeekService] Buscando focos...');
-    
     if (useMock) {
-      console.log('🎭 [WeekService] Usando dados mockados para focos');
-      console.log('✅ [WeekService] Encontrados', mockWeekFocuses.length, 'focos mockados');
       return mockWeekFocuses;
     }
 
@@ -106,19 +102,15 @@ class WeekService {
 
       if (error) throw error;
 
-      console.log(`✅ [WeekService] ${data?.length || 0} focos`);
       return data || [];
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao buscar focos de semana:', error);
+      console.error('Erro ao buscar focos de semana:', error);
       throw error;
     }
   }
 
   async createWeekFocus(focusData: CreateWeekFocusDTO): Promise<WeekFocus> {
-    console.log('🎆 [WeekService] Criando foco da semana:', focusData);
-    
     if (useMock) {
-      console.log('🎭 [WeekService] Usando dados mockados para criar foco');
       const newFocus: WeekFocus = {
         id: crypto.randomUUID(),
         ...focusData,
@@ -127,7 +119,6 @@ class WeekService {
         updated_at: new Date().toISOString(),
       };
       mockWeekFocuses.push(newFocus);
-      console.log('✅ [WeekService] Foco mock criado:', newFocus);
       return newFocus;
     }
 
@@ -140,8 +131,6 @@ class WeekService {
         .single();
 
       if (!existingError && existing) {
-        console.log('⚠️ [WeekService] Foco já existe, atualizando ao invés de criar:', existing.name);
-        
         // Se já existe, atualizar ao invés de criar
         const { data, error } = await supabase
           .from('week_focuses')
@@ -172,16 +161,13 @@ class WeekService {
 
       return data;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao criar foco de semana:', error);
+      console.error('Erro ao criar foco de semana:', error);
       throw error;
     }
   }
 
   async updateWeekFocus(id: string, updates: UpdateWeekFocusDTO): Promise<WeekFocus> {
-    console.log('🔄 [WeekService] Atualizando foco da semana:', id, 'com dados:', updates);
-    
     if (useMock) {
-      console.log('🎭 [WeekService] Usando dados mockados para atualizar foco');
       const index = mockWeekFocuses.findIndex((focus) => focus.id === id);
       if (index === -1) throw new Error('Foco não encontrado');
 
@@ -191,12 +177,10 @@ class WeekService {
         updated_at: new Date().toISOString(),
       };
 
-      console.log('✅ [WeekService] Foco mock atualizado:', mockWeekFocuses[index]);
       return mockWeekFocuses[index];
     }
 
     try {
-      console.log('📤 [WeekService] Enviando para Supabase:', { id, updates });
       const { data, error } = await supabase
         .from('week_focuses')
         .update({
@@ -207,14 +191,11 @@ class WeekService {
         .select()
         .single();
 
-      console.log('📋 [WeekService] Resposta do Supabase:', { data, error });
-
       if (error) throw error;
 
-      console.log('✅ [WeekService] Foco atualizado com sucesso:', data);
       return data;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao atualizar foco de semana:', error);
+      console.error('Erro ao atualizar foco de semana:', error);
       throw error;
     }
   }
@@ -233,7 +214,7 @@ class WeekService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao deletar foco de semana:', error);
+      console.error('Erro ao deletar foco de semana:', error);
       throw error;
     }
   }
@@ -244,7 +225,6 @@ class WeekService {
 
   async getAllTrainingWeeks(): Promise<TrainingWeek[]> {
     if (useMock) {
-      console.log('🎭 [WeekService] Usando dados mockados para semanas');
       return mockTrainingWeeks;
     }
 
@@ -262,10 +242,9 @@ class WeekService {
 
       if (error) throw error;
 
-      console.log('✅ [WeekService] Encontradas', data?.length || 0, 'semanas de treino');
       return data || [];
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao buscar semanas de treino:', error);
+      console.error('Erro ao buscar semanas de treino:', error);
       throw error;
     }
   }
@@ -292,7 +271,7 @@ class WeekService {
 
       return data;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao buscar semana de treino:', error);
+      console.error('Erro ao buscar semana de treino:', error);
       throw error;
     }
   }
@@ -330,7 +309,7 @@ class WeekService {
 
       return data;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao criar semana de treino:', error);
+      console.error('Erro ao criar semana de treino:', error);
       throw error;
     }
   }
@@ -377,7 +356,7 @@ class WeekService {
 
       return data;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao atualizar semana de treino:', error);
+      console.error('Erro ao atualizar semana de treino:', error);
       throw error;
     }
   }
@@ -396,7 +375,7 @@ class WeekService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao deletar semana de treino:', error);
+      console.error('Erro ao deletar semana de treino:', error);
       throw error;
     }
   }
@@ -435,7 +414,7 @@ class WeekService {
 
       return data;
     } catch (error) {
-      console.error('❌ [WeekService] Erro ao atualizar status da semana:', error);
+      console.error('Erro ao atualizar status da semana:', error);
       throw error;
     }
   }

@@ -10,7 +10,7 @@ const routeLabels: Record<string, string> = {
   'semanas': 'Semanas',
   'treinos': 'Treinos',
   'exercicios': 'Exercícios',
-  'configuracoes': 'Configurações',
+  'configuracoes': 'Parâmetros da Semana',
   'novo': 'Novo',
   'editar': 'Editar',
   'pages': '', // Ignorar 'pages' no breadcrumb

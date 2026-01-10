@@ -91,7 +91,6 @@ const mockTrainingBlocks: TrainingBlock[] = [
 class TrainingService {
   async getAllTrainings(): Promise<Training[]> {
     if (useMock) {
-      console.log('🎭 [TrainingService] Usando dados mockados');
       return mockTrainings;
     }
 
@@ -121,7 +120,7 @@ class TrainingService {
 
       return data || [];
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao buscar treinos:', error);
+      console.error('Erro ao buscar treinos:', error);
       throw error;
     }
   }
@@ -158,7 +157,7 @@ class TrainingService {
 
       return data || [];
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao buscar treinos da semana:', error);
+      console.error('Erro ao buscar treinos da semana:', error);
       throw error;
     }
   }
@@ -202,7 +201,7 @@ class TrainingService {
 
       return data;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao buscar treino:', error);
+      console.error('Erro ao buscar treino:', error);
       throw error;
     }
   }
@@ -245,7 +244,7 @@ class TrainingService {
 
       return data;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao criar treino:', error);
+      console.error('Erro ao criar treino:', error);
       throw error;
     }
   }
@@ -284,7 +283,7 @@ class TrainingService {
 
       return data;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao atualizar treino:', error);
+      console.error('Erro ao atualizar treino:', error);
       throw error;
     }
   }
@@ -303,7 +302,7 @@ class TrainingService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao deletar treino:', error);
+      console.error('Erro ao deletar treino:', error);
       throw error;
     }
   }
@@ -333,7 +332,7 @@ class TrainingService {
 
       return data;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao criar bloco:', error);
+      console.error('Erro ao criar bloco:', error);
       throw error;
     }
   }
@@ -367,7 +366,7 @@ class TrainingService {
 
       return data;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao adicionar exercício ao bloco:', error);
+      console.error('Erro ao adicionar exercício ao bloco:', error);
       throw error;
     }
   }
@@ -375,8 +374,6 @@ class TrainingService {
   // Deletar bloco de treino
   async deleteTrainingBlock(blockId: string): Promise<void> {
     if (useMock) {
-      // Para mock, não fazemos nada por simplicidade
-      console.log('🗑️ [Mock] Bloco deletado:', blockId);
       return;
     }
 
@@ -396,10 +393,8 @@ class TrainingService {
         .eq('id', blockId);
 
       if (blockError) throw blockError;
-
-      console.log('✅ [TrainingService] Bloco deletado com sucesso:', blockId);
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao deletar bloco:', error);
+      console.error('Erro ao deletar bloco:', error);
       throw error;
     }
   }
@@ -407,7 +402,6 @@ class TrainingService {
   // Deletar todos os blocos de um treino
   async deleteAllTrainingBlocks(trainingId: string): Promise<void> {
     if (useMock) {
-      console.log('🗑️ [Mock] Todos os blocos do treino deletados:', trainingId);
       return;
     }
 
@@ -430,7 +424,7 @@ class TrainingService {
           .in('training_block_id', blockIds);
 
         if (prescriptionsError) {
-          console.warn('⚠️ Erro ao deletar prescrições, tentando continuar:', prescriptionsError);
+          // Continuar mesmo com erro
         }
       }
 
@@ -441,10 +435,8 @@ class TrainingService {
         .eq('training_id', trainingId);
 
       if (blocksError2) throw blocksError2;
-
-      console.log('✅ [TrainingService] Todos os blocos do treino deletados:', trainingId);
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao deletar blocos do treino:', error);
+      console.error('Erro ao deletar blocos do treino:', error);
       throw error;
     }
   }
@@ -461,15 +453,13 @@ class TrainingService {
 
       return data || [];
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao buscar padrões de movimento:', error);
+      console.error('Erro ao buscar padrões de movimento:', error);
       throw error;
     }
   }
 
   // Buscar treino público por token de compartilhamento
   async getPublicTraining(token: string): Promise<Training | null> {
-    console.log('🔍 [TrainingService] Buscando treino público com token:', token);
-    
     if (useMock) {
       // Em mock mode, retornar dados simulados
       const mockPublicTraining: Training = {
@@ -629,7 +619,7 @@ class TrainingService {
 
       return data || null;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao buscar treino público:', error);
+      console.error('Erro ao buscar treino público:', error);
       throw error;
     }
   }
@@ -638,8 +628,6 @@ class TrainingService {
    * Busca semanas com treinos organizados por dia da semana
    */
   async getWeeksWithTrainings(): Promise<any[]> {
-    console.log('🔄 [TrainingService] Buscando semanas com treinos organizados por dia...');
-
     try {
       // Buscar todas as semanas com seus focos
       const { data: weeks, error: weeksError } = await supabase
@@ -653,7 +641,6 @@ class TrainingService {
       if (weeksError) throw weeksError;
 
       if (!weeks || weeks.length === 0) {
-        console.log('⚠️ [TrainingService] Nenhuma semana encontrada');
         return [];
       }
 
@@ -676,7 +663,6 @@ class TrainingService {
             .order('scheduled_date');
 
           if (trainingsError) {
-            console.error('❌ Erro ao buscar treinos da semana:', week.id, trainingsError);
             return { ...week, trainings: [] };
           }
 
@@ -687,10 +673,9 @@ class TrainingService {
         })
       );
 
-      console.log('✅ [TrainingService] Encontradas', weeksWithTrainings.length, 'semanas com treinos');
       return weeksWithTrainings;
     } catch (error) {
-      console.error('❌ [TrainingService] Erro ao buscar semanas com treinos:', error);
+      console.error('Erro ao buscar semanas com treinos:', error);
       throw error;
     }
   }

@@ -54,6 +54,11 @@ export default {
   usuarios: `/${rootPaths.pagesRoot}/usuarios`,
   
   // ==========================================
+  // Perfil
+  // ==========================================
+  perfil: `/${rootPaths.pagesRoot}/perfil`,
+  
+  // ==========================================
   // Desenvolvimento
   // ==========================================
   themePlayground: `/${rootPaths.pagesRoot}/theme-playground`,

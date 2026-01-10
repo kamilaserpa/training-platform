@@ -26,6 +26,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   clearSession: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 
   // Verificações de permissão
   isOwner: boolean;
@@ -59,20 +60,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      console.log(`🔄 [Auth] Buscando perfil do usuário: ${userId}`);
-      
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, role, created_at')
+        .select('id, name, email, role, avatar_url, created_at, updated_at')
         .eq('id', userId)
         .single();
 
       if (error) {
-        console.error('❌ [Auth] Erro ao buscar perfil do usuário:', error);
-        
         // Se a tabela users não existir, retornar um usuário básico
         if (error.code === 'PGRST116') {
-          console.log('⚠️ [Auth] Tabela users não existe, criando usuário básico');
           return {
             id: userId,
             name: 'Usuário',
@@ -86,10 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
-      console.log('✅ [Auth] Perfil do usuário carregado');
       return data;
     } catch (error) {
-      console.error('❌ [Auth] Erro inesperado ao buscar perfil:', error);
+      console.error('Erro ao buscar perfil:', error);
       return null;
     }
   }, []);
@@ -97,7 +92,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Função de login
   const signIn = async (email: string, password: string) => {
     if (useMock) {
-      console.log('🎭 [Auth] Simulando login com dados mockados');
       setUser(mockUser);
       setLoading(false);
       return {};
@@ -111,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('❌ [Auth] Erro no login:', error);
+        console.error('Erro no login:', error);
         return { error };
       }
 
@@ -124,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return {};
     } catch (error) {
-      console.error('❌ [Auth] Erro inesperado no login:', error);
+      console.error('Erro no login:', error);
       return { error };
     } finally {
       setLoading(false);
@@ -134,7 +128,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Função de cadastro
   const signUp = async (email: string, password: string, name: string) => {
     if (useMock) {
-      console.log('🎭 [Auth] Simulando cadastro com dados mockados');
       const newUser = { ...mockUser, email, name };
       setUser(newUser);
       setLoading(false);
@@ -149,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('❌ [Auth] Erro no cadastro:', error);
+        console.error('Erro no cadastro:', error);
         return { error };
       }
 
@@ -163,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (profileError) {
-          console.error('❌ [Auth] Erro ao criar perfil:', profileError);
+          console.error('Erro ao criar perfil:', profileError);
           return { error: profileError };
         }
 
@@ -176,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return {};
     } catch (error) {
-      console.error('❌ [Auth] Erro inesperado no cadastro:', error);
+      console.error('Erro no cadastro:', error);
       return { error };
     } finally {
       setLoading(false);
@@ -186,7 +179,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Função de logout
   const signOut = async () => {
     if (useMock) {
-      console.log('🎭 [Auth] Simulando logout');
       setUser(null);
       setSession(null);
       return;
@@ -197,13 +189,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.error('❌ [Auth] Erro no logout:', error);
+        console.error('Erro no logout:', error);
       }
 
       setUser(null);
       setSession(null);
     } catch (error) {
-      console.error('❌ [Auth] Erro inesperado no logout:', error);
+      console.error('Erro no logout:', error);
     } finally {
       setLoading(false);
     }
@@ -212,15 +204,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Função para limpar sessão corrompida
   const clearSession = async () => {
     try {
-      console.log('🧹 [Auth] Limpando sessão corrompida...');
       await supabase.auth.signOut({ scope: 'local' });
       localStorage.clear();
       sessionStorage.clear();
       setUser(null);
       setSession(null);
-      console.log('✅ [Auth] Sessão limpa com sucesso');
     } catch (error) {
-      console.error('❌ [Auth] Erro ao limpar sessão:', error);
+      console.error('Erro ao limpar sessão:', error);
+    }
+  };
+
+  // Função para recarregar dados do usuário
+  const refreshUser = async () => {
+    if (!session?.user) {
+      return;
+    }
+
+    try {
+      const profile = await fetchUserProfile(session.user.id);
+      if (profile) {
+        setUser(profile);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar dados do usuário:', error);
     }
   };
 
@@ -245,7 +251,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
 
         if (error) {
-          console.error('❌ [Auth] Erro ao obter sessão:', error);
+          console.error('Erro ao obter sessão:', error);
           setLoading(false);
           return;
         }
@@ -264,7 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('❌ [Auth] Erro na inicialização:', error);
+        console.error('Erro na inicialização:', error);
         if (mounted) {
           setLoading(false);
         }
@@ -281,14 +287,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Ignorar eventos INITIAL_SESSION e SIGNED_IN repetidos após o carregamento inicial
       if (isInitialLoad && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
-        console.log('🔐 [Auth] Ignorando evento inicial:', event);
         isInitialLoad = false;
         return;
       }
 
       // Apenas processar eventos relevantes que indicam mudança real de estado
       if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        console.log('🔐 [Auth] Mudança de estado:', event);
         setSession(session);
 
         if (session?.user && event !== 'SIGNED_OUT') {
@@ -328,6 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     clearSession,
+    refreshUser,
     isOwner,
     isAdmin,
     isViewer,

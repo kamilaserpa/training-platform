@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
@@ -10,8 +10,8 @@ import Typography from '@mui/material/Typography';
 import ButtonBase from '@mui/material/ButtonBase';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import IconifyIcon from 'components/base/IconifyIcon';
-import ProfileImage from 'assets/images/avatars/avatar1.png';
 import { useAuth } from 'contexts/AuthContext';
+import { supabase } from 'lib/supabase';
 import paths from 'routes/paths';
 
 interface MenuItems {
@@ -57,7 +57,35 @@ const ProfileMenu = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const open = Boolean(anchorEl);
+
+  useEffect(() => {
+    loadAvatar();
+  }, [user?.avatar_url]);
+
+  const loadAvatar = async () => {
+    if (!user?.avatar_url) {
+      setAvatarUrl(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('images')
+        .download(user.avatar_url);
+
+      if (error) {
+        console.error('Erro ao carregar avatar:', error);
+        return;
+      }
+
+      const url = URL.createObjectURL(data);
+      setAvatarUrl(url);
+    } catch (err) {
+      console.error('Erro ao carregar avatar:', err);
+    }
+  };
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -73,6 +101,8 @@ const ProfileMenu = () => {
     if (item.title === 'Logout') {
       await signOut();
       navigate(paths.signin);
+    } else if (item.title === 'Ver perfil') {
+      navigate(paths.perfil);
     }
     // Adicionar outras funcionalidades aqui no futuro
   };
@@ -87,13 +117,16 @@ const ProfileMenu = () => {
         disableRipple
       >
         <Avatar
-          src={ProfileImage}
+          src={avatarUrl || undefined}
           sx={{
             height: 44,
             width: 44,
             bgcolor: 'primary.main',
+            color: 'white',
           }}
-        />
+        >
+          {!avatarUrl && (user?.name?.charAt(0).toUpperCase() || <IconifyIcon icon="ic:round-person" />)}
+        </Avatar>
       </ButtonBase>
 
       <Menu
@@ -114,7 +147,18 @@ const ProfileMenu = () => {
       >
         <Box p={1}>
           <MenuItem onClick={handleProfileMenuClose} sx={{ '&:hover': { bgcolor: 'info.dark' } }}>
-            <Avatar src={ProfileImage} sx={{ mr: 1, height: 42, width: 42 }} />
+            <Avatar 
+              src={avatarUrl || undefined} 
+              sx={{ 
+                mr: 1, 
+                height: 42, 
+                width: 42,
+                bgcolor: 'primary.main',
+                color: 'white',
+              }}
+            >
+              {!avatarUrl && (user?.name?.charAt(0).toUpperCase() || <IconifyIcon icon="ic:round-person" />)}
+            </Avatar>
             <Stack direction="column">
               <Typography variant="body2" color="text.primary" fontWeight={600}>
                 {user?.name || 'Usuário'}

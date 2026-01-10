@@ -230,16 +230,12 @@ function ExerciciosPage() {
         setLoading(true);
         setError(null);
         
-        console.log('🔄 [Exercicios] Carregando dados...');
-
         const [exercisesData, patternsData] = await Promise.all([
           exerciseService.getAllExercises(),
           movementPatternService.getAllMovementPatterns(),
         ]);
 
         if (!isMounted) return;
-
-        console.log(`✅ [Exercicios] ${exercisesData.length} exercícios, ${patternsData.length} padrões`);
 
       setExercises(exercisesData);
       setMovementPatterns(patternsData);
@@ -279,19 +275,14 @@ function ExerciciosPage() {
       setLoading(true);
       setError(null);
       
-      console.log('🔄 [Exercicios] Recarregando dados...');
-
       const [exercisesData, patternsData] = await Promise.all([
         exerciseService.getAllExercises(),
         movementPatternService.getAllMovementPatterns(),
       ]);
 
-      console.log(`✅ [Exercicios] ${exercisesData.length} exercícios, ${patternsData.length} padrões`);
-
       setExercises(exercisesData);
       setMovementPatterns(patternsData);
     } catch (err: any) {
-      console.error('❌ [Exercicios] Erro:', err);
       
       let errorMessage = 'Erro ao carregar dados do banco. ';
       
@@ -331,24 +322,19 @@ function ExerciciosPage() {
       setError(null);
       
       if (editingExercise) {
-        console.log('🔄 [Exercicios] Atualizando exercício:', editingExercise.id);
         const updated = await exerciseService.updateExercise(editingExercise.id, exerciseData);
         setExercises((prev) => prev.map((ex) => (ex.id === updated.id ? updated : ex)));
         setSuccessMessage(`Exercício "${updated.name}" atualizado com sucesso!`);
-        console.log('✅ [Exercicios] Exercício atualizado com sucesso');
       } else {
-        console.log('➕ [Exercicios] Criando novo exercício');
         const newExercise = await exerciseService.createExercise(exerciseData);
         setExercises((prev) => [newExercise, ...prev]);
         setSuccessMessage(`Exercício "${newExercise.name}" criado com sucesso!`);
-        console.log('✅ [Exercicios] Novo exercício criado com sucesso');
       }
 
       setOpenDialog(false);
       setEditingExercise(null);
       setShowSuccess(true);
     } catch (err: any) {
-      console.error('❌ [Exercicios] Erro ao salvar exercício:', err);
       
       let errorMessage = 'Erro ao salvar exercício. ';
       if (err.code === '42501') {
@@ -394,13 +380,11 @@ function ExerciciosPage() {
   };
 
   const handleEditExercise = (exercise: Exercise) => {
-    console.log('🔄 [Exercicios] Editando exercício:', exercise);
     setEditingExercise(exercise);
     setOpenDialog(true);
   };
 
   const handleAddExercise = () => {
-    console.log('➕ [Exercicios] Adicionando novo exercício');
     setEditingExercise(null);
     setOpenDialog(true);
   };

@@ -10,26 +10,18 @@ export const useMock = config.USE_MOCK;
 
 // Testar conexão apenas quando não está em modo mock
 if (!useMock) {
-  if (config.DEBUG) {
-    console.log('🔧 [Supabase] Inicializando cliente...');
-    console.log('   URL:', config.SUPABASE.url);
-    console.log('   Tem chave:', config.SUPABASE.anonKey !== 'placeholder-key');
-  }
-
   if (
     config.SUPABASE.url === 'https://placeholder.supabase.co' ||
     config.SUPABASE.url.includes('seu-projeto')
   ) {
-    console.error('❌ [Supabase] ERRO: VITE_SUPABASE_URL não configurado!');
-    console.error('   Configure o arquivo .env com suas credenciais reais do Supabase');
+    console.error('VITE_SUPABASE_URL não configurado!');
   }
 
   if (
     config.SUPABASE.anonKey === 'placeholder-key' ||
     config.SUPABASE.anonKey.includes('sua-chave')
   ) {
-    console.error('❌ [Supabase] ERRO: VITE_SUPABASE_ANON_KEY não configurado!');
-    console.error('   Configure o arquivo .env com suas credenciais reais do Supabase');
+    console.error('VITE_SUPABASE_ANON_KEY não configurado!');
   }
 
   // Teste de conexão mais rápido
@@ -39,14 +31,10 @@ if (!useMock) {
   ])
     .then(({ data, error }) => {
       if (error) {
-        console.error('❌ [Supabase] Erro ao testar conexão:', error.message);
-      } else if (config.DEBUG) {
-        console.log('✅ [Supabase] Cliente inicializado com sucesso!');
+        console.error('Erro ao testar conexão:', error.message);
       }
     })
     .catch((error) => {
-      console.error('❌ [Supabase] Erro de conexão (timeout ou rede):', error.message);
+      console.error('Erro de conexão:', error.message);
     });
-} else if (config.DEBUG) {
-  console.log('🎭 [Supabase] Modo mock ativado - usando dados simulados');
 }

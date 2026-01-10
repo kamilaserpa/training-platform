@@ -17,6 +17,7 @@ const Treinos = lazy(() => import('../pages/treinos/Treinos'));
 const Configuracoes = lazy(() => import('../pages/configuracoes/Configuracoes'));
 const Exercicios = lazy(() => import('../pages/exercicios/Exercicios'));
 const Usuarios = lazy(() => import('../pages/usuarios/Usuarios'));
+const Perfil = lazy(() => import('../pages/perfil/Perfil'));
 const ThemePlayground = lazy(() => import('../pages/ThemePlayground'));
 
 const SignIn = lazy(() => import('../pages/authentication/SignIn'));
@@ -87,7 +88,7 @@ export const routes = [
           },
 
           // ==========================================
-          // Configurações
+          // Parâmetros da Semana
           // ==========================================
           {
             path: paths.configuracoes,
@@ -100,6 +101,14 @@ export const routes = [
           {
             path: paths.usuarios,
             element: <Usuarios />,
+          },
+
+          // ==========================================
+          // Perfil
+          // ==========================================
+          {
+            path: paths.perfil,
+            element: <Perfil />,
           },
 
           // ==========================================
