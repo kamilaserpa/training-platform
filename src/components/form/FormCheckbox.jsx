@@ -2,7 +2,7 @@
 import { useFormContext, Controller } from 'react-hook-form'
 import { FormControlLabel, Checkbox } from '@mui/material'
 
-export default function FormCheckbox({ name, label, ...props }) {
+export default function FormCheckbox({ name, label, fullWidth, ...props }) {
   const { control } = useFormContext()
 
   return (
@@ -12,7 +12,6 @@ export default function FormCheckbox({ name, label, ...props }) {
       defaultValue={false}
       render={({ field }) => (
         <FormControlLabel
-          fullWidth
           control={
             <Checkbox
               {...field}
@@ -21,6 +20,7 @@ export default function FormCheckbox({ name, label, ...props }) {
             />
           }
           label={label}
+          sx={fullWidth ? { width: '100%' } : {}}
         />
       )}
     />
