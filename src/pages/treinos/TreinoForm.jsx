@@ -1172,7 +1172,8 @@ function TreinoForm() {
   // Funções para gerenciar compartilhamento
   const generateShareLink = (token) => {
     const baseUrl = window.location.origin
-    return `${baseUrl}/treino-publico/${token}`
+    const basePath = import.meta.env.PROD ? '/training-platform' : ''
+    return `${baseUrl}${basePath}/#/treino-publico/${token}`
   }
 
   const handleGenerateLink = async () => {
