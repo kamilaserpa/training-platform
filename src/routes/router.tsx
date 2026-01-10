@@ -1,11 +1,9 @@
 import { Suspense, lazy } from 'react';
-import { Outlet, createBrowserRouter } from 'react-router-dom';
+import { Outlet, createHashRouter } from 'react-router-dom';
 import paths, { rootPaths } from './paths';
 import PrivateRoute from '../components/navigation/PrivateRoute';
 
-const basename = import.meta.env.PROD
-  ? '/training-platform/'
-  : '/';
+const basename = import.meta.env.PROD ? '/training-platform' : '';
 
 const App = lazy(() => import('../App'));
 const MainLayout = lazy(() => import('../layouts/main-layout'));
@@ -134,11 +132,11 @@ export const routes = [
         element: <AuthLayout />,
         children: [
           {
-            path: paths.signin,
+            path: 'sign-in',
             element: <SignIn />,
           },
           {
-            path: paths.signup,
+            path: 'sign-up',
             element: <SignUp />,
           },
         ],
@@ -151,8 +149,6 @@ export const routes = [
   },
 ];
 
-const router = createBrowserRouter(routes, {
-  basename,
-});
+const router = createHashRouter(routes);
 
 export default router;

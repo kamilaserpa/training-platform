@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { CircularProgress, Box } from '@mui/material';
+import paths from '../../routes/paths';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -30,7 +31,7 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
 
   // Se não estiver autenticado, redireciona para login salvando a URL atual
   if (!user) {
-    return <Navigate to="/auth/signin" state={{ from: location }} replace />;
+    return <Navigate to={paths.signin} state={{ from: location }} replace />;
   }
 
   // Se estiver autenticado, renderiza o conteúdo

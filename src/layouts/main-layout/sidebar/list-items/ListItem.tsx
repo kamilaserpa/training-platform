@@ -8,6 +8,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import IconifyIcon from 'components/base/IconifyIcon';
 import { useAuth } from '../../../../contexts/AuthContext';
+import paths from '../../../../routes/paths';
 
 interface ListItemProps extends MenuItem {
   onItemClick?: () => void;
@@ -27,7 +28,7 @@ const ListItem = ({ subheader, icon, path, isLogout, onItemClick }: ListItemProp
     if (isLogout) {
       e.preventDefault();
       await signOut();
-      navigate('/auth/signin');
+      navigate(paths.signin);
     }
     // Fechar o drawer em mobile após clicar
     if (onItemClick) {

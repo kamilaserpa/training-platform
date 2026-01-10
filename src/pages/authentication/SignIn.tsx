@@ -1,5 +1,6 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import paths from '../../routes/paths';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
@@ -14,7 +15,6 @@ import Checkbox from '@mui/material/Checkbox';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconifyIcon from 'components/base/IconifyIcon';
-import paths from 'routes/paths';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
@@ -59,7 +59,7 @@ const SignIn = () => {
         
         setError(errorMessage);
       } else {
-        navigate('/');
+        navigate(paths.dashboard);
       }
     } catch (error: any) {
       setError('Erro inesperado. Tente novamente.');
