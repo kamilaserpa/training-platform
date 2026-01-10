@@ -311,7 +311,7 @@ const Treinos = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, px: { xs: 1, sm: 3 } }}>
+    <Container maxWidth="xl" sx={{ py: 3, px: { xs: 0, sm: 3 } }}>
       {/* Loading State */}
       {loading && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">

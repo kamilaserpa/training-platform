@@ -36,10 +36,10 @@ export const TreinoResumo = ({ treino }: TreinoResumoProps) => {
   return (
     <Box
       sx={{
-        p: 1.5,
+        p: 0.5,
         bgcolor: 'background.paper',
         borderRadius: 1,
-        border: '1px solid',
+        borderBottom: '1px solid',
         borderColor: 'divider'
       }}
     >
