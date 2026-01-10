@@ -7,8 +7,8 @@ const App = lazy(() => import('../App'));
 const MainLayout = lazy(() => import('../layouts/main-layout'));
 const AuthLayout = lazy(() => import('../layouts/auth-layout'));
 const Dashboard = lazy(() => import('../pages/dashboard/Dashboard'));
-const TreinoForm = lazy(() => import('../pages/treinos/TreinoForm'));
-const TreinoPublico = lazy(() => import('../pages/treinos/TreinoPublico'));
+const TreinoForm = lazy(() => import('../pages/treinos/TreinoForm.jsx'));
+const TreinoPublico = lazy(() => import('../pages/treinos/TreinoPublico.jsx'));
 
 // Novas páginas adicionadas
 const Semanas = lazy(() => import('../pages/semanas/Semanas'));

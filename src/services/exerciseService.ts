@@ -7,10 +7,9 @@ const mockExercises: Exercise[] = [
   {
     id: '1',
     name: 'Agachamento Livre',
-    muscle_group: 'Pernas',
+    muscle_groups: ['Pernas'],
     movement_pattern_id: '1',
     instructions: 'Desça mantendo o core ativo até 90 graus no joelho',
-    notes: 'Foque na técnica antes de adicionar peso',
     created_by: 'mock-user',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
@@ -25,10 +24,9 @@ const mockExercises: Exercise[] = [
   {
     id: '2',
     name: 'Supino Reto',
-    muscle_group: 'Peito',
+    muscle_groups: ['Peito'],
     movement_pattern_id: '2',
     instructions: 'Controle a descida e exploda na subida',
-    notes: 'Mantenha os ombros estabilizados',
     created_by: 'mock-user',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
@@ -43,10 +41,9 @@ const mockExercises: Exercise[] = [
   {
     id: '3',
     name: 'Barra Fixa',
-    muscle_group: 'Costas',
+    muscle_groups: ['Costas'],
     movement_pattern_id: '3',
     instructions: 'Pegada pronada, desça até extensão completa dos braços',
-    notes: 'Use assistência se necessário para manter técnica',
     created_by: 'mock-user',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
@@ -227,7 +224,7 @@ class ExerciseService {
       return mockExercises.filter(
         (ex) =>
           ex.name.toLowerCase().includes(query.toLowerCase()) ||
-          ex.muscle_group?.toLowerCase().includes(query.toLowerCase()),
+          ex.muscle_groups?.some(mg => mg.toLowerCase().includes(query.toLowerCase())),
       );
     }
 

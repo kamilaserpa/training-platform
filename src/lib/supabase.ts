@@ -29,9 +29,9 @@ if (!useMock) {
     supabase.auth.getSession(),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
   ])
-    .then(({ data, error }) => {
-      if (error) {
-        console.error('Erro ao testar conexão:', error.message);
+    .then((result: any) => {
+      if (result?.error) {
+        console.error('Erro ao testar conexão:', result.error.message);
       }
     })
     .catch((error) => {

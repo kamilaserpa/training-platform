@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import type { TrainingBlock } from '../../types/database.types';
 import isBetween from 'dayjs/plugin/isBetween';
 import { trainingService } from '../../services/trainingService';
 import paths from '../../routes/paths';
@@ -154,9 +155,9 @@ const AlertsAndPendencies = () => {
           let hasIncompleteBlocks = false;
           let incompleteBlocksCount = 0;
 
-          training.training_blocks.forEach(block => {
+          training.training_blocks.forEach((block: TrainingBlock) => {
             // Ignorar bloco de condicionamento físico
-            const isConditioningBlock = block.block_type === 'conditioning' || 
+            const isConditioningBlock = block.block_type === 'CONDICIONAMENTO_FISICO' || 
                                        block.name?.toLowerCase().includes('condicionamento');
             
             if (!isConditioningBlock) {

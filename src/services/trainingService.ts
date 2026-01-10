@@ -57,7 +57,7 @@ const mockTrainingBlocks: TrainingBlock[] = [
     id: '1',
     training_id: '1',
     name: 'Aquecimento Articular',
-    block_type: 'AQUECIMENTO',
+    block_type: 'MOBILIDADE_ARTICULAR',
     order_index: 1,
     instructions: 'Movimentos suaves para preparar articulações',
     rest_between_exercises_seconds: 30,
@@ -471,17 +471,18 @@ class TrainingService {
         description: 'Treino focado em força e resistência',
         estimated_duration_minutes: 90,
         share_status: 'public',
+        share_token: token,
         created_by: 'mock-user',
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
-        token_compartilhamento: token,
-        link_active: true,
         training_blocks: [
           {
             id: '1',
             training_id: '1',
+            name: 'Mobilidade Articular',
             block_type: 'MOBILIDADE_ARTICULAR',
             order_index: 1,
+            rest_between_exercises_seconds: 30,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
             exercise_prescriptions: [
@@ -490,6 +491,7 @@ class TrainingService {
                 training_block_id: '1',
                 exercise_id: '1',
                 order_index: 1,
+                sets: 2,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
                 exercise: { 
@@ -504,6 +506,7 @@ class TrainingService {
                 training_block_id: '1',
                 exercise_id: '2',
                 order_index: 2,
+                sets: 2,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
                 exercise: { 
@@ -518,8 +521,10 @@ class TrainingService {
           {
             id: '2',
             training_id: '1',
+            name: 'Ativação Core',
             block_type: 'ATIVACAO_CORE',
             order_index: 2,
+            rest_between_exercises_seconds: 60,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
             exercise_prescriptions: [
@@ -545,8 +550,10 @@ class TrainingService {
           {
             id: '3',
             training_id: '1',
-            block_type: 'TREINO_PRINCIPAL_BLOCO_1',
+            name: 'Treino Principal',
+            block_type: 'TREINO_PRINCIPAL',
             order_index: 3,
+            rest_between_exercises_seconds: 90,
             created_at: '2024-01-01T00:00:00Z',
             updated_at: '2024-01-01T00:00:00Z',
             exercise_prescriptions: [

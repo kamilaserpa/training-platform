@@ -114,9 +114,9 @@ function ExerciseDialog({
     const exerciseData: CreateExerciseDTO = {
       name: formData.name.trim(),
       // muscle_groups: formData.muscle_group?.trim() || null, // Teste com muscle_groups (plural)
-      movement_pattern_id: formData.movement_pattern_id || null,
-      instructions: formData.instructions?.trim() || null,
-      description: formData.description?.trim() || null,
+      movement_pattern_id: formData.movement_pattern_id || undefined,
+      instructions: formData.instructions?.trim() || undefined,
+      description: formData.description?.trim() || undefined,
     };
 
     // Limpar undefined do objeto (PostgreSQL prefere null)

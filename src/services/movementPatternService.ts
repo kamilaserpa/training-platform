@@ -122,7 +122,7 @@ class MovementPatternService {
       const newPattern: MovementPattern = {
         id: `mock-${Date.now()}`,
         name,
-        description: description || null,
+        description: description || undefined,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -157,7 +157,7 @@ class MovementPatternService {
         mockMovementPatterns[index] = {
           ...mockMovementPatterns[index],
           name,
-          description: description || null,
+          description: description || undefined,
           updated_at: new Date().toISOString(),
         };
         

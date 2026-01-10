@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Função de login
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
     if (useMock) {
       setUser(mockUser);
       setLoading(false);
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Erro no login:', error);
-        return { error };
+        return { error: error.message || 'Erro desconhecido' };
       }
 
       if (data.user) {
@@ -117,16 +117,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return {};
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no login:', error);
-      return { error };
+      return { error: error?.message || 'Erro desconhecido' };
     } finally {
       setLoading(false);
     }
   };
 
   // Função de cadastro
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string): Promise<{ error?: string }> => {
     if (useMock) {
       const newUser = { ...mockUser, email, name };
       setUser(newUser);
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Erro no cadastro:', error);
-        return { error };
+        return { error: error.message || 'Erro desconhecido' };
       }
 
       // Se o cadastro foi bem-sucedido, criar perfil do usuário
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (profileError) {
           console.error('Erro ao criar perfil:', profileError);
-          return { error: profileError };
+          return { error: profileError.message || 'Erro ao criar perfil' };
         }
 
         // Buscar o perfil criado
@@ -168,9 +168,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return {};
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no cadastro:', error);
-      return { error };
+      return { error: error?.message || 'Erro desconhecido' };
     } finally {
       setLoading(false);
     }
