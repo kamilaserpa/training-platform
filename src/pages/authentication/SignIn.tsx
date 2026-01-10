@@ -51,10 +51,10 @@ const SignIn = () => {
       if (signInError) {
         let errorMessage = 'Erro ao fazer login';
         
-        if (signInError.message === 'Invalid login credentials') {
+        if (signInError === 'Invalid login credentials') {
           errorMessage = 'Email ou senha incorretos';
-        } else if (signInError.message) {
-          errorMessage = signInError.message;
+        } else if (signInError) {
+          errorMessage = signInError;
         }
         
         setError(errorMessage);

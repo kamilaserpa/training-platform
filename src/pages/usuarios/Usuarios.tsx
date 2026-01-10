@@ -102,17 +102,8 @@ const Usuarios = () => {
         // Em modo mock, filtrar apenas usuários do workspace do owner logado
         const currentUserId = user?.id || 'mock-user-id';
 
-        const filtered = mockUsuarios.filter((u) => {
-          // Owner vê: ele mesmo + usuários criados por ele
-          if (isOwner) {
-            return u.user_id === currentUserId || u.owner_id === currentUserId;
-          }
-          // Admin vê: apenas viewers do mesmo workspace
-          if (isAdmin) {
-            return u.role === 'viewer' && u.owner_id === currentUserId;
-          }
-          return false;
-        });
+        // Em modo mock, mostrar todos os usuários mock
+        const filtered = mockUsuarios;
 
         setUsuarios(filtered);
         setLoading(false);
