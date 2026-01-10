@@ -39,7 +39,7 @@ export const SemanaCard = ({ semana }: SemanaCardProps) => {
       elevation={2}
       sx={{ width: '100%' }}
     >
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+      <CardContent sx={{ py: 0, px: 2}}>
         {/* Header do Card */}
         <Stack
           direction="row"
@@ -78,7 +78,7 @@ export const SemanaCard = ({ semana }: SemanaCardProps) => {
 
         {/* Conteúdo Expandido - Dias */}
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <Box sx={{ mt: 2, mx: -2 }}>
+          <Box sx={{ mt: 2, mx: -2, p: 0 }}>
             {dias.map((dia) => (
               <Accordion
                 key={dia.key}
@@ -86,7 +86,8 @@ export const SemanaCard = ({ semana }: SemanaCardProps) => {
                 sx={{
                   '&:before': { display: 'none' },
                   bgcolor: 'transparent',
-                  mb: 1
+                  mb: 1,
+                  p: 0
                 }}
               >
                 <AccordionSummary
@@ -101,7 +102,7 @@ export const SemanaCard = ({ semana }: SemanaCardProps) => {
                     }
                   }}
                 >
-                  <Typography variant="subtitle2" fontWeight="600">
+                  <Typography variant="subtitle2" fontWeight="600" padding={0}>
                     {dia.label}
                   </Typography>
                 </AccordionSummary>

@@ -21,7 +21,6 @@ export const DiaCell = ({ dia, diaNome, semanaId }: DiaCellProps) => {
   return (
     <Box
       sx={{
-        minHeight: 120,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-start'

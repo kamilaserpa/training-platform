@@ -22,8 +22,13 @@ const Button: Components<Omit<Theme, 'components'>>['MuiButton'] = {
       '&:hover': { backgroundColor: theme.palette.primary.main },
     }),
     containedSecondary: ({ theme }) => ({
+      color: theme.palette.info.light,
+      backgroundColor: theme.palette.secondary.main,
+      '&:hover': { backgroundColor: theme.palette.secondary.dark },
+    }),
+    containedInfo: ({ theme }) => ({
       color: theme.palette.text.primary,
-      backgroundColor: theme.palette.info.dark,
+      backgroundColor: theme.palette.info.main,
       '&:hover': { backgroundColor: theme.palette.info.dark },
     }),
     outlined: ({ theme }) => ({

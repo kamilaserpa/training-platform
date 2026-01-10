@@ -8,20 +8,26 @@ import {
   Typography,
   Table,
   TableHead,
-  TableBody
+  TableBody,
+  Tooltip,
+  Stack
 } from '@mui/material';
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
-  KeyboardArrowUp as KeyboardArrowUpIcon
+  KeyboardArrowUp as KeyboardArrowUpIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { DiaCell } from './DiaCell';
 import type { SemanaComTreinos } from '../../utils/semanaAdapter';
 
 interface SemanaRowProps {
   semana: SemanaComTreinos;
+  onEdit?: (semanaId: string) => void;
+  onDelete?: (semanaId: string) => void;
 }
 
-export const SemanaRow = ({ semana }: SemanaRowProps) => {
+export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
   const [open, setOpen] = useState(false);
 
   const dias = [
@@ -65,14 +71,49 @@ export const SemanaRow = ({ semana }: SemanaRowProps) => {
             })}
           </Typography>
         </TableCell>
+        <TableCell align="right">
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            {onEdit && (
+              <Tooltip title="Editar semana">
+                <IconButton
+                  size="small"
+                  onClick={() => onEdit(semana.id)}
+                  color="primary"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip title="Excluir semana">
+                <IconButton
+                  size="small"
+                  onClick={() => onDelete(semana.id)}
+                  color="error"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        </TableCell>
       </TableRow>
       <TableRow>
         <TableCell 
           style={{ paddingBottom: 0, paddingTop: 0, paddingLeft: 0, paddingRight: 0 }} 
-          colSpan={4}
+          colSpan={5}
         >
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ p: 2, px: 0 }}>
+              {/* Observações da Semana */}
+              {semana.notes && (
+                <Box sx={{ mb: 2, px: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {semana.notes}
+                  </Typography>
+                </Box>
+              )}
+              
               {/* Tabela de Dias da Semana */}
               <Table 
                 sx={{ 

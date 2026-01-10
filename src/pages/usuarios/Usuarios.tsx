@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import IconifyIcon from 'components/base/IconifyIcon';
 import { useAuth } from '../../contexts/AuthContext';
+import paths from '../../routes/paths';
 import { supabase, useMock } from '../../lib/supabase';
 
 interface Usuario {
@@ -90,7 +91,7 @@ const Usuarios = () => {
 
   useEffect(() => {
     if (!canManageUsers) {
-      navigate('/');
+      navigate(paths.dashboard);
       return;
     }
     loadUsuarios();

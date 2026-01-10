@@ -185,7 +185,7 @@ function WeekDialog({ open, onClose, onSave, editingData, weekFocuses }: WeekDia
     >
       <DialogTitle>{editingData ? 'Editar Semana' : 'Nova Semana'}</DialogTitle>
       <DialogContent sx={{ p: 0 }}>
-        <Grid container spacing={4} sx={{ mt: 3 }}>
+        <Grid container spacing={5} sx={{ mt: 3 }}>
           <Grid item xs={12} sm={6}>
             <TextField
               label="Nome da Semana *"
@@ -272,6 +272,13 @@ function SemanasPage() {
   const [filterStatus, setFilterStatus] = useState('todos');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingWeek, setEditingWeek] = useState<TrainingWeek | null>(null);
+  
+  // Estado para dialog de confirmação de exclusão
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    weekId: '',
+    weekName: ''
+  });
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -356,13 +363,22 @@ function SemanasPage() {
     }
   };
 
-  const handleDeleteWeek = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta semana? Todos os treinos serão removidos.'))
-      return;
+  const handleDeleteWeek = (id: string) => {
+    const week = trainingWeeks.find(w => w.id === id);
+    setDeleteDialog({
+      open: true,
+      weekId: id,
+      weekName: week?.name || 'esta semana'
+    });
+  };
+
+  const confirmDeleteWeek = async () => {
+    const { weekId } = deleteDialog;
+    setDeleteDialog({ open: false, weekId: '', weekName: '' });
 
     try {
-      await weekService.deleteTrainingWeek(id);
-      setTrainingWeeks((prev) => prev.filter((w) => w.id !== id));
+      await weekService.deleteTrainingWeek(weekId);
+      setTrainingWeeks((prev) => prev.filter((w) => w.id !== weekId));
     } catch (err) {
       console.error('Erro ao deletar semana:', err);
       setError('Erro ao deletar semana. Tente novamente.');
@@ -586,6 +602,32 @@ function SemanasPage() {
           </Typography>
         </Box>
       </Grid>
+
+      {/* Dialog de confirmação de exclusão */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, weekId: '', weekName: '' })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja excluir <strong>{deleteDialog.weekName}</strong>?
+          </Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+            ⚠️ Todos os treinos desta semana serão removidos permanentemente.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, weekId: '', weekName: '' })}>
+            Cancelar
+          </Button>
+          <Button onClick={confirmDeleteWeek} variant="contained" color="error">
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog para adicionar/editar */}
       <WeekDialog
