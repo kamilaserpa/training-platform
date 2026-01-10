@@ -23,7 +23,7 @@ export default {
   // ==========================================
   // Dashboard
   // ==========================================
-  dashboard: `/${rootPaths.pagesRoot}`,
+  dashboard: '/',
 
   // ==========================================
   // Treinos (CRUD completo com rotas separadas)
