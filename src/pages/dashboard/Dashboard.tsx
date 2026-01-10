@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import Grid from '@mui/material/Grid';
-import { Container, Typography, Box } from '@mui/material';
+import { Container, Typography, Box, Button } from '@mui/material';
+import { FileDownload as FileDownloadIcon } from '@mui/icons-material';
 
 // Alertas e Notificações
 import { DevModeAlert } from '../../components/DevModeAlert';
@@ -9,6 +11,10 @@ import CurrentWeek from '../../components/dashboard/CurrentWeek';
 import WeekWorkouts from '../../components/dashboard/WeekWorkouts';
 import RecentWeeks from '../../components/dashboard/RecentWeeks';
 import AlertsAndPendencies from '../../components/dashboard/AlertsAndPendencies';
+import ExportModal from '../../components/export/ExportModal';
+
+// Hook para dados de exportação
+import { useExportData } from '../../hooks/useExportData';
 
 // Componentes originais do template (mantidos para referência)
 import Calendar from 'components/sections/dashboard/calendar';
@@ -26,10 +32,28 @@ import TrendingNFTs from 'components/sections/dashboard/trending-nfts';
 import BusinessDesign from 'components/sections/dashboard/business-design';
 
 const Dashboard = () => {
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const { weeks, loading: loadingExportData } = useExportData();
+
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* Alertas e Notificações */}
       <DevModeAlert />
+      
+      {/* Header com botão de exportação */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1">
+          Dashboard
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<FileDownloadIcon />}
+          onClick={() => setExportModalOpen(true)}
+          sx={{ borderRadius: 2 }}
+        >
+          Exportar Treinos
+        </Button>
+      </Box>
       
       <Grid container spacing={3}>
         {/* Hero Section - Semana Atual */}
@@ -95,6 +119,13 @@ const Dashboard = () => {
         </Grid>
         */}
       </Grid>
+
+      {/* Modal de Exportação */}
+      <ExportModal
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        weeks={weeks}
+      />
     </Container>
   );
 };
