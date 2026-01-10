@@ -12,6 +12,7 @@ export interface SemanaComTreinos {
   status: 'active' | 'completed' | 'draft' | 'archived';
   start_date: string;
   end_date: string;
+  notes?: string;
   dias: {
     segunda: { treino?: Training };
     terca: { treino?: Training };
@@ -89,6 +90,7 @@ export function adaptarSemanasParaVisualizacao(
       status: week.status as 'active' | 'completed' | 'draft' | 'archived',
       start_date: week.start_date,
       end_date: week.end_date,
+      notes: week.notes || undefined,
       dias
     };
   });

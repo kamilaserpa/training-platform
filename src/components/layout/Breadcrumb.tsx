@@ -60,7 +60,10 @@ export default function Breadcrumb() {
         {pathnames.map((value, index) => {
           const last = index === pathnames.length - 1;
           const to = `/${pathnames.slice(0, index + 1).join('/')}`;
-          const label = routeLabels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+          
+          // Buscar label customizado no sessionStorage (genérico para qualquer ID)
+          const customLabel = sessionStorage.getItem(`breadcrumb_${value}`);
+          const label = customLabel || routeLabels[value] || value.charAt(0).toUpperCase() + value.slice(1);
 
           // Se for o último item, mostrar como texto (sem link)
           return last ? (
