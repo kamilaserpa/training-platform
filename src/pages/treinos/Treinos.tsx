@@ -195,7 +195,6 @@ const Treinos = () => {
         setLoading(true)
         setError(null)
 
-        console.log('🔄 [Treinos] Carregando...')
         const treinosData = await trainingService.getAllTrainings()
 
         if (!isMounted) return;
@@ -229,11 +228,10 @@ const Treinos = () => {
         }))
 
         setTreinos(treinosFormatted)
-        console.log(`✅ [Treinos] ${treinosFormatted.length} treinos carregados`)
 
       } catch (err: any) {
         if (!isMounted) return;
-        console.error('❌ [Treinos] Erro:', err)
+        console.error('Erro ao carregar treinos:', err)
         setError(err.message || 'Erro ao carregar treinos')
       } finally {
         if (isMounted) {

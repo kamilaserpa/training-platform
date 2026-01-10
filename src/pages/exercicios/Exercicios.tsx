@@ -78,10 +78,6 @@ function ExerciseDialog({
         instructions: editingData.instructions || '',
         description: editingData.description || '',
       });
-      console.log('✅ [ExerciseDialog] Dados carregados para edição:', {
-        name: editingData.name,
-        movement_pattern_id: editingData.movement_pattern_id
-      });
     } else {
       setFormData({
         name: '',
@@ -89,7 +85,6 @@ function ExerciseDialog({
         instructions: '',
         description: '',
       });
-      console.log('🆕 [ExerciseDialog] Formulário limpo para novo exercício');
     }
   }, [editingData]);
 

@@ -248,12 +248,6 @@ function TreinoForm() {
         setPadroesMovimentoOptions(padroesFormatted)
         setExerciciosOptions(exerciciosFormatted)
 
-        console.log('✅ Dados dos selects carregados:', {
-          semanas: semanasFormatted.length,
-          padroes: padroesFormatted.length,
-          exercicios: exerciciosFormatted.length
-        })
-
         console.log('🔍 Debug - Opções de semanas:', semanasFormatted)
         console.log('🔍 Debug - Opções de padrões:', padroesFormatted)
 
@@ -338,8 +332,6 @@ function TreinoForm() {
         if (!trainingData) {
           throw new Error('Treino não encontrado')
         }
-
-        console.log('✅ Dados do treino carregados:', trainingData)
 
         // Validar semana contra opções disponíveis
         const validWeekId = semanasOptions.find(week => week.id === trainingData.training_week_id)?.id || ''

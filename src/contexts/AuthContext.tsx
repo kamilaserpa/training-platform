@@ -236,7 +236,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isInitialLoad = true;
 
     if (useMock) {
-      console.log('🎭 [Auth] Modo mock ativado - auto-login');
       if (mounted) {
         setUser(mockUser);
         setLoading(false);
@@ -350,7 +349,6 @@ export function useRequireAuth() {
   useEffect(() => {
     if (!auth.loading && !auth.user) {
       // Redirecionar para login se necessário
-      console.log('⚠️ [Auth] Usuário não autenticado');
     }
   }, [auth.loading, auth.user]);
 

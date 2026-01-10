@@ -36,16 +36,14 @@ interface Usuario {
   user_id: string;
   email: string;
   role: 'owner' | 'admin' | 'viewer';
-  owner_id?: string; // ID do owner que criou este usuário
   active: boolean;
   created_at: string;
 }
 
 // Mock data para desenvolvimento
-// Em um sistema real, cada owner teria seu próprio workspace isolado
 const mockUsuarios: Usuario[] = [
   {
-    user_id: 'mock-user-id', // Este é o owner logado (você)
+    user_id: 'mock-user-id',
     email: 'usuario@mock.com',
     role: 'owner',
     active: true,
@@ -55,7 +53,6 @@ const mockUsuarios: Usuario[] = [
     user_id: 'mock-admin-1',
     email: 'admin@workspace.com',
     role: 'admin',
-    owner_id: 'mock-user-id', // Criado pelo owner logado
     active: true,
     created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   },
@@ -63,7 +60,6 @@ const mockUsuarios: Usuario[] = [
     user_id: 'mock-viewer-1',
     email: 'viewer1@workspace.com',
     role: 'viewer',
-    owner_id: 'mock-user-id', // Criado pelo owner logado
     active: true,
     created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
   },
@@ -71,7 +67,6 @@ const mockUsuarios: Usuario[] = [
     user_id: 'mock-viewer-2',
     email: 'viewer2@workspace.com',
     role: 'viewer',
-    owner_id: 'mock-user-id', // Criado pelo owner logado
     active: false,
     created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
   },
@@ -127,22 +122,16 @@ const Usuarios = () => {
       // Buscar usuários do banco
       // Owner vê: ele mesmo + usuários onde ele é o owner_id
       // Admin vê: apenas viewers onde ele é o owner_id
-      const currentUserId = user?.id;
-      if (!currentUserId) {
-        throw new Error('Usuário não identificado');
-      }
-
       let query = supabase
         .from('users')
-        .select('id, email, role, owner_id, active, created_at')
+        .select('id, email, role, active, created_at')
         .order('created_at', { ascending: false });
 
-      if (isOwner) {
-        // Owner vê: ele mesmo OU usuários criados por ele
-        query = query.or(`id.eq.${currentUserId},owner_id.eq.${currentUserId}`);
-      } else if (isAdmin) {
-        // Admin vê: apenas viewers criados por ele
-        query = query.eq('owner_id', currentUserId).eq('role', 'viewer');
+      // Owner vê todos os usuários
+      // Admin vê apenas viewers
+      // Viewer não acessa esta página
+      if (isAdmin) {
+        query = query.eq('role', 'viewer');
       }
 
       const { data, error } = await query;
@@ -154,7 +143,6 @@ const Usuarios = () => {
           user_id: u.id,
           email: u.email,
           role: u.role,
-          owner_id: u.owner_id,
           active: u.active ?? true,
           created_at: u.created_at,
         })) || [],
