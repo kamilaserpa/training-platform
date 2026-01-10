@@ -4,7 +4,7 @@ import paths, { rootPaths } from './paths';
 import PrivateRoute from '../components/navigation/PrivateRoute';
 
 const basename = import.meta.env.PROD
-  ? '/training-platform'
+  ? '/training-platform/'
   : '/';
 
 const App = lazy(() => import('../App'));

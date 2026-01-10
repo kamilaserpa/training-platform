@@ -37,6 +37,7 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
+  Tooltip
 } from '@mui/material'
 
 import {
@@ -1318,7 +1319,7 @@ function TreinoForm() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4, px: 0 }}>
       {/* Loading indicator for training data */}
       {loadingTrainingData && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
@@ -1351,6 +1352,7 @@ function TreinoForm() {
               startIcon={<ArrowBackIcon />}
               onClick={() => navigate('/pages/treinos')}
               variant="outlined"
+              size="small"
             >
               Voltar
             </Button>
@@ -1359,7 +1361,7 @@ function TreinoForm() {
           {/* Formulário */}
           <FormProvider {...methods}>
             <form onSubmit={handleSubmit(onSubmit)}>
-              <Stack direction="column" spacing={4}>
+              <Stack direction="column" spacing={5}>
                 {/* Card: Informações Básicas */}
                 <Card>
                   <CardContent>
@@ -1401,8 +1403,10 @@ function TreinoForm() {
                               </Typography>
                             )}
                           </Box>
+                          <Tooltip title="Criar Semana" arrow>
                           <Button
-                            variant="outlined"
+                            variant="contained"
+                            color="info"
                             onClick={() => navigate('/pages/semanas')}
                             disabled={submitting}
                             sx={{
@@ -1417,6 +1421,7 @@ function TreinoForm() {
                           >
                             <AddIcon fontSize="small" />
                           </Button>
+                          </Tooltip>
                         </Box>
                       </Grid>
 
