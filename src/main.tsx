@@ -34,3 +34,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </React.StrictMode>,
 );
+
+// Register Service Worker (respects Vite base)
+if ('serviceWorker' in navigator) {
+  const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+  navigator.serviceWorker.register(swUrl).catch(console.error);
+}
