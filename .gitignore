@@ -39,7 +39,7 @@ build/
 
 # OS-generated
 Thumbs.db
-Icon?
+Icon\r
 
 # Local mock/dev files
 frontend/config.js
