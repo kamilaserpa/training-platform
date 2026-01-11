@@ -62,14 +62,14 @@ export default function Breadcrumb() {
           const last = index === pathnames.length - 1;
           // Reconstruir o path completo incluindo /pages/
           const to = `/pages/${pathnames.slice(0, index + 1).join('/')}`;
-          
+
           // Buscar label customizado no sessionStorage (genérico para qualquer ID)
           const customLabel = sessionStorage.getItem(`breadcrumb_${value}`);
           const label = customLabel || routeLabels[value] || value.charAt(0).toUpperCase() + value.slice(1);
 
           // Se for um UUID (ID de recurso), não tornar clicável a menos que seja o último
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-          
+
           // Se for o último item OU for um UUID intermediário, mostrar como texto (sem link)
           return last || isUUID ? (
             <Typography

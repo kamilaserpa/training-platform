@@ -53,6 +53,13 @@ const sitemap: MenuItem[] = [
   },
   {
     id: 5,
+    subheader: 'Parâmetros da Semana',
+    path: paths.configuracoes,
+    icon: 'ic:round-settings',
+    requireAuth: true,
+  },
+  {
+    id: 6,
     subheader: 'Usuários',
     path: paths.usuarios,
     icon: 'ic:round-people',
@@ -60,17 +67,10 @@ const sitemap: MenuItem[] = [
     requireManageUsers: true, // Apenas Owner e Admin veem este item
   },
   {
-    id: 6,
+    id: 7,
     subheader: 'Perfil',
     path: paths.perfil,
     icon: 'ic:round-account-circle',
-    requireAuth: true,
-  },
-  {
-    id: 7,
-    subheader: 'Parâmetros da Semana',
-    path: paths.configuracoes,
-    icon: 'ic:round-settings',
     requireAuth: true,
   },
   {

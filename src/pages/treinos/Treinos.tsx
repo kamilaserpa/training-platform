@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { trainingService } from '../../services/trainingService';
+import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
+import { imageToBase64 } from '../../utils/pdf/pdfUtils';
+import logoImage from '../../assets/images/logo-main.png';
 import {
   Container,
   Typography,
@@ -29,6 +32,7 @@ import {
   FitnessCenter as FitnessCenterIcon,
   PlayArrow as PlayArrowIcon,
   FilterList as FilterListIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 
 // Tipos TypeScript
@@ -183,13 +187,12 @@ const Treinos = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [intensidadeFilter, setIntensidadeFilter] = useState('Todos');
-  const [sortBy, setSortBy] = useState('data');
+  const [sortBy, setSortBy] = useState('data-desc');
 
   // Carregar treinos do banco de dados
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadTreinos = async () => {
       try {
         setLoading(true)
@@ -218,7 +221,7 @@ const Treinos = () => {
               if (prescription.rest_seconds && prescription.rest_seconds > 0) {
                 protocolo += `x${prescription.rest_seconds}"`
               }
-              
+
               return {
                 ...prescription,
                 protocol: protocolo || ''
@@ -241,7 +244,7 @@ const Treinos = () => {
     }
 
     loadTreinos()
-    
+
     return () => {
       isMounted = false;
     };
@@ -255,21 +258,21 @@ const Treinos = () => {
           (treino.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           (treino.description || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesIntensidade =
-          intensidadeFilter === 'Todos' || (treino.intensity_level || 5).toString() === intensidadeFilter;
-
-        return matchesSearch && matchesIntensidade;
+        return matchesSearch;
       })
       .sort((a, b) => {
-        if (sortBy === 'data') {
+        if (sortBy === 'data-desc') {
           return new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime();
+        }
+        if (sortBy === 'data-asc') {
+          return new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime();
         }
         if (sortBy === 'intensidade') {
           return (b.intensity_level || 5) - (a.intensity_level || 5);
         }
         return a.name.localeCompare(b.name);
       });
-  }, [treinos, searchTerm, intensidadeFilter, sortBy]);
+  }, [treinos, searchTerm, sortBy]);
 
   // Handlers
   const handleDelete = async (id: string) => {
@@ -290,12 +293,23 @@ const Treinos = () => {
     navigate(`/pages/treinos/${id}/editar`);
   };
 
+  // Handler para exportar PDF
+  const handleExportPDF = async (treino: Treino) => {
+    try {
+      const logoBase64 = await imageToBase64(logoImage);
+      await generateTreinoPDF(treino, logoBase64);
+    } catch (error: any) {
+      console.error('❌ Erro ao gerar PDF:', error);
+      alert('Erro ao gerar PDF: ' + error.message);
+    }
+  };
+
   // Helper para formatar data
   const formatDate = (dateString: string) => {
     // Garantir que a data seja interpretada como local (não UTC)
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day); // month é 0-indexado
-    
+
     return date.toLocaleDateString('pt-BR', {
       weekday: 'long',
       year: 'numeric',
@@ -353,6 +367,11 @@ const Treinos = () => {
                 sx={{
                   minWidth: { xs: 40, sm: 'auto' },
                   px: { xs: 1, sm: 2 },
+                  width: { xs: '45px', sm: 'auto' },
+                  height: { xs: '45px', sm: 'auto' },
+                  '&:hover': {
+                    color: 'info.main',
+                  },
                   '& .MuiButton-startIcon': {
                     margin: { xs: 0, sm: '0 8px 0 -4px' },
                   },
@@ -367,17 +386,10 @@ const Treinos = () => {
 
           {/* Filtros */}
           <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <FilterListIcon />
-                <Typography variant="h6" fontWeight="600">
-                  Filtros
-                </Typography>
-              </Box>
-
+            <CardContent sx={{ py: 3 }}>
               <Stack
                 direction={{ xs: 'column', sm: 'row' }}
-                spacing={2}
+                spacing={4}
                 alignItems={{ xs: 'stretch', sm: 'center' }}
               >
                 <TextField
@@ -390,30 +402,15 @@ const Treinos = () => {
                   sx={{ flex: 1 }}
                 />
 
-                <FormControl size="small" sx={{ minWidth: 150 }}>
-                  <InputLabel>Intensidade</InputLabel>
-                  <Select
-                    value={intensidadeFilter}
-                    onChange={(e) => setIntensidadeFilter(e.target.value)}
-                    label="Intensidade"
-                  >
-                    <MenuItem value="Todos">Todos</MenuItem>
-                    <MenuItem value="9">9-10 (Máxima)</MenuItem>
-                    <MenuItem value="8">8 (Alta)</MenuItem>
-                    <MenuItem value="7">7 (Média-Alta)</MenuItem>
-                    <MenuItem value="6">6 (Média)</MenuItem>
-                    <MenuItem value="5">≤5 (Baixa)</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <FormControl size="small" sx={{ minWidth: 120 }}>
+                <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
                   <InputLabel>Ordenar por</InputLabel>
                   <Select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     label="Ordenar por"
                   >
-                    <MenuItem value="data">Data</MenuItem>
+                    <MenuItem value="data-desc">Data (mais recente)</MenuItem>
+                    <MenuItem value="data-asc">Data (mais antigo)</MenuItem>
                     <MenuItem value="intensidade">Intensidade</MenuItem>
                     <MenuItem value="nome">Nome</MenuItem>
                   </Select>
@@ -435,12 +432,12 @@ const Treinos = () => {
                 <Box textAlign="center" py={8}>
                   <FitnessCenterIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary" gutterBottom>
-                    {searchTerm || intensidadeFilter !== 'Todos'
+                    {searchTerm
                       ? 'Nenhum treino encontrado'
                       : 'Nenhum treino cadastrado'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" mb={3}>
-                    {searchTerm || intensidadeFilter !== 'Todos'
+                    {searchTerm
                       ? 'Tente ajustar os filtros para encontrar treinos'
                       : 'Comece criando seu primeiro treino'}
                   </Typography>
@@ -503,9 +500,9 @@ const Treinos = () => {
 
                           {/* Data completa */}
                           <Chip label={formatDate(treino.scheduled_date)}
-                              size="small"
-                              variant="filled"
-                              color="primary" />
+                            size="small"
+                            variant="filled"
+                            color="primary" />
 
                           {/* Semana */}
                           <Chip
@@ -625,6 +622,15 @@ const Treinos = () => {
                           </Button>
 
                           <Box>
+                            <Tooltip title="Exportar PDF">
+                              <IconButton
+                                size="small"
+                                color="secondary"
+                                onClick={() => handleExportPDF(treino)}
+                              >
+                                <PdfIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Editar treino">
                               <IconButton
                                 size="small"

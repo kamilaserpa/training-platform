@@ -11,6 +11,9 @@ import { weekService } from '../../services/weekService'
 import { movementPatternService } from '../../services/movementPatternService'
 import { exerciseService } from '../../services/exerciseService'
 import { trainingService } from '../../services/trainingService'
+import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
+import { imageToBase64 } from '../../utils/pdf/pdfUtils'
+import logoImage from '../../assets/images/logo-main.png'
 
 import {
   Container,
@@ -51,6 +54,7 @@ import {
   ContentCopy as CopyIcon,
   Link as LinkIcon,
   CheckCircle as CheckCircleIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material'
 
 import {
@@ -73,7 +77,7 @@ const validationSchema = yup.object().shape({
 function TreinoForm() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { id: editingTrainingId } = useParams() // Pegar ID da URL RESTful
+  const { id: editingTrainingId } = useParams()
   const searchParams = new URLSearchParams(location.search)
   const isEditMode = !!editingTrainingId
 
@@ -114,6 +118,8 @@ function TreinoForm() {
 
   // Estados para destacar dias da semana no date picker
   const [weekStartDate, setWeekStartDate] = useState(null)
+
+  // Responsividade tratada via props responsivas (sx/breakpoints)
   const [weekEndDate, setWeekEndDate] = useState(null)
 
   // Função helper para formatar protocolo do exercício
@@ -182,7 +188,7 @@ function TreinoForm() {
   const [shareLink, setShareLink] = useState('')
   const [linkToken, setLinkToken] = useState('')
   const [copySuccess, setCopySuccess] = useState(false)
-  
+
   // Estado para nome do treino (usado no breadcrumb)
   const [trainingName, setTrainingName] = useState('')
 
@@ -214,10 +220,10 @@ function TreinoForm() {
 
     const finalName = `Treino S${weekNumber}-${dayNumber}`
     console.log('✨ Nome do treino gerado:', finalName, { weekNumber, dayNumber, dayOfWeek })
-    
+
     // Atualizar estado
     setTrainingName(finalName)
-    
+
     // Salvar nome no sessionStorage para o breadcrumb (se estiver editando)
     if (editingTrainingId) {
       sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, finalName)
@@ -372,7 +378,7 @@ function TreinoForm() {
           observacoes_internas: trainingData.internal_notes || '',
           link_ativo: trainingData.share_status === 'public',
         }
-        
+
         // Salvar nome do treino no sessionStorage para o breadcrumb (genérico)
         const currentName = trainingData.name || 'Treino'
         setTrainingName(currentName)
@@ -518,7 +524,10 @@ function TreinoForm() {
           const condicionamentoItems = block.exercise_prescriptions?.map(prescription => ({
             nome: prescription.exercise?.name || 'Exercício não encontrado',
             exercicioId: prescription.exercise?.id,
-            duracao: prescription.duration_seconds ? `${prescription.duration_seconds}s` : '',
+            series: prescription.sets || '',
+            repeticoes: prescription.reps || '',
+            tempoSegundos: prescription.duration_seconds || '',
+            intervaloSegundos: prescription.rest_seconds || '',
             observacoes: prescription.notes || ''
           })) || []
           setCondicionamentoItems(condicionamentoItems)
@@ -765,7 +774,6 @@ function TreinoForm() {
           name: blockConfig.name,
           block_type: blockConfig.type,
           order_index: blockConfig.order,
-          instructions: `Instruções para ${blockConfig.name}`,
           rest_between_exercises_seconds: 60
         }
 
@@ -949,7 +957,9 @@ function TreinoForm() {
           rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null ?
             parseInt(exerciseObj.intervaloSegundos) :
             (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null ?
-              parseInt(exerciseObj.intervalo) : 60)
+              parseInt(exerciseObj.intervalo) :
+              (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null ?
+                parseInt(exerciseObj.rest_seconds) : 60))
         }
 
         // Se tem tempo definido, usar duration_seconds
@@ -959,6 +969,16 @@ function TreinoForm() {
         } else if (exerciseObj.tempo !== undefined && exerciseObj.tempo !== '' && exerciseObj.tempo !== null) {
           prescriptionData.duration_seconds = parseInt(exerciseObj.tempo)
           prescriptionData.reps = null
+        } else if (exerciseObj.duracao && exerciseObj.duracao !== '') {
+          // Para condicionamento: duracao vem como string "30s"
+          const duracaoNum = parseInt(exerciseObj.duracao.replace('s', ''))
+          if (!isNaN(duracaoNum)) {
+            prescriptionData.duration_seconds = duracaoNum
+            prescriptionData.reps = null
+          } else {
+            prescriptionData.reps = '1'
+            prescriptionData.duration_seconds = null
+          }
         } else if (exerciseObj.repeticoes && exerciseObj.repeticoes !== '') {
           // Se não tem tempo, usar repetições
           prescriptionData.reps = exerciseObj.repeticoes
@@ -974,6 +994,11 @@ function TreinoForm() {
           if (!isNaN(peso)) {
             prescriptionData.weight_kg = peso
           }
+        }
+
+        // Adicionar observações/notes se disponível
+        if (exerciseObj.observacoes && exerciseObj.observacoes !== '') {
+          prescriptionData.notes = exerciseObj.observacoes
         }
 
         console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData)
@@ -1002,7 +1027,9 @@ function TreinoForm() {
           rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null ?
             parseInt(exerciseObj.intervaloSegundos) :
             (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null ?
-              parseInt(exerciseObj.intervalo) : 60)
+              parseInt(exerciseObj.intervalo) :
+              (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null ?
+                parseInt(exerciseObj.rest_seconds) : 60))
         }
 
         // Se tem tempo definido, usar duration_seconds
@@ -1012,6 +1039,16 @@ function TreinoForm() {
         } else if (exerciseObj.tempo !== undefined && exerciseObj.tempo !== '' && exerciseObj.tempo !== null) {
           prescriptionData.duration_seconds = parseInt(exerciseObj.tempo)
           prescriptionData.reps = null
+        } else if (exerciseObj.duracao && exerciseObj.duracao !== '') {
+          // Para condicionamento: duracao vem como string "30s"
+          const duracaoNum = parseInt(exerciseObj.duracao.replace('s', ''))
+          if (!isNaN(duracaoNum)) {
+            prescriptionData.duration_seconds = duracaoNum
+            prescriptionData.reps = null
+          } else {
+            prescriptionData.reps = '1'
+            prescriptionData.duration_seconds = null
+          }
         } else if (exerciseObj.repeticoes && exerciseObj.repeticoes !== '') {
           // Se não tem tempo, usar repetições
           prescriptionData.reps = exerciseObj.repeticoes
@@ -1027,6 +1064,11 @@ function TreinoForm() {
           if (!isNaN(peso)) {
             prescriptionData.weight_kg = peso
           }
+        }
+
+        // Adicionar observações/notes se disponível
+        if (exerciseObj.observacoes && exerciseObj.observacoes !== '') {
+          prescriptionData.notes = exerciseObj.observacoes
         }
 
         console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData)
@@ -1124,7 +1166,6 @@ function TreinoForm() {
             name: blockConfig.name,
             block_type: blockConfig.type,
             order_index: blockConfig.order,
-            instructions: `Instruções para ${blockConfig.name}`,
             rest_between_exercises_seconds: 60
           }
 
@@ -1138,8 +1179,8 @@ function TreinoForm() {
             // Se o item é uma string (mobilidade antiga), buscar exercício existente
             if (typeof item === 'string') {
               await createExerciseFromString(createdBlock.id, item, i + 1, blockConfig.type)
-            } else if (item && item.nome && (item.series || item.tempoSegundos || item.intervaloSegundos || item.repeticoes)) {
-              // Se o item tem dados completos de protocolo, usar função para objetos completos
+            } else if (item && item.nome && (item.series || item.tempoSegundos || item.intervaloSegundos || item.repeticoes || item.duracao || item.observacoes)) {
+              // Se o item tem dados completos de protocolo (incluindo condicionamento com duracao/observacoes), usar função para objetos completos
               await createExerciseFromObject(createdBlock.id, item, i + 1)
             } else if (item && item.nome && item.exercicioId) {
               // Se o item tem apenas ID e nome (sem protocolo específico), usar ID diretamente
@@ -1261,6 +1302,36 @@ function TreinoForm() {
     }
   }
 
+  const handleExportPDF = async () => {
+    if (!isEditMode || !editingTrainingId) {
+      setSnackbar({
+        open: true,
+        message: 'Salve o treino antes de exportar em PDF',
+        severity: 'warning'
+      })
+      return
+    }
+
+    try {
+      const treino = await trainingService.getTrainingById(editingTrainingId)
+      const logoBase64 = await imageToBase64(logoImage)
+      await generateTreinoPDF(treino, logoBase64)
+
+      setSnackbar({
+        open: true,
+        message: 'PDF gerado com sucesso!',
+        severity: 'success'
+      })
+    } catch (error) {
+      console.error('❌ Erro ao gerar PDF:', error)
+      setSnackbar({
+        open: true,
+        message: 'Erro ao gerar PDF: ' + error.message,
+        severity: 'error'
+      })
+    }
+  }
+
   const onSubmit = async (data) => {
     try {
       setSubmitting(true)
@@ -1309,10 +1380,10 @@ function TreinoForm() {
       console.log('✅ Blocos processados com sucesso!')
 
       // Mostrar feedback de sucesso
-      const linkStatusMessage = linkToken 
+      const linkStatusMessage = linkToken
         ? (data.link_ativo ? ' Link de compartilhamento ativado.' : ' Link de compartilhamento desativado.')
         : ''
-      
+
       setSnackbar({
         open: true,
         message: isEditMode
@@ -1343,7 +1414,7 @@ function TreinoForm() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, px: 0 }}>
+    <Container maxWidth="xl" sx={{ pb: 4, px: 0 }}>
       {/* Loading indicator for training data */}
       {loadingTrainingData && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
@@ -1360,8 +1431,22 @@ function TreinoForm() {
       {!loadingTrainingData && (
         <>
           {/* Header */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
-            <Box>
+          {/* Mobile: back icon above title */}
+          <Box sx={{ display: { xs: 'flex', sm: 'none' }, mb: 1 }}>
+            <Tooltip title="Voltar" arrow>
+              <IconButton
+                onClick={() => navigate('/pages/treinos')}
+                color="primary"
+                size="small"
+                aria-label="Voltar"
+              >
+                <ArrowBackIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          {/* Desktop: title left, back button at far right */}
+          <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+            <Box sx={{ flex: 1 }}>
               <Typography variant="h4" fontWeight="700" mb={1}>
                 {isEditMode ? 'Editar Treino' : 'Criar Treino'}
               </Typography>
@@ -1372,14 +1457,37 @@ function TreinoForm() {
                 }
               </Typography>
             </Box>
-            <Button
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/pages/treinos')}
-              variant="outlined"
-              size="small"
-            >
-              Voltar
-            </Button>
+            <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => navigate('/pages/treinos')}
+                variant="outlined"
+                size="small"
+              >
+                Voltar
+              </Button>
+            </Box>
+          </Stack>
+
+
+          <Stack direction="row" spacing={1.5} sx={{ width: '100%', justifyContent: 'flex-end', mb: 2 }}>
+            {isEditMode && (
+              <>
+                <Box sx={{ display: { sm: 'inline-flex' } }}>
+                  <Tooltip title="Exportar PDF" arrow>
+                    <Button
+                      startIcon={<PdfIcon />}
+                      onClick={handleExportPDF}
+                      variant="contained"
+                      color="secondary"
+                      size="small"
+                    >
+                      PDF
+                    </Button>
+                  </Tooltip>
+                </Box>
+              </>
+            )}
           </Stack>
 
           {/* Formulário */}
@@ -1916,7 +2024,7 @@ function TreinoForm() {
                               <Typography variant="body2">
                                 <strong>Como usar:</strong>
                               </Typography>
-                              <Typography variant="body2" sx={{ mt: 1 , p:0}}>
+                              <Typography variant="body2" sx={{ mt: 1, p: 0 }}>
                                 • Copie e cole o link para enviar ao seu aluno<br />
                                 • O aluno poderá visualizar o treino sem fazer login<br />
                                 • Para desativar, desmarque "Link de compartilhamento ativo" acima
@@ -2042,7 +2150,7 @@ function TreinoForm() {
                       'Condicionamento'
           }
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: { xs: 0, sm: 3 }, py: 2 }}>
           <Stack spacing={3} sx={{ mt: 4 }}>
             {/* Mobilidade: select de exercícios com padrão mobilidade */}
             {currentSection === 'mobilidade' && (
@@ -2148,6 +2256,16 @@ function TreinoForm() {
                     fullWidth
                   />
                 </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Observações"
+                    value={formData.observacoes || ''}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder="Ex: Manter coluna alinhada, foco na respiração..."
+                    fullWidth
+                    helperText="Informações adicionais sobre a execução"
+                  />
+                </Grid>
               </Grid>
             )}
 
@@ -2192,6 +2310,16 @@ function TreinoForm() {
                     value={formData.tempo || ''}
                     onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
                     fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Observações"
+                    value={formData.observacoes || ''}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder="Ex: Explosão máxima, velocidade..."
+                    fullWidth
+                    helperText="Informações adicionais sobre a execução"
                   />
                 </Grid>
               </Grid>
@@ -2315,6 +2443,16 @@ function TreinoForm() {
                     }}
                   />
                 </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Observações"
+                    value={formData.observacoes || ''}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder="Ex: Cadência 3-0-1, amplitude completa..."
+                    fullWidth
+                    helperText="Informações adicionais sobre a execução"
+                  />
+                </Grid>
               </Grid>
             )}
 
@@ -2432,7 +2570,7 @@ function TreinoForm() {
                   />
                 </Grid>
 
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12}>
                   <TextField
                     label="Observações"
                     value={formData.observacoes || ''}

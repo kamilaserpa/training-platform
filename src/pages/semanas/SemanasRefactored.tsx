@@ -369,6 +369,11 @@ const SemanasRefactored = () => {
             sx={{
               minWidth: { xs: 40, sm: 'auto' },
               px: { xs: 1, sm: 2 },
+               width: { xs: '45px', sm: 'auto' },
+                  height: { xs: '45px', sm: 'auto' },
+                  '&:hover': {
+                    color: 'info.main',
+                  },
               '& .MuiButton-startIcon': {
                 margin: { xs: 0, sm: '0 8px 0 -4px' },
               },

@@ -95,6 +95,13 @@ class TrainingService {
     }
 
     try {
+      // Obter usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('trainings')
         .select(
@@ -114,6 +121,7 @@ class TrainingService {
           )
         `,
         )
+        .eq('created_by', user.id)
         .order('scheduled_date');
 
       if (error) throw error;
@@ -131,6 +139,13 @@ class TrainingService {
     }
 
     try {
+      // Obter usuário autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       const { data, error } = await supabase
         .from('trainings')
         .select(
@@ -151,6 +166,7 @@ class TrainingService {
         `,
         )
         .eq('training_week_id', weekId)
+        .eq('created_by', user.id)
         .order('scheduled_date');
 
       if (error) throw error;
