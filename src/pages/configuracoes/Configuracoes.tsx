@@ -441,7 +441,7 @@ const Configuracoes = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 3, px: { xs: 0, sm: 3 } }}>
       {/* Dev Mode Alert */}
       <DevModeAlert />
 

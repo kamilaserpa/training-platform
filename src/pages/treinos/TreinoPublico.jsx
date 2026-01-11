@@ -15,6 +15,8 @@ import {
   Grid,
   useTheme,
   useMediaQuery,
+  IconButton,
+  Tooltip,
 } from '@mui/material'
 import { 
   FitnessCenter as FitnessCenterIcon,
@@ -24,8 +26,12 @@ import {
   CheckCircleOutline as CheckCircleIcon,
   Repeat as RepeatIcon,
   Timer as TimerIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material'
 import { trainingService } from '../../services/trainingService'
+import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
+import { imageToBase64 } from '../../utils/pdf/pdfUtils'
+import logoImage from '../../assets/images/logo-main.png'
 
 const TreinoPublico = () => {
   const { token } = useParams()
@@ -72,6 +78,16 @@ const TreinoPublico = () => {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('pt-BR')
+  }
+
+  const handleExportPDF = async () => {
+    try {
+      const logoBase64 = await imageToBase64(logoImage)
+      await generateTreinoPDF(treino, logoBase64)
+    } catch (error) {
+      console.error('❌ Erro ao gerar PDF:', error)
+      alert('Erro ao gerar PDF: ' + error.message)
+    }
   }
 
   const getBlockInfo = (blockType) => {
@@ -201,15 +217,42 @@ const TreinoPublico = () => {
             color: 'primary.contrastText',
             p: { xs: 2.5, sm: 3 },
             mb: 3,
-            borderRadius: 2
+            borderRadius: 2,
+            position: 'relative'
           }}
         >
+          {/* Botão de Exportar PDF */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: { xs: 12, sm: 16 },
+              right: { xs: 12, sm: 16 }
+            }}
+          >
+            <Tooltip title="Exportar treino em PDF">
+              <IconButton
+                onClick={handleExportPDF}
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.15)',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.25)',
+                  },
+                  backdropFilter: 'blur(10px)',
+                }}
+              >
+                <PdfIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
           <Typography 
             variant="h4" 
             fontWeight="600"
             sx={{ 
               mb: 1.5,
-              fontSize: { xs: '1.5rem', sm: '1.875rem' }
+              fontSize: { xs: '1.5rem', sm: '1.875rem' },
+              pr: { xs: 6, sm: 7 }
             }}
           >
             {treino.name}

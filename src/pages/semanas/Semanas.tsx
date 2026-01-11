@@ -36,13 +36,18 @@ import {
   Clear as ClearIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 
 // Serviços e tipos
 import { weekService } from '../../services/weekService';
+import { trainingService } from '../../services/trainingService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { TrainingWeek, WeekFocus, CreateTrainingWeekDTO } from '../../types/database.types';
 import { DatabaseSetupAlert } from '../../components/DatabaseSetupAlert';
+import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
+import { imageToBase64 } from '../../utils/pdf/pdfUtils';
+import logoImage from '../../assets/images/logo-main.png';
 
 // Interface para props do dialog
 interface WeekDialogProps {
@@ -395,6 +400,18 @@ function SemanasPage() {
     setOpenDialog(true);
   };
 
+  const handleExportWeekPDF = async (week: TrainingWeek) => {
+    try {
+      // Buscar treinos da semana
+      const treinos = await trainingService.getTrainingsByWeek(week.id);
+      const logoBase64 = await imageToBase64(logoImage);
+      await generateSemanaPDF(week, treinos, logoBase64);
+    } catch (error: any) {
+      console.error('❌ Erro ao gerar PDF da semana:', error);
+      alert('Erro ao gerar PDF: ' + error.message);
+    }
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setFilterStatus('todos');
@@ -570,6 +587,11 @@ function SemanasPage() {
                   </TableCell>
                   <TableCell align="center">
                     <Stack direction="row" justifyContent="center" spacing={1}>
+                      <Tooltip title="Exportar PDF">
+                        <IconButton size="small" onClick={() => handleExportWeekPDF(week)} color="secondary">
+                          <PdfIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Editar">
                         <IconButton size="small" onClick={() => handleEditWeek(week)}>
                           <EditIcon fontSize="small" />
