@@ -75,7 +75,7 @@ export const addPDFFooter = (doc) => {
   doc.text(
     `Training Platform - página ${pageNum}`,
     pageWidth / 2,
-    pageHeight - pdfConfig.margins.bottom + 1,
+    pageHeight - pdfConfig.margins.bottom + 12,
     { align: 'center' }
   )
 }

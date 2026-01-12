@@ -523,6 +523,7 @@ const Treinos = () => {
                       <Card
                         variant="outlined"
                         sx={{
+                          p: 0,
                           height: '100%',
                           display: 'flex',
                           flexDirection: 'column',
@@ -542,11 +543,6 @@ const Treinos = () => {
                             position: 'relative',
                           }}
                         >
-                          <Checkbox
-                            checked={selectedIds.has(treino.id)}
-                            onChange={() => toggleSelected(treino.id)}
-                            sx={{ position: 'absolute', top: 8, left: 8, color: 'white' }}
-                          />
                           <Typography
                             variant="h6"
                             fontWeight="600"
@@ -588,9 +584,22 @@ const Treinos = () => {
                               fontWeight: 600,
                             }}
                           />
+
+                          <Checkbox
+                            color="info"
+                            checked={selectedIds.has(treino.id)}
+                            onChange={() => toggleSelected(treino.id)}
+                            inputProps={{ 'aria-label': 'Selecionar treino' }}
+                            sx={{
+                              position: 'absolute',
+                              top: 40,
+                              right: 8,
+                              color: 'white'
+                            }}
+                          />
                         </Box>
 
-                        <CardContent sx={{ flexGrow: 1, p: { xs: 1, sm: 2 } }}>
+                        <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
                           {/* Observações */}
                           {treino.description && (
                             <Typography
