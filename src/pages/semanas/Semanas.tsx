@@ -587,8 +587,8 @@ function SemanasPage() {
                   </TableCell>
                   <TableCell align="center">
                     <Stack direction="row" justifyContent="center" spacing={1}>
-                      <Tooltip title="Exportar PDF">
-                        <IconButton size="small" onClick={() => handleExportWeekPDF(week)} color="secondary">
+                      <Tooltip title="Exportar Semana">
+                        <IconButton size="small" onClick={() => handleExportWeekPDF(week)} color="secondary" aria-label="Exportar Semana">
                           <PdfIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>

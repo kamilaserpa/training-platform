@@ -9,21 +9,28 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Stack
+  Stack,
+  Tooltip
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
-  KeyboardArrowUp as KeyboardArrowUpIcon
+  KeyboardArrowUp as KeyboardArrowUpIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
 import { DiaCell } from './DiaCell';
 import type { SemanaComTreinos } from '../../utils/semanaAdapter';
 
 interface SemanaCardProps {
   semana: SemanaComTreinos;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onExport?: (id: string) => void;
 }
 
-export const SemanaCard = ({ semana }: SemanaCardProps) => {
+export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardProps) => {
   const [open, setOpen] = useState(false);
 
   const dias = [
@@ -35,11 +42,11 @@ export const SemanaCard = ({ semana }: SemanaCardProps) => {
   ];
 
   return (
-    <Card 
+    <Card
       elevation={2}
       sx={{ width: '100%' }}
     >
-      <CardContent sx={{ py: 0, px: 2}}>
+      <CardContent sx={{ py: 0, px: 2 }}>
         {/* Header do Card */}
         <Stack
           direction="row"
@@ -55,11 +62,11 @@ export const SemanaCard = ({ semana }: SemanaCardProps) => {
               {semana.focoSemana}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-              {new Date(semana.start_date).toLocaleDateString('pt-BR', { 
-                day: '2-digit', 
-                month: '2-digit' 
-              })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', { 
-                day: '2-digit', 
+              {new Date(semana.start_date).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit'
+              })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', {
+                day: '2-digit',
                 month: '2-digit',
                 year: 'numeric'
               })}
@@ -76,8 +83,54 @@ export const SemanaCard = ({ semana }: SemanaCardProps) => {
           </IconButton>
         </Stack>
 
-        {/* Conteúdo Expandido - Dias */}
+        {/* Conteúdo Expandido - Ações + Dias */}
         <Collapse in={open} timeout="auto" unmountOnExit>
+          {/* Linha de ações (aparece apenas quando expandido) */}
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="flex-end"
+            alignItems="center"
+            sx={{ mb: 1.5 }}
+          >
+            {onExport && (
+              <Tooltip title="Exportar Semana">
+                <IconButton
+                  aria-label="Exportar Semana"
+                  onClick={() => onExport(semana.id)}
+                  size="small"
+                >
+                  <PdfIcon
+                    color="secondary" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onEdit && (
+              <Tooltip title="Editar Semana">
+                <IconButton
+                  aria-label="Editar Semana"
+                  onClick={() => onEdit(semana.id)}
+                  size="small"
+                >
+                  <EditIcon
+                  color="primary" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip title="Excluir Semana">
+                <IconButton
+                  aria-label="Excluir Semana"
+                  onClick={() => onDelete(semana.id)}
+                  size="small"
+                >
+                  <DeleteIcon
+                    color="error" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+
           <Box sx={{ mt: 2, mx: -2, p: 0 }}>
             {dias.map((dia) => (
               <Accordion

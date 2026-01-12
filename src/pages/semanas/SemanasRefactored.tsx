@@ -42,6 +42,9 @@ import { adaptarSemanasParaVisualizacao, type SemanaComTreinos } from '../../uti
 import { SemanaRow } from '../../components/semanas/SemanaRow';
 import { SemanaCard } from '../../components/semanas/SemanaCard';
 import type { WeekFocus, CreateTrainingWeekDTO } from '../../types/database.types';
+import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
+import { imageToBase64 } from '../../utils/pdf/pdfUtils';
+import logoImage from '../../assets/images/logo-main.png';
 
 const SemanasRefactored = () => {
   const theme = useTheme();
@@ -264,6 +267,26 @@ const SemanasRefactored = () => {
     }
   };
 
+  const handleExportWeek = async (semanaId: string) => {
+    try {
+      const semana = semanas.find(s => s.id === semanaId);
+      if (!semana) return;
+      const treinos = await trainingService.getTrainingsByWeek(semanaId);
+      const logoBase64 = await imageToBase64(logoImage);
+      const semanaPdf = {
+        name: semana.name,
+        week_focus: { name: semana.focoSemana },
+        start_date: semana.start_date,
+        end_date: semana.end_date,
+        description: (semana as any).notes || undefined,
+      } as any;
+      await generateSemanaPDF(semanaPdf, treinos, logoBase64);
+    } catch (err: any) {
+      console.error('❌ Erro ao exportar semana:', err);
+      setSnackbar({ open: true, message: err?.message || 'Erro ao exportar semana', severity: 'error' });
+    }
+  };
+
   const handleSaveWeek = async () => {
     if (!formData.name.trim()) {
       setSnackbar({
@@ -369,11 +392,11 @@ const SemanasRefactored = () => {
             sx={{
               minWidth: { xs: 40, sm: 'auto' },
               px: { xs: 1, sm: 2 },
-               width: { xs: '45px', sm: 'auto' },
-                  height: { xs: '45px', sm: 'auto' },
-                  '&:hover': {
-                    color: 'info.main',
-                  },
+              width: { xs: '45px', sm: 'auto' },
+              height: { xs: '45px', sm: 'auto' },
+              '&:hover': {
+                color: 'info.main',
+              },
               '& .MuiButton-startIcon': {
                 margin: { xs: 0, sm: '0 8px 0 -4px' },
               },
@@ -467,6 +490,7 @@ const SemanasRefactored = () => {
                       semana={semana}
                       onEdit={handleEditWeek}
                       onDelete={handleDeleteWeek}
+                      onExport={handleExportWeek}
                     />
                   ))}
                 </TableBody>
@@ -484,7 +508,13 @@ const SemanasRefactored = () => {
               }}
             >
               {filteredSemanas.map((semana) => (
-                <SemanaCard key={semana.id} semana={semana} />
+                <SemanaCard
+                  key={semana.id}
+                  semana={semana}
+                  onEdit={handleEditWeek}
+                  onDelete={handleDeleteWeek}
+                  onExport={handleExportWeek}
+                />
               ))}
             </Stack>
           </Box>
@@ -522,7 +552,7 @@ const SemanasRefactored = () => {
         fullWidth
       >
         <DialogTitle>{editingSemanaId ? 'Editar Semana' : 'Nova Semana'}</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ p: 0 }}>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField

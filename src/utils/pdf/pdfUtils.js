@@ -73,9 +73,9 @@ export const addPDFFooter = (doc) => {
   doc.setFontSize(pdfConfig.fonts.small)
   doc.setTextColor(pdfConfig.colors.textLight)
   doc.text(
-    `Training Platform - Página ${pageNum}`,
+    `Training Platform - página ${pageNum}`,
     pageWidth / 2,
-    pageHeight - pdfConfig.margins.bottom + 5,
+    pageHeight - pdfConfig.margins.bottom + 12,
     { align: 'center' }
   )
 }

@@ -441,17 +441,10 @@ function ExerciciosPage() {
 
       {/* Filtros */}
       <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Box display="flex" alignItems="center" gap={1} mb={2}>
-            <FilterListIcon />
-            <Typography variant="h6" fontWeight="600">
-              Filtros
-            </Typography>
-          </Box>
-
+        <CardContent sx={{ py: 3 }}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
+            spacing={4}
             alignItems={{ xs: 'stretch', sm: 'center' }}
           >
             <TextField

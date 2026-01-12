@@ -16,7 +16,8 @@ import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
 import { DiaCell } from './DiaCell';
 import type { SemanaComTreinos } from '../../utils/semanaAdapter';
@@ -25,9 +26,10 @@ interface SemanaRowProps {
   semana: SemanaComTreinos;
   onEdit?: (semanaId: string) => void;
   onDelete?: (semanaId: string) => void;
+  onExport?: (semanaId: string) => void;
 }
 
-export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
+export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps) => {
   const [open, setOpen] = useState(false);
 
   const dias = [
@@ -61,11 +63,11 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
         </TableCell>
         <TableCell>
           <Typography variant="body2" color="text.secondary">
-            {new Date(semana.start_date).toLocaleDateString('pt-BR', { 
-              day: '2-digit', 
-              month: '2-digit' 
-            })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', { 
-              day: '2-digit', 
+            {new Date(semana.start_date).toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit'
+            })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', {
+              day: '2-digit',
               month: '2-digit',
               year: 'numeric'
             })}
@@ -73,6 +75,18 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
         </TableCell>
         <TableCell align="right">
           <Stack direction="row" spacing={1} justifyContent="flex-end">
+            {onExport && (
+              <Tooltip title="Exportar Semana">
+                <IconButton
+                  size="small"
+                  onClick={() => onExport(semana.id)}
+                  color="info"
+                  aria-label="Exportar Semana"
+                >
+                  <PdfIcon fontSize="small" color="secondary" />
+                </IconButton>
+              </Tooltip>
+            )}
             {onEdit && (
               <Tooltip title="Editar semana">
                 <IconButton
@@ -80,7 +94,7 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
                   onClick={() => onEdit(semana.id)}
                   color="primary"
                 >
-                  <EditIcon fontSize="small" />
+                  <EditIcon fontSize="small" color="primary" />
                 </IconButton>
               </Tooltip>
             )}
@@ -91,7 +105,7 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
                   onClick={() => onDelete(semana.id)}
                   color="error"
                 >
-                  <DeleteIcon fontSize="small" />
+                  <DeleteIcon fontSize="small" color="error" />
                 </IconButton>
               </Tooltip>
             )}
@@ -99,8 +113,8 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
         </TableCell>
       </TableRow>
       <TableRow>
-        <TableCell 
-          style={{ paddingBottom: 0, paddingTop: 0, paddingLeft: 0, paddingRight: 0 }} 
+        <TableCell
+          style={{ paddingBottom: 0, paddingTop: 0, paddingLeft: 0, paddingRight: 0 }}
           colSpan={5}
         >
           <Collapse in={open} timeout="auto" unmountOnExit>
@@ -113,10 +127,10 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
                   </Typography>
                 </Box>
               )}
-              
+
               {/* Tabela de Dias da Semana */}
-              <Table 
-                sx={{ 
+              <Table
+                sx={{
                   tableLayout: 'fixed',
                   '& .MuiTableCell-root': {
                     verticalAlign: 'top',
@@ -127,7 +141,7 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
                 <TableHead>
                   <TableRow>
                     {dias.map((dia) => (
-                      <TableCell 
+                      <TableCell
                         key={`header-${dia.key}`}
                         align="center"
                         sx={{
@@ -150,7 +164,7 @@ export const SemanaRow = ({ semana, onEdit, onDelete }: SemanaRowProps) => {
                 <TableBody>
                   <TableRow>
                     {dias.map((dia) => (
-                      <TableCell 
+                      <TableCell
                         key={`content-${dia.key}`}
                         sx={{
                           p: 1,
