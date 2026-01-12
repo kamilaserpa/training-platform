@@ -32,6 +32,10 @@ const Chip: Components<Omit<Theme, 'components'>>['MuiChip'] = {
     colorError: ({ theme }) => ({
       backgroundColor: theme.palette.error.main,
     }),
+    colorSecondary: ({ theme }) => ({
+      backgroundColor: theme.palette.secondary.main,
+      color: theme.palette.getContrastText(theme.palette.secondary.main),
+    }),
     colorInfo: ({ theme }) => ({
       backgroundColor: theme.palette.info.main,
       color: theme.palette.text.primary,

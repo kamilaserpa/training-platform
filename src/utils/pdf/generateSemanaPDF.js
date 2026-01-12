@@ -24,150 +24,134 @@ export const generateSemanaPDF = async (semana, treinos, logoBase64 = null) => {
   doc.setTextColor(pdfConfig.colors.text)
   doc.setFont(undefined, 'normal')
 
-  const infoLines = []
-  
-  if (semana.start_date) {
-    infoLines.push(`Inicio: ${formatDate(semana.start_date)}`)
-  }
-  
-  if (semana.end_date) {
-    infoLines.push(`Termino: ${formatDate(semana.end_date)}`)
+  // Período em linha única com data curta + dia abreviado
+  const formatPeriodo = (dateStr) => {
+    if (!dateStr) return ''
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    const dd = String(day).padStart(2, '0')
+    const mm = String(month).padStart(2, '0')
+    const weekdays = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+    const w = weekdays[date.getDay()]
+    return `${dd}/${mm}/${year} (${w})`
   }
 
-  infoLines.forEach(line => {
-    doc.text(line, pdfConfig.margins.left, yPos)
+  const inicio = semana.start_date ? formatPeriodo(semana.start_date) : ''
+  const termino = semana.end_date ? formatPeriodo(semana.end_date) : ''
+  if (inicio && termino) {
+    doc.text(`Período: ${inicio} - ${termino}`, pdfConfig.margins.left, yPos)
     yPos += 6
-  })
+  } else if (inicio || termino) {
+    const single = inicio || termino
+    doc.text(`Período: ${single}`, pdfConfig.margins.left, yPos)
+    yPos += 6
+  }
 
   // Observações da semana
   if (semana.description) {
-    yPos += 3
+    // Observações em linha seguinte, sem espaço extra além da altura da linha
+    const label = 'Observações:'
+    // desenhar rótulo com mesma fonte/tamanho usado para medir largura
     doc.setFont(undefined, 'bold')
-    doc.text('Observacoes:', pdfConfig.margins.left, yPos)
-    yPos += 6
-    doc.setFont(undefined, 'normal')
-    doc.setFontSize(pdfConfig.fonts.small)
-    const descLines = doc.splitTextToSize(semana.description, 180)
-    descLines.forEach(line => {
-      doc.text(line, pdfConfig.margins.left + 5, yPos)
-      yPos += 5
-    })
     doc.setFontSize(pdfConfig.fonts.body)
+    doc.text(label, pdfConfig.margins.left, yPos)
+    const labelWidth = doc.getTextWidth(label)
+    // valor das observações na mesma linha, com quebra e mesma fonte do período
+    doc.setFont(undefined, 'normal')
+    doc.setFontSize(pdfConfig.fonts.body)
+    const x = pdfConfig.margins.left + labelWidth + 2
+    const maxWidth = 180 - (labelWidth + 2)
+    const descLines = doc.splitTextToSize(semana.description, Math.max(60, maxWidth))
+    doc.text(descLines, x, yPos)
+    yPos += Math.max(6, descLines.length * 6)
   }
 
-  // Tabela de treinos
-  yPos += 10
+  // Conteúdo de treinos por seção com tabela de blocos
+  yPos += 4
   
   if (!treinos || treinos.length === 0) {
     doc.setFont(undefined, 'italic')
     doc.setTextColor(pdfConfig.colors.textLight)
     doc.text('Nenhum treino definido para esta semana', pdfConfig.margins.left, yPos)
   } else {
-    doc.setFontSize(pdfConfig.fonts.subtitle)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(pdfConfig.colors.primary)
-    doc.text('Treinos da Semana', pdfConfig.margins.left, yPos)
-    yPos += 8
+    treinos.forEach((treino, idx) => {
+      // Cabeçalho do treino
+      doc.setFontSize(pdfConfig.fonts.body)
+      doc.setFont(undefined, 'bold')
+      doc.setTextColor(pdfConfig.colors.text)
+      const nomeTreino = treino.name || `Treino ${idx + 1}`
+      const diaStr = treino.scheduled_date ? formatDate(treino.scheduled_date) : '-'
+      const headerLine = `Treino: ${nomeTreino} | Dia: ${diaStr}`
+      doc.text(headerLine, pdfConfig.margins.left, yPos)
+      yPos += 6
 
-    // Preparar dados da tabela
-    const tableData = treinos.map((treino, idx) => {
-      // Data do treino
-      const dataFormatada = treino.scheduled_date 
-        ? formatDate(treino.scheduled_date).split(',')[0] // Só o dia da semana
-        : '-'
-
-      // Exercícios (primeiros 3, compactado)
-      let exercicios = '-'
-      if (treino.training_blocks && treino.training_blocks.length > 0) {
-        const allExercises = []
-        treino.training_blocks.forEach(block => {
-          if (block.exercise_prescriptions && block.exercise_prescriptions.length > 0) {
-            block.exercise_prescriptions.forEach(prescription => {
-              if (prescription.exercise?.name) {
-                allExercises.push(prescription.exercise.name)
-              }
-            })
-          }
-        })
-        if (allExercises.length > 0) {
-          exercicios = allExercises.slice(0, 3).join(', ')
-          if (allExercises.length > 3) {
-            exercicios += ` (+${allExercises.length - 3})`
-          }
-        }
-      }
-
-      // Número de blocos
-      const blocos = treino.training_blocks?.length || 0
-
-      // Condicionamento físico (se houver)
-      const condFisico = treino.training_blocks?.some(
-        block => block.block_type === 'CONDITIONING'
-      ) ? 'Sim' : '-'
-
-      // Observações (resumidas)
-      let obs = '-'
+      // Observações do treino
+      doc.setFont(undefined, 'normal')
       if (treino.description) {
-        obs = treino.description.substring(0, 40)
-        if (treino.description.length > 40) {
-          obs += '...'
+        const obsLabel = 'Obs.:'
+        doc.text(obsLabel, pdfConfig.margins.left, yPos)
+        const obsTextX = pdfConfig.margins.left + doc.getTextWidth(obsLabel) + 2
+        const obsLines = doc.splitTextToSize(treino.description, 180)
+        doc.text(obsLines, obsTextX, yPos)
+        yPos += Math.max(5, obsLines.length * 4)
+      }
+
+      yPos += 2
+      // Montar tabela de blocos
+      const bodyRows = (treino.training_blocks || []).map((block) => {
+        const blocoNome = block.name || '-'
+        // Exercícios (nomes)
+        let exercicios = '-'
+        let protocolos = '-'
+        if (block.exercise_prescriptions && block.exercise_prescriptions.length > 0) {
+          const names = []
+          const protos = []
+          block.exercise_prescriptions.forEach((p) => {
+            if (p.exercise?.name) names.push(p.exercise.name)
+            // Montar protocolo: sets x (duration|reps) x rest
+            let proto = ''
+            if (p.sets) proto += `${p.sets}x`
+            if (p.duration_seconds && p.duration_seconds > 0) {
+              proto += ` ${p.duration_seconds}\"`
+            } else if (p.reps) {
+              proto += ` ${p.reps}`
+            }
+            if (p.rest_seconds && p.rest_seconds > 0) {
+              proto += ` x${p.rest_seconds}\"`
+            }
+            if (proto) protos.push(proto)
+          })
+          exercicios = (names.join('\n') || '-')
+          protocolos = (protos.join('\n') || '-')
         }
-      }
+        const observacoes = block.notes || block.description || '-'
+        return [blocoNome, exercicios, protocolos, observacoes]
+      })
 
-      return [
-        treino.name || `Treino ${idx + 1}`,
-        dataFormatada,
-        exercicios,
-        blocos.toString(),
-        condFisico,
-        obs
-      ]
-    })
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Blocos', 'Exercícios', 'Protocolos', 'Observações']],
+        body: bodyRows,
+        ...tableStyles,
+        margin: { left: pdfConfig.margins.left, right: pdfConfig.margins.right },
+        columnStyles: {
+          0: { cellWidth: 35 },
+          1: { cellWidth: 65 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 'auto' }
+        },
+        didDrawPage: () => {
+          addPDFFooter(doc)
+        }
+      })
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Treino', 'Dia', 'Exercícios', 'Blocos', 'Cond.', 'Observações']],
-      body: tableData,
-      ...tableStyles,
-      margin: { left: pdfConfig.margins.left, right: pdfConfig.margins.right },
-      columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 25 },
-        2: { cellWidth: 55 },
-        3: { cellWidth: 15, halign: 'center' },
-        4: { cellWidth: 15, halign: 'center' },
-        5: { cellWidth: 'auto' }
-      },
-      didDrawPage: (data) => {
-        // Adicionar footer em cada página
-        addPDFFooter(doc)
+      yPos = doc.lastAutoTable.finalY + 8
+      // Espaço entre treinos; se ultrapassar página, autoTable gerencia startY automaticamente
+      if (yPos > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage()
+        yPos = pdfConfig.margins.top
       }
     })
-
-    yPos = doc.lastAutoTable.finalY + 10
-
-    // Resumo estatístico
-    doc.setFontSize(pdfConfig.fonts.body)
-    doc.setFont(undefined, 'bold')
-    doc.setTextColor(pdfConfig.colors.primary)
-    
-    const totalTreinos = treinos.length
-    const totalBlocos = treinos.reduce((sum, t) => sum + (t.training_blocks?.length || 0), 0)
-    const totalExercicios = treinos.reduce((sum, t) => {
-      return sum + (t.training_blocks?.reduce((blockSum, block) => {
-        return blockSum + (block.exercise_prescriptions?.length || 0)
-      }, 0) || 0)
-    }, 0)
-
-    doc.text('Resumo:', pdfConfig.margins.left, yPos)
-    yPos += 7
-    doc.setFont(undefined, 'normal')
-    doc.setTextColor(pdfConfig.colors.text)
-    doc.text(`- Total de treinos: ${totalTreinos}`, pdfConfig.margins.left + 5, yPos)
-    yPos += 6
-    doc.text(`- Total de blocos: ${totalBlocos}`, pdfConfig.margins.left + 5, yPos)
-    yPos += 6
-    doc.text(`- Total de exercicios: ${totalExercicios}`, pdfConfig.margins.left + 5, yPos)
   }
 
   // Footer final

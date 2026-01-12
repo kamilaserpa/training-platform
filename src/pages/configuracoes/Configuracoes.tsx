@@ -115,7 +115,7 @@ function FocoSemanaDialog({ open, onClose, onSave, editingData }: FocoSemanaDial
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{editingData ? 'Editar Foco da Semana' : 'Novo Foco da Semana'}</DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ p: 0 }}>
         <Grid container spacing={4} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6}>
             <TextField
@@ -211,24 +211,24 @@ function PadraoMovimentoDialog({ open, onClose, onSave, editingData }: PadraoMov
       <DialogContent>
         <Grid container spacing={4} sx={{ mt: 2 }}>
           <Grid item xs={12}>
-          <TextField
-            label="Nome do Padrão"
-            value={formData.name}
-            onChange={handleChange('name')}
-            required
-            fullWidth
-          />
+            <TextField
+              label="Nome do Padrão"
+              value={formData.name}
+              onChange={handleChange('name')}
+              required
+              fullWidth
+            />
           </Grid>
           <Grid item xs={12}>
-          <TextField
-            label="Descrição"
-            value={formData.description}
-            onChange={handleChange('description')}
-            multiline
-            rows={3}
-            placeholder="Descreva o padrão de movimento..."
-            fullWidth
-          />
+            <TextField
+              label="Descrição"
+              value={formData.description}
+              onChange={handleChange('description')}
+              multiline
+              rows={3}
+              placeholder="Descreva o padrão de movimento..."
+              fullWidth
+            />
           </Grid>
         </Grid>
       </DialogContent>
@@ -281,7 +281,7 @@ const Configuracoes = () => {
       setFocosSemana(weekFocuses);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
-      
+
       // Verificar se é erro de autenticação
       if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
         console.log('🔄 [Auth] Token inválido detectado na inicialização, limpando sessão...');
@@ -330,9 +330,9 @@ const Configuracoes = () => {
       setFocoDialogOpen(false);
       setEditingFoco(null);
       await loadInitialData();
-      
+
       // Mostrar mensagem de sucesso
-      setSuccessMessage(editingFoco 
+      setSuccessMessage(editingFoco
         ? `Foco da semana "${novoFoco.name}" atualizado com sucesso!`
         : `Foco da semana "${novoFoco.name}" criado com sucesso!`
       );
@@ -386,7 +386,7 @@ const Configuracoes = () => {
   const handleSavePadrao = async (novoPadrao: PadraoMovimento) => {
     try {
       setError(null);
-      
+
       if (editingPadrao) {
         // Atualizar padrão existente
         await movementPatternService.updateMovementPattern(
@@ -395,7 +395,7 @@ const Configuracoes = () => {
           novoPadrao.description
         );
         setPadroes((padroes) => padroes.map((p) => (p.id === novoPadrao.id ? novoPadrao : p)));
-        
+
         setSuccessMessage(`Padrão de movimento "${novoPadrao.name}" atualizado com sucesso!`);
       } else {
         // Criar novo padrão
@@ -407,10 +407,10 @@ const Configuracoes = () => {
         // Usar o padrão retornado diretamente
         setPadroes((padroes) => [...padroes, createdPattern]);
         console.log('✅ [Configuracoes] Padrão criado com sucesso');
-        
+
         setSuccessMessage(`Padrão de movimento "${novoPadrao.name}" criado com sucesso!`);
       }
-      
+
       setPadraoDialogOpen(false);
       setEditingPadrao(null);
       setShowSuccess(true);
@@ -427,10 +427,10 @@ const Configuracoes = () => {
         // Encontrar o nome do padrão para o feedback
         const padrao = padroes.find(p => p.id === id);
         const padraoName = padrao?.name || 'Padrão';
-        
+
         await movementPatternService.deleteMovementPattern(id);
         setPadroes((padroes) => padroes.filter((p) => p.id !== id));
-        
+
         setSuccessMessage(`Padrão de movimento "${padraoName}" excluído com sucesso!`);
         setShowSuccess(true);
       } catch (err) {
@@ -709,9 +709,9 @@ const Configuracoes = () => {
         onClose={() => setShowSuccess(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setShowSuccess(false)} 
-          severity="success" 
+        <Alert
+          onClose={() => setShowSuccess(false)}
+          severity="success"
           variant="filled"
           sx={{ width: '100%' }}
         >

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { trainingService } from '../../services/trainingService';
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
+import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { imageToBase64 } from '../../utils/pdf/pdfUtils';
 import logoImage from '../../assets/images/logo-main.png';
 import {
@@ -24,6 +25,7 @@ import {
   Fab,
   Chip,
   Divider,
+  Checkbox,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -188,6 +190,7 @@ const Treinos = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('data-desc');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Carregar treinos do banco de dados
   useEffect(() => {
@@ -304,6 +307,43 @@ const Treinos = () => {
     }
   };
 
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleExportSelected = async () => {
+    try {
+      const selected = treinos.filter(t => selectedIds.has(t.id));
+      if (selected.length === 0) return;
+      const semanaName = selected[0]?.training_week?.name
+        ? `Semana ${selected[0].training_week.name}`
+        : `Selecionados (${selected.length})`;
+      const semana = {
+        name: semanaName,
+        week_focus: selected[0]?.training_week?.week_focus || undefined,
+        start_date: selected[0]?.scheduled_date || undefined,
+        end_date: selected[selected.length - 1]?.scheduled_date || undefined,
+        description: undefined,
+      } as any;
+
+      const logoBase64 = await imageToBase64(logoImage);
+      await generateSemanaPDF(semana, selected, logoBase64);
+    } catch (error: any) {
+      console.error('❌ Erro ao gerar PDF da seleção:', error);
+      alert('Erro ao gerar PDF da seleção: ' + error.message);
+    }
+  };
+
   // Helper para formatar data
   const formatDate = (dateString: string) => {
     // Garantir que a data seja interpretada como local (não UTC)
@@ -380,6 +420,33 @@ const Treinos = () => {
                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
                   Novo Treino
                 </Box>
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<PdfIcon />}
+                disabled={selectedIds.size === 0}
+                onClick={handleExportSelected}
+                sx={{
+                  minWidth: { xs: 40, sm: 'auto' },
+                  px: { xs: 1, sm: 2 },
+                  width: { xs: '45px', sm: 'auto' },
+                  height: { xs: '45px', sm: 'auto' },
+                  '& .MuiButton-startIcon': {
+                    margin: { xs: 0, sm: '0 8px 0 -4px' },
+                  },
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Exportar Selecionado
+                </Box>
+              </Button>
+              <Button
+                variant="text"
+                disabled={selectedIds.size === 0}
+                onClick={clearSelection}
+                sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+              >
+                Limpar seleção
               </Button>
             </Stack>
           </Stack>
@@ -475,6 +542,11 @@ const Treinos = () => {
                             position: 'relative',
                           }}
                         >
+                          <Checkbox
+                            checked={selectedIds.has(treino.id)}
+                            onChange={() => toggleSelected(treino.id)}
+                            sx={{ position: 'absolute', top: 8, left: 8, color: 'white' }}
+                          />
                           <Typography
                             variant="h6"
                             fontWeight="600"
