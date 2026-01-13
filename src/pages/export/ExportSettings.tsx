@@ -15,7 +15,12 @@ import {
   useMediaQuery,
   Alert,
   Grid,
+  Chip,
+  Collapse,
+  IconButton,
 } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
 import { trainingService } from '../../services/trainingService';
@@ -25,8 +30,11 @@ export default function ExportSettingsPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { selectedWeekIds } = useWeeksSelection();
+  const navigate = useNavigate();
 
-  const [periodType, setPeriodType] = useState<'selecionadas' | 'mes' | 'ciclo' | 'semestre' | 'intervalo'>('selecionadas');
+  const [periodType, setPeriodType] = useState<
+    'selecionadas' | 'mes' | 'ciclo' | 'semestre' | 'intervalo'
+  >(selectedWeekIds.length > 0 ? 'selecionadas' : 'mes');
   const [monthYear, setMonthYear] = useState<string>(`${dayjs().format('YYYY')}-01`);
   const [cycleLength, setCycleLength] = useState<number>(4);
   const [cycleStartWeekId, setCycleStartWeekId] = useState<string>('');
@@ -34,9 +42,12 @@ export default function ExportSettingsPage() {
   const [semesterYear, setSemesterYear] = useState<number>(dayjs().year());
   const [intervalStartWeekId, setIntervalStartWeekId] = useState<string>('');
   const [intervalEndWeekId, setIntervalEndWeekId] = useState<string>('');
-  const [format, setFormat] = useState<'pdf-resumo' | 'pdf-detalhado' | 'zip' | 'csv'>('pdf-resumo');
+  const [format, setFormat] = useState<'pdf-resumo' | 'pdf-detalhado' | 'zip' | 'csv'>(
+    'pdf-resumo',
+  );
   const [weeks, setWeeks] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showAllSelected, setShowAllSelected] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -69,7 +80,9 @@ export default function ExportSettingsPage() {
     }
     if (periodType === 'ciclo') {
       if (!cycleStartWeekId) return [];
-      const sorted = [...weeks].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+      const sorted = [...weeks].sort(
+        (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
+      );
       const idx = sorted.findIndex((w) => w.id === cycleStartWeekId);
       if (idx === -1) return [];
       return sorted.slice(idx, idx + cycleLength);
@@ -85,14 +98,47 @@ export default function ExportSettingsPage() {
     }
     if (periodType === 'intervalo') {
       if (!intervalStartWeekId || !intervalEndWeekId) return [];
-      const sorted = [...weeks].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+      const sorted = [...weeks].sort(
+        (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime(),
+      );
       const startIdx = sorted.findIndex((w) => w.id === intervalStartWeekId);
       const endIdx = sorted.findIndex((w) => w.id === intervalEndWeekId);
       if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) return [];
       return sorted.slice(startIdx, endIdx + 1);
     }
     return [];
-  }, [weeks, selectedWeekIds, periodType, monthYear, cycleLength, cycleStartWeekId, semester, semesterYear, intervalStartWeekId, intervalEndWeekId]);
+  }, [
+    weeks,
+    selectedWeekIds,
+    periodType,
+    monthYear,
+    cycleLength,
+    cycleStartWeekId,
+    semester,
+    semesterYear,
+    intervalStartWeekId,
+    intervalEndWeekId,
+  ]);
+
+  const selectedWeeksDetailed = useMemo(() => {
+    if (weeks.length === 0 || selectedWeekIds.length === 0) return [] as any[];
+    const ids = new Set(selectedWeekIds);
+    return weeks.filter((w) => ids.has(w.id));
+  }, [weeks, selectedWeekIds]);
+
+  const canExport = useMemo(() => {
+    if (format === 'zip') return true; // placeholder allowed
+    if (periodType === 'selecionadas') return selectedWeeksDetailed.length > 0;
+    if (periodType === 'intervalo') return !!intervalStartWeekId && !!intervalEndWeekId;
+    return targetWeeks.length > 0;
+  }, [
+    format,
+    periodType,
+    selectedWeeksDetailed.length,
+    intervalStartWeekId,
+    intervalEndWeekId,
+    targetWeeks.length,
+  ]);
 
   const handleExport = async () => {
     try {
@@ -130,7 +176,9 @@ export default function ExportSettingsPage() {
       }
       if (format === 'zip') {
         // TODO: ZIP PDFs individuais (requer biblioteca JSZip). Mantendo fora para evitar alterar lógica existente.
-        alert('ZIP de PDFs individuais será disponibilizado em breve. Por enquanto, use PDF detalhado para baixar individualmente.');
+        alert(
+          'ZIP de PDFs individuais será disponibilizado em breve. Por enquanto, use PDF detalhado para baixar individualmente.',
+        );
         return;
       }
     } catch (err) {
@@ -139,27 +187,109 @@ export default function ExportSettingsPage() {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 3, px: { xs: 2, sm: 3 } }}>
+    <Container maxWidth="xl" sx={{ py: 3, px: { xs: 0, sm: 3 } }}>
       <Typography variant="h5" fontWeight={700} gutterBottom>
         Exportação Avançada
       </Typography>
       <Paper sx={{ p: { xs: 2, sm: 3 } }}>
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 4, sm: 3 }}>
           {/* Período */}
-          <Grid item xs={12}>
+          <Grid item xs={12} pb={4}>
             <Typography variant="subtitle2" gutterBottom>
               Período
             </Typography>
-            <RadioGroup
-              value={periodType}
-              onChange={(e) => setPeriodType(e.target.value as any)}
-            >
-              <FormControlLabel value="selecionadas" control={<Radio />} label="Semanas selecionadas" />
+            <RadioGroup value={periodType} onChange={(e) => setPeriodType(e.target.value as any)}>
+              <FormControlLabel
+                value="selecionadas"
+                control={<Radio />}
+                label="Semanas selecionadas"
+              />
               <FormControlLabel value="mes" control={<Radio />} label="Mês" />
               <FormControlLabel value="ciclo" control={<Radio />} label="Ciclo" />
               <FormControlLabel value="semestre" control={<Radio />} label="Semestre" />
-              <FormControlLabel value="intervalo" control={<Radio />} label="Intervalo personalizado" />
+              <FormControlLabel
+                value="intervalo"
+                control={<Radio />}
+                label="Intervalo personalizado"
+              />
             </RadioGroup>
+            {periodType === 'selecionadas' && (
+              <Box sx={{ mt: 1 }}>
+                {selectedWeeksDetailed.length === 0 ? (
+                  <Alert severity="warning">
+                    Nenhuma semana selecionada. Você pode selecionar semanas na página Semanas ou
+                    escolher outro período.
+                  </Alert>
+                ) : (
+                  <Grid container>
+                    <Grid
+                      container
+                      item
+                      xs={12}
+                      direction="row"
+                      spacing={1}
+                      wrap="nowrap"
+                      alignItems="center"
+                    >
+                      {selectedWeeksDetailed.slice(0, 3).map((w) => (
+                        <Chip
+                          key={w.id}
+                          label={`Sem ${dayjs(w.start_date).format('DD/MM/YYYY')}`}
+                          size="small"
+                        />
+                      ))}
+                      {selectedWeeksDetailed.length > 3 && (
+                        <Chip label={`+${selectedWeeksDetailed.length - 3}`} size="small" />
+                      )}
+                      <IconButton
+                        size="small"
+                        onClick={() => setShowAllSelected((v) => !v)}
+                        aria-label="Ver todas"
+                      >
+                        <ExpandMoreIcon
+                          sx={{
+                            transform: showAllSelected ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s',
+                          }}
+                        />
+                      </IconButton>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Collapse in={showAllSelected}>
+                        <Box
+                          sx={{
+                            maxHeight: 200,
+                            overflowY: 'auto',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            p: 1,
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Stack spacing={0.5}>
+                            {selectedWeeksDetailed.map((w) => (
+                              <Typography key={w.id} variant="caption" color="text.secondary">
+                                Semana {w.name} — {dayjs(w.start_date).format('DD/MM/YYYY')} até{' '}
+                                {dayjs(w.end_date).format('DD/MM/YYYY')}
+                              </Typography>
+                            ))}
+                          </Stack>
+                        </Box>
+                      </Collapse>
+                    </Grid>
+                    <Grid item xs={12} sx={{ mt: 1 }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => navigate('/pages/semanas')}
+                        size={isMobile ? 'small' : 'medium'}
+                      >
+                        Editar seleção
+                      </Button>
+                    </Grid>
+                  </Grid>
+                )}
+              </Box>
+            )}
           </Grid>
 
           {/* Mês */}
@@ -187,7 +317,9 @@ export default function ExportSettingsPage() {
                   fullWidth
                 >
                   {[4, 6, 8, 12].map((len) => (
-                    <MenuItem key={len} value={len}>{len} semanas</MenuItem>
+                    <MenuItem key={len} value={len}>
+                      {len} semanas
+                    </MenuItem>
                   ))}
                 </TextField>
               </Grid>
@@ -274,7 +406,7 @@ export default function ExportSettingsPage() {
           )}
 
           {/* Formato */}
-          <Grid item xs={12}>
+          <Grid item xs={12} pt={2}>
             <Typography variant="subtitle2" gutterBottom>
               Formato
             </Typography>
@@ -296,8 +428,17 @@ export default function ExportSettingsPage() {
           {/* Ações */}
           <Grid item xs={12}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="flex-end">
-              <Button variant="contained" onClick={handleExport} fullWidth={isMobile}>Exportar</Button>
-              <Button variant="outlined" onClick={() => history.back()} fullWidth={isMobile}>Cancelar</Button>
+              <Button
+                variant="contained"
+                onClick={handleExport}
+                disabled={!canExport}
+                fullWidth={isMobile}
+              >
+                Exportar
+              </Button>
+              <Button variant="outlined" onClick={() => history.back()} fullWidth={isMobile}>
+                Cancelar
+              </Button>
             </Stack>
           </Grid>
         </Grid>
