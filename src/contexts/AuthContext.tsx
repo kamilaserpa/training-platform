@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { supabase, useMock } from '../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 import type { User as DatabaseUser } from '../types/database.types';
+import paths from '../routes/paths';
 
 // Mock user para desenvolvimento
 const mockUser: DatabaseUser = {
@@ -36,6 +37,8 @@ interface AuthContextType {
 
   // Estado de modo mock
   isMockMode: boolean;
+  // Fluxo de recuperação de senha
+  isPasswordRecovery: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<DatabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   // Buscar dados do usuário no banco
   const fetchUserProfile = useCallback(async (userId: string): Promise<DatabaseUser | null> => {
@@ -244,6 +248,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const initializeAuth = async () => {
+      // Detectar recuperação via hash (quando vindo de link do e-mail)
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
+      if (hash && hash.includes('type=recovery')) {
+        setIsPasswordRecovery(true);
+      }
+
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -291,6 +301,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Apenas processar eventos relevantes que indicam mudança real de estado
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+        // Garantir que o usuário caia na tela de Perfil para trocar a senha
+        try {
+          if (typeof window !== 'undefined') {
+            const target = paths.perfil + (window.location.hash || '');
+            if (window.location.pathname !== paths.perfil) {
+              window.location.replace(target);
+              return;
+            }
+          }
+        } catch (e) {
+          // noop
+        }
+      }
+
       if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         setSession(session);
 
@@ -337,6 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isViewer,
     canManageUsers,
     isMockMode: useMock,
+    isPasswordRecovery,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
