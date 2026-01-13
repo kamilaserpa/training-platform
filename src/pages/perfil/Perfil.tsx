@@ -38,6 +38,11 @@ const Perfil = () => {
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+    // Senha
+    const [pwdCurrent, setPwdCurrent] = useState('')
+    const [pwdNew, setPwdNew] = useState('')
+    const [pwdConfirm, setPwdConfirm] = useState('')
+    const [isRecovery, setIsRecovery] = useState(false)
 
     useEffect(() => {
         if (user) {
@@ -45,6 +50,15 @@ const Perfil = () => {
             loadAvatar()
         }
     }, [user])
+
+    // Detectar fluxo de recuperação de senha via link do Supabase
+    useEffect(() => {
+        const hash = typeof window !== 'undefined' ? window.location.hash : ''
+        if (hash && hash.includes('type=recovery')) {
+            setIsRecovery(true)
+            setEditing(false)
+        }
+    }, [])
 
     const loadAvatar = async () => {
         if (!user?.avatar_url) return
@@ -174,6 +188,82 @@ const Perfil = () => {
         setError('')
     }
 
+    const handleChangePassword = async () => {
+        if (!user) return
+
+        // Validações básicas
+        if (!pwdCurrent || !pwdNew || !pwdConfirm) {
+            setError('Preencha todos os campos de senha')
+            return
+        }
+        if (pwdNew.length < 8) {
+            setError('A nova senha deve ter pelo menos 8 caracteres')
+            return
+        }
+        if (pwdNew !== pwdConfirm) {
+            setError('A confirmação da senha não confere')
+            return
+        }
+
+        setLoading(true)
+        setError('')
+        setSuccess('')
+
+        try {
+            // Se veio de link de recuperação, não é necessário verificar a senha atual
+            if (!isRecovery) {
+                const { error: verifyError } = await supabase.auth.signInWithPassword({
+                    email: user.email,
+                    password: pwdCurrent,
+                })
+                if (verifyError) {
+                    throw new Error('Senha atual incorreta')
+                }
+            }
+
+            // Atualizar senha (válido para ambos os fluxos)
+            const { error: updateError } = await supabase.auth.updateUser({ password: pwdNew })
+            if (updateError) {
+                throw new Error(updateError.message || 'Erro ao atualizar senha')
+            }
+
+            setSuccess('Senha atualizada com sucesso!')
+            setPwdCurrent('')
+            setPwdNew('')
+            setPwdConfirm('')
+            if (isRecovery) {
+                setIsRecovery(false)
+                // Limpar fragmento da URL para evitar estado persistente
+                if (typeof window !== 'undefined' && window.history && window.location.hash) {
+                    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+                }
+            }
+        } catch (err: any) {
+            setError(err.message || 'Não foi possível alterar a senha')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSendResetEmail = async () => {
+        if (!user?.email) return
+        setLoading(true)
+        setError('')
+        setSuccess('')
+        try {
+            const redirectTo = `${window.location.origin}/pages/perfil`
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo })
+            if (resetError) {
+                throw new Error(resetError.message || 'Erro ao enviar e-mail de redefinição')
+            }
+            setSuccess('Enviamos um e-mail com o link para redefinir sua senha. Verifique sua caixa de entrada.')
+        } catch (err: any) {
+            setError(err.message || 'Não foi possível enviar o e-mail de redefinição')
+        } finally {
+            setLoading(false)
+        }
+    }
+
     if (!user) {
         return (
             <Container maxWidth="lg">
@@ -190,7 +280,6 @@ const Perfil = () => {
                 title="Meu Perfil"
                 subtitle="Gerencie suas informações pessoais"
             />
-
             <Card elevation={2}>
                 <CardContent>
                     <Grid container spacing={4}>
@@ -274,10 +363,10 @@ const Perfil = () => {
 
                         {/* Name Section */}
                         <Grid item xs={12}>
-                            <Typography variant="h6" fontWeight={600} mb={3}>
+                            <Typography variant="h6" fontWeight={600} mb={4}>
                                 Informações do Perfil
                             </Typography>
-                            <Grid container spacing={3}>
+                            <Grid container spacing={4}>
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         label="Nome"
@@ -338,6 +427,80 @@ const Perfil = () => {
                                         </Stack>
                                     </Grid>
                                 )}
+                            </Grid>
+                        </Grid>
+
+                        {/* Divider */}
+                        <Grid item xs={12}>
+                            <Divider />
+                        </Grid>
+
+                        {/* Password Section */}
+                        <Grid item xs={12}>
+                            <Typography variant="h6" fontWeight={600} mb={4}>
+                                Segurança
+                            </Typography>
+                            <Grid container spacing={3}>
+                                {isRecovery && (
+                                    <Grid item xs={12}>
+                                        <Alert severity="info">
+                                            Você acessou um link de recuperação. Defina uma nova senha abaixo. Não é necessário informar a senha atual.
+                                        </Alert>
+                                    </Grid>
+                                )}
+                                {!isRecovery && (
+                                    <Grid item xs={12} md={4}>
+                                        <TextField
+                                            type="password"
+                                            label="Senha atual"
+                                            value={pwdCurrent}
+                                            onChange={(e) => setPwdCurrent(e.target.value)}
+                                            fullWidth
+                                            disabled={loading}
+                                        />
+                                    </Grid>
+                                )}
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        type="password"
+                                        label="Nova senha"
+                                        value={pwdNew}
+                                        onChange={(e) => setPwdNew(e.target.value)}
+                                        helperText="Mínimo de 8 caracteres"
+                                        fullWidth
+                                        disabled={loading}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        type="password"
+                                        label="Confirmar nova senha"
+                                        value={pwdConfirm}
+                                        onChange={(e) => setPwdConfirm(e.target.value)}
+                                        fullWidth
+                                        disabled={loading}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="flex-end">
+                                        <Button
+                                            variant="contained"
+                                            onClick={handleChangePassword}
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Atualizando...' : 'Alterar Senha'}
+                                        </Button>
+                                        {!isRecovery && (
+                                            <Button
+                                                variant="outlined"
+                                                onClick={handleSendResetEmail}
+                                                disabled={loading}
+                                            >
+                                                Redefinir via e-mail
+                                            </Button>
+                                        )}
+                                    </Stack>
+                                </Grid>
                             </Grid>
                         </Grid>
                     </Grid>

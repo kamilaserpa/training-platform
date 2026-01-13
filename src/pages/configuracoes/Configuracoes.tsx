@@ -208,7 +208,7 @@ function PadraoMovimentoDialog({ open, onClose, onSave, editingData }: PadraoMov
       <DialogTitle>
         {editingData ? 'Editar Padrão de Movimento' : 'Novo Padrão de Movimento'}
       </DialogTitle>
-      <DialogContent>
+      <DialogContent sx={{ p: 0 }}>
         <Grid container spacing={4} sx={{ mt: 2 }}>
           <Grid item xs={12}>
             <TextField
@@ -260,6 +260,10 @@ const Configuracoes = () => {
   // Estados para feedback
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Diálogos de confirmação de exclusão
+  const [deleteFocoDialog, setDeleteFocoDialog] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+  const [deletePadraoDialog, setDeletePadraoDialog] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -356,19 +360,26 @@ const Configuracoes = () => {
     }
   };
 
-  const handleDeleteFoco = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este foco da semana?')) {
-      try {
-        setLoading(true);
-        setError(null);
-        await weekService.deleteWeekFocus(id);
-        await loadInitialData();
-      } catch (err) {
-        console.error('Erro ao deletar foco da semana:', err);
-        setError('Erro ao deletar foco da semana. Tente novamente.');
-      } finally {
-        setLoading(false);
-      }
+  const handleDeleteFoco = (id: string) => {
+    const foco = focosSemana.find(f => f.id === id);
+    setDeleteFocoDialog({ open: true, id, name: foco?.name || 'este foco' });
+  };
+
+  const confirmDeleteFoco = async () => {
+    const { id, name } = deleteFocoDialog;
+    setDeleteFocoDialog({ open: false, id: '', name: '' });
+    try {
+      setLoading(true);
+      setError(null);
+      await weekService.deleteWeekFocus(id);
+      await loadInitialData();
+      setSuccessMessage(`Foco da semana "${name}" excluído com sucesso!`);
+      setShowSuccess(true);
+    } catch (err) {
+      console.error('Erro ao deletar foco da semana:', err);
+      setError('Erro ao deletar foco da semana. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -420,23 +431,23 @@ const Configuracoes = () => {
     }
   };
 
-  const handleDeletePadrao = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este padrão de movimento?')) {
-      try {
-        setError(null);
-        // Encontrar o nome do padrão para o feedback
-        const padrao = padroes.find(p => p.id === id);
-        const padraoName = padrao?.name || 'Padrão';
+  const handleDeletePadrao = (id: string) => {
+    const padrao = padroes.find(p => p.id === id);
+    setDeletePadraoDialog({ open: true, id, name: padrao?.name || 'este padrão' });
+  };
 
-        await movementPatternService.deleteMovementPattern(id);
-        setPadroes((padroes) => padroes.filter((p) => p.id !== id));
-
-        setSuccessMessage(`Padrão de movimento "${padraoName}" excluído com sucesso!`);
-        setShowSuccess(true);
-      } catch (err) {
-        console.error('Erro ao deletar padrão:', err);
-        setError('Erro ao deletar padrão de movimento. Tente novamente.');
-      }
+  const confirmDeletePadrao = async () => {
+    const { id, name } = deletePadraoDialog;
+    setDeletePadraoDialog({ open: false, id: '', name: '' });
+    try {
+      setError(null);
+      await movementPatternService.deleteMovementPattern(id);
+      setPadroes((padroes) => padroes.filter((p) => p.id !== id));
+      setSuccessMessage(`Padrão de movimento "${name}" excluído com sucesso!`);
+      setShowSuccess(true);
+    } catch (err) {
+      console.error('Erro ao deletar padrão:', err);
+      setError('Erro ao deletar padrão de movimento. Tente novamente.');
     }
   };
 
@@ -695,12 +706,56 @@ const Configuracoes = () => {
         editingData={editingFoco}
       />
 
+      {/* Dialog de confirmação - Foco da Semana */}
+      <Dialog
+        open={deleteFocoDialog.open}
+        onClose={() => setDeleteFocoDialog({ open: false, id: '', name: '' })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja excluir o foco <strong>{deleteFocoDialog.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+            ⚠️ Esta ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteFocoDialog({ open: false, id: '', name: '' })}>Cancelar</Button>
+          <Button onClick={confirmDeleteFoco} variant="contained" color="error">Excluir</Button>
+        </DialogActions>
+      </Dialog>
+
       <PadraoMovimentoDialog
         open={padraoDialogOpen}
         onClose={handleClosePadraoDialog}
         onSave={handleSavePadrao}
         editingData={editingPadrao}
       />
+
+      {/* Dialog de confirmação - Padrão de Movimento */}
+      <Dialog
+        open={deletePadraoDialog.open}
+        onClose={() => setDeletePadraoDialog({ open: false, id: '', name: '' })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja excluir o padrão <strong>{deletePadraoDialog.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+            ⚠️ Esta ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeletePadraoDialog({ open: false, id: '', name: '' })}>Cancelar</Button>
+          <Button onClick={confirmDeletePadrao} variant="contained" color="error">Excluir</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar para mensagens de sucesso */}
       <Snackbar

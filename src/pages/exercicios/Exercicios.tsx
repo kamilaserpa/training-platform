@@ -137,7 +137,7 @@ function ExerciseDialog({
       <DialogTitle>
         {editingData ? `Editar Exercício: ${editingData.name}` : 'Novo Exercício'}
       </DialogTitle>
-      <DialogContent sx={{ pt: 2 }}>
+      <DialogContent sx={{ pt: 2, p: 0 }}>
         <Grid container spacing={5} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6} md={4}>
             <TextField

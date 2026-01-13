@@ -177,7 +177,7 @@ const CurrentWeek = (props: CurrentWeekProps) => {
         color: 'white',
       }}
     >
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: { xs: 0, sm: 3 } }}>
         {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3}>
           <Box>

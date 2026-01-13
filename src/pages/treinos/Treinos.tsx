@@ -26,6 +26,12 @@ import {
   Chip,
   Divider,
   Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -278,17 +284,24 @@ const Treinos = () => {
   }, [treinos, searchTerm, sortBy]);
 
   // Handlers
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este treino?')) {
-      try {
-        await trainingService.deleteTraining(id);
-        // Recarregar a lista
-        setTreinos(prev => prev.filter(t => t.id !== id));
-        console.log(`✅ Treino ${id} excluído com sucesso`);
-      } catch (error: any) {
-        console.error('❌ Erro ao excluir treino:', error);
-        alert('Erro ao excluir treino: ' + error.message);
-      }
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, treinoId: '', treinoNome: '' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+
+  const handleDelete = (id: string) => {
+    const treino = treinos.find(t => t.id === id);
+    setDeleteDialog({ open: true, treinoId: id, treinoNome: treino?.name || 'este treino' });
+  };
+
+  const confirmDeleteTraining = async () => {
+    const { treinoId } = deleteDialog;
+    setDeleteDialog({ open: false, treinoId: '', treinoNome: '' });
+    try {
+      await trainingService.deleteTraining(treinoId);
+      setTreinos(prev => prev.filter(t => t.id !== treinoId));
+      setSnackbar({ open: true, message: 'Treino excluído com sucesso!', severity: 'success' });
+    } catch (error: any) {
+      console.error('❌ Erro ao excluir treino:', error);
+      setSnackbar({ open: true, message: error?.message || 'Erro ao excluir treino. Tente novamente.', severity: 'error' });
     }
   };
 
@@ -396,6 +409,49 @@ const Treinos = () => {
         <>
           {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+
+    {/* Dialog de confirmação de exclusão do treino */}
+    <Dialog
+      open={deleteDialog.open}
+      onClose={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
+      maxWidth="xs"
+      fullWidth
+    >
+      <DialogTitle>Confirmar Exclusão</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Tem certeza que deseja excluir <strong>{deleteDialog.treinoNome}</strong>?
+        </Typography>
+        <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+          ⚠️ Esta ação não pode ser desfeita.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}>
+          Cancelar
+        </Button>
+        <Button onClick={confirmDeleteTraining} variant="contained" color="error">
+          Excluir
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* Snackbar para feedback */}
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={6000}
+      onClose={() => setSnackbar({ ...snackbar, open: false })}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+    >
+      <Alert
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        severity={snackbar.severity}
+        variant="filled"
+        sx={{ width: '100%' }}
+      >
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
             <Typography variant="h4" fontWeight="700">
               Treinos
             </Typography>
@@ -727,7 +783,7 @@ const Treinos = () => {
                                 color="error"
                                 onClick={() => handleDelete(treino.id)}
                               >
-                                <DeleteIcon fontSize="small" />
+                                <DeleteIcon fontSize="small" color="error" />
                               </IconButton>
                             </Tooltip>
                           </Box>
