@@ -8,9 +8,6 @@ import {
   Box,
   Typography,
   Stack,
-  useMediaQuery,
-  useTheme,
-  Link,
   Alert,
   RadioGroup,
   FormControlLabel,
@@ -31,8 +28,6 @@ interface QuickExportModalProps {
 }
 
 export default function QuickExportModal({ open, onClose, semanasSelecionadas }: QuickExportModalProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
 
   const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
@@ -101,10 +96,9 @@ export default function QuickExportModal({ open, onClose, semanasSelecionadas }:
     <Dialog
       open={open}
       onClose={onClose}
-      fullScreen={isMobile}
       maxWidth="xs"
       fullWidth
-      PaperProps={{ sx: { borderRadius: isMobile ? 0 : 2, width: 480 } }}
+      PaperProps={{ sx: { borderRadius: 2, width: 480 } }}
     >
       <DialogTitle>
         <Stack spacing={0.5}>
