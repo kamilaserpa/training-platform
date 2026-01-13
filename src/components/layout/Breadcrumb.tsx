@@ -11,6 +11,7 @@ const routeLabels: Record<string, string> = {
   'treinos': 'Treinos',
   'exercicios': 'Exercícios',
   'configuracoes': 'Parâmetros da Semana',
+  'export-settings': 'Configurações de exportação',
   'novo': 'Novo',
   'editar': 'Editar',
   'pages': '', // Ignorar 'pages' no breadcrumb
@@ -22,6 +23,11 @@ export default function Breadcrumb() {
   // Com hash router, usar location.pathname ao invés de hash
   // O React Router já gerencia isso corretamente
   const pathnames = location.pathname.split('/').filter((x) => x && x !== 'pages');
+
+  // Caso especial: export-settings deve aparecer sob Semanas
+  const effectivePathnames = pathnames.includes('export-settings') && !pathnames.includes('semanas')
+    ? ['semanas', ...pathnames]
+    : pathnames;
 
   // Se estiver na home, não mostrar breadcrumb
   if (pathnames.length === 0) {
@@ -58,10 +64,10 @@ export default function Breadcrumb() {
         </Link>
 
         {/* Breadcrumbs dinâmicos */}
-        {pathnames.map((value, index) => {
-          const last = index === pathnames.length - 1;
+        {effectivePathnames.map((value, index) => {
+          const last = index === effectivePathnames.length - 1;
           // Reconstruir o path completo incluindo /pages/
-          const to = `/pages/${pathnames.slice(0, index + 1).join('/')}`;
+          const to = `/pages/${effectivePathnames.slice(0, index + 1).join('/')}`;
 
           // Buscar label customizado no sessionStorage (genérico para qualquer ID)
           const customLabel = sessionStorage.getItem(`breadcrumb_${value}`);

@@ -28,7 +28,8 @@ import {
   DialogContent,
   DialogActions,
   Grid,
-  Snackbar
+  Snackbar,
+  Checkbox
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -36,7 +37,6 @@ import {
 } from '@mui/icons-material';
 
 // Componentes, dados e serviços
-import { trainingService } from '../../services/trainingService';
 import { weekService } from '../../services/weekService';
 import { adaptarSemanasParaVisualizacao, type SemanaComTreinos } from '../../utils/semanaAdapter';
 import { SemanaRow } from '../../components/semanas/SemanaRow';
@@ -45,6 +45,9 @@ import type { WeekFocus, CreateTrainingWeekDTO } from '../../types/database.type
 import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { imageToBase64 } from '../../utils/pdf/pdfUtils';
 import logoImage from '../../assets/images/logo-main.png';
+import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
+import QuickExportModal from 'components/export/QuickExportModal';
+import { trainingService } from '../../services/trainingService';
 
 const SemanasRefactored = () => {
   const theme = useTheme();
@@ -71,6 +74,10 @@ const SemanasRefactored = () => {
     message: '',
     severity: 'success' as 'success' | 'error'
   });
+
+  const { selectedWeekIds, setSelectedWeeks, clearSelection } = useWeeksSelection();
+  const [quickExportOpen, setQuickExportOpen] = useState(false);
+  const [quickExportWeeks, setQuickExportWeeks] = useState<SemanaComTreinos[]>([]);
 
   // Estado para dialog de confirmação de exclusão
   const [deleteDialog, setDeleteDialog] = useState({
@@ -168,6 +175,30 @@ const SemanasRefactored = () => {
       notes: '',
     });
     setOpenDialog(true);
+  };
+
+  const isWeekInCurrentDateRange = (s: SemanaComTreinos) => {
+    const today = new Date();
+    const start = new Date(s.start_date);
+    const end = new Date(s.end_date);
+    return start <= today && today <= end;
+  };
+
+  const handleGlobalExportClick = async () => {
+    // Determine target weeks: selected or current week
+    let targetIds = selectedWeekIds;
+    if (targetIds.length === 0) {
+      const current = filteredSemanas.find(isWeekInCurrentDateRange) || filteredSemanas[0];
+      if (current) {
+        setQuickExportWeeks([current]);
+      } else {
+        setQuickExportWeeks([]);
+      }
+    } else {
+      const selectedMap = new Map(filteredSemanas.map((s) => [s.id, s]));
+      setQuickExportWeeks(targetIds.map((id) => selectedMap.get(id)).filter(Boolean) as SemanaComTreinos[]);
+    }
+    setQuickExportOpen(true);
   };
 
   const handleCloseDialog = () => {
@@ -376,8 +407,8 @@ const SemanasRefactored = () => {
     <Container maxWidth="xl" sx={{ py: 3, px: { xs: 0, sm: 3 } }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-          <Box>
+        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'flex-start' }} spacing={{ xs: 2, md: 0 }}>
+          <Box sx={{ flex: 1 }}>
             <Typography variant="h4" fontWeight="700" gutterBottom>
               Semanas de Treino
             </Typography>
@@ -385,27 +416,58 @@ const SemanasRefactored = () => {
               Visualize e gerencie os treinos de cada semana
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenDialog}
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
             sx={{
-              minWidth: { xs: 40, sm: 'auto' },
-              px: { xs: 1, sm: 2 },
-              width: { xs: '45px', sm: 'auto' },
-              height: { xs: '45px', sm: 'auto' },
-              '&:hover': {
-                color: 'info.main',
-              },
-              '& .MuiButton-startIcon': {
-                margin: { xs: 0, sm: '0 8px 0 -4px' },
-              },
+              mt: { xs: 1, md: 0 },
+              flexWrap: 'nowrap',
             }}
           >
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-              Nova Semana
-            </Box>
-          </Button>
+            <Button
+              variant="outlined"
+              size={isMobile ? 'small' : 'medium'}
+              onClick={() => {
+                if (selectedWeekIds.length === 0) {
+                  setSelectedWeeks(filteredSemanas.map((s) => s.id));
+                } else {
+                  clearSelection();
+                }
+              }}
+              sx={{ whiteSpace: 'nowrap', minWidth: { xs: 'auto', sm: 120 }, px: { xs: 1.5, sm: 2 } }}
+            >
+              {selectedWeekIds.length === 0 ? 'Selecionar todas' : 'Limpar seleção'}
+            </Button>
+            <Button
+              variant="contained"
+              size={isMobile ? 'small' : 'medium'}
+              onClick={handleGlobalExportClick}
+              sx={{ whiteSpace: 'nowrap', px: { xs: 1.5, sm: 2 } }}
+            >
+              Exportar
+            </Button>
+            <Button
+              variant="contained"
+              size={isMobile ? 'small' : 'medium'}
+              startIcon={<AddIcon />}
+              onClick={handleOpenDialog}
+              sx={{
+                whiteSpace: 'nowrap',
+                minWidth: { xs: 40, sm: 'auto' },
+                px: { xs: 1.25, sm: 2 },
+                height: { xs: 36, sm: 'auto' },
+                '& .MuiButton-startIcon': {
+                  mr: { xs: 0, sm: 1 },
+                },
+              }}
+            >
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                Nova Semana
+              </Box>
+            </Button>
+          </Stack>
         </Stack>
       </Box>
 
@@ -460,7 +522,22 @@ const SemanasRefactored = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell width={50} />
+                    <TableCell width={48}>
+                      <Checkbox
+                        checked={selectedWeekIds.length > 0 && filteredSemanas.every((s) => selectedWeekIds.includes(s.id))}
+                        indeterminate={selectedWeekIds.length > 0 && !filteredSemanas.every((s) => selectedWeekIds.includes(s.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedWeeks(filteredSemanas.map((s) => s.id));
+                          } else {
+                            clearSelection();
+                          }
+                        }}
+                        inputProps={{ 'aria-label': 'Selecionar todas as semanas' }}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell width={48} />
                     <TableCell>
                       <Typography variant="subtitle2" fontWeight="600">
                         Semana
@@ -627,6 +704,13 @@ const SemanasRefactored = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal de Exportação Rápida */}
+      <QuickExportModal
+        open={quickExportOpen}
+        onClose={() => setQuickExportOpen(false)}
+        semanasSelecionadas={quickExportWeeks}
+      />
 
       {/* Dialog de confirmação de exclusão */}
       <Dialog
