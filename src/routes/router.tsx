@@ -21,6 +21,7 @@ const Exercicios = lazy(() => import('../pages/exercicios/Exercicios'));
 const Usuarios = lazy(() => import('../pages/usuarios/Usuarios'));
 const Perfil = lazy(() => import('../pages/perfil/Perfil'));
 const ThemePlayground = lazy(() => import('../pages/ThemePlayground'));
+const ExportSettingsPage = lazy(() => import('../pages/export/ExportSettings'));
 
 const SignIn = lazy(() => import('../pages/authentication/SignIn'));
 const SignUp = lazy(() => import('../pages/authentication/SignUp'));
@@ -87,6 +88,14 @@ export const routes = [
           {
             path: paths.semanas,
             element: <SemanasRefactored />,
+          },
+
+          // ==========================================
+          // Exportação Avançada
+          // ==========================================
+          {
+            path: paths.exportSettings,
+            element: <ExportSettingsPage />,
           },
 
           // ==========================================

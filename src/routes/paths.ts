@@ -42,6 +42,7 @@ export default {
   // Semanas (CRUD com modal inline)
   // ==========================================
   semanas: `/${rootPaths.pagesRoot}/semanas`,
+  exportSettings: `/${rootPaths.pagesRoot}/export-settings`,
   
   // ==========================================
   // Configurações (página única)

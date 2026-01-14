@@ -10,7 +10,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Stack,
-  Tooltip
+  Tooltip,
+  Checkbox
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -22,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { DiaCell } from './DiaCell';
 import type { SemanaComTreinos } from '../../utils/semanaAdapter';
+import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
 
 interface SemanaCardProps {
   semana: SemanaComTreinos;
@@ -32,6 +34,7 @@ interface SemanaCardProps {
 
 export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardProps) => {
   const [open, setOpen] = useState(false);
+  const { isSelected, toggleWeek } = useWeeksSelection();
 
   const dias = [
     { key: 'segunda', label: 'Segunda-feira', data: semana.dias.segunda },
@@ -72,15 +75,23 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
               })}
             </Typography>
           </Box>
-          <IconButton
-            onClick={() => setOpen(!open)}
-            sx={{
-              transition: 'transform 0.3s',
-              transform: open ? 'rotate(180deg)' : 'rotate(0deg)'
-            }}
-          >
-            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-          </IconButton>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Checkbox
+              checked={isSelected(semana.id)}
+              onChange={() => toggleWeek(semana.id)}
+              inputProps={{ 'aria-label': `Selecionar semana ${semana.name}` }}
+              size="small"
+            />
+            <IconButton
+              onClick={() => setOpen(!open)}
+              sx={{
+                transition: 'transform 0.3s',
+                transform: open ? 'rotate(180deg)' : 'rotate(0deg)'
+              }}
+            >
+              {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+            </IconButton>
+          </Stack>
         </Stack>
 
         {/* Conteúdo Expandido - Ações + Dias */}

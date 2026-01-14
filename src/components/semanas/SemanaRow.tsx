@@ -10,7 +10,8 @@ import {
   TableHead,
   TableBody,
   Tooltip,
-  Stack
+  Stack,
+  Checkbox
 } from '@mui/material';
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
@@ -21,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { DiaCell } from './DiaCell';
 import type { SemanaComTreinos } from '../../utils/semanaAdapter';
+import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
 
 interface SemanaRowProps {
   semana: SemanaComTreinos;
@@ -31,6 +33,7 @@ interface SemanaRowProps {
 
 export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps) => {
   const [open, setOpen] = useState(false);
+  const { isSelected, toggleWeek } = useWeeksSelection();
 
   const dias = [
     { key: 'segunda', label: 'SEG', data: semana.dias.segunda },
@@ -43,7 +46,15 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
   return (
     <>
       <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
-        <TableCell>
+        <TableCell width={48}>
+          <Checkbox
+            size="small"
+            checked={isSelected(semana.id)}
+            onChange={() => toggleWeek(semana.id)}
+            inputProps={{ 'aria-label': `Selecionar semana ${semana.name}` }}
+          />
+        </TableCell>
+        <TableCell width={48}>
           <IconButton
             size="small"
             onClick={() => setOpen(!open)}

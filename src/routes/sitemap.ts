@@ -38,6 +38,13 @@ const sitemap: MenuItem[] = [
     requireAuth: true,
   },
   {
+    id: 2.1,
+    subheader: 'Exportação avançada',
+    path: paths.exportSettings,
+    icon: 'ic:round-tune',
+    requireAuth: true,
+  },
+  {
     id: 3,
     subheader: 'Treinos',
     path: paths.treinos,
