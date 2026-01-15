@@ -39,6 +39,7 @@ import {
 // Componentes, dados e serviços
 import { weekService } from '../../services/weekService';
 import { adaptarSemanasParaVisualizacao, type SemanaComTreinos } from '../../utils/semanaAdapter';
+import { useFetchWeeks } from 'hooks/useFetchWeeks';
 import { SemanaRow } from '../../components/semanas/SemanaRow';
 import { SemanaCard } from '../../components/semanas/SemanaCard';
 import type { WeekFocus, CreateTrainingWeekDTO } from '../../types/database.types';
@@ -53,15 +54,30 @@ const SemanasRefactored = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [semanas, setSemanas] = useState<SemanaComTreinos[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Cache-first data fetching com IndexedDB
+  const {
+    data: weeksFromCache,
+    isLoading: loadingWeeks,
+    refetch: refetchWeeks,
+  } = useFetchWeeks();
+
+  const [weekFocuses, setWeekFocuses] = useState<WeekFocus[]>([]);
+  const [loadingFocuses, setLoadingFocuses] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Adaptar semanas do cache (garantir que trainings existe)
+  const semanas = weeksFromCache 
+    ? adaptarSemanasParaVisualizacao(weeksFromCache.map(w => ({
+        ...w,
+        trainings: w.trainings || []
+      })))
+    : [];
+  const loading = loadingWeeks || loadingFocuses;
 
   // Estados para o dialog
   const [openDialog, setOpenDialog] = useState(false);
   const [editingSemanaId, setEditingSemanaId] = useState<string | null>(null);
-  const [weekFocuses, setWeekFocuses] = useState<WeekFocus[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     week_focus_id: '',
@@ -86,42 +102,33 @@ const SemanasRefactored = () => {
     semanaNome: ''
   });
 
-  // Buscar dados do banco
+  // Carregar apenas focos (semanas vêm do cache)
   useEffect(() => {
     let isMounted = true;
 
-    const loadInitialData = async () => {
+    const loadFocuses = async () => {
       try {
-        setLoading(true);
+        setLoadingFocuses(true);
         setError(null);
 
-        console.log('🔄 [SemanasRefactored] Carregando dados...');
-        const [weeksWithTrainings, focusesData] = await Promise.all([
-          trainingService.getWeeksWithTrainings(),
-          weekService.getAllWeekFocuses(),
-        ]);
+        console.log('🔄 [SemanasRefactored] Carregando focos...');
+        const focusesData = await weekService.getAllWeekFocuses();
 
         if (!isMounted) return;
-
-        const semanasAdaptadas = adaptarSemanasParaVisualizacao(weeksWithTrainings);
-        setSemanas(semanasAdaptadas);
         setWeekFocuses(focusesData);
-
-        console.log('✅ [SemanasRefactored] Carregadas', semanasAdaptadas.length, 'semanas');
         console.log('✅ [SemanasRefactored] Carregados', focusesData.length, 'focos');
       } catch (err) {
         if (!isMounted) return;
-
-        console.error('❌ [SemanasRefactored] Erro ao carregar dados:', err);
+        console.error('❌ [SemanasRefactored] Erro ao carregar focos:', err);
         setError('Erro ao carregar dados. Tente novamente.');
       } finally {
         if (isMounted) {
-          setLoading(false);
+          setLoadingFocuses(false);
         }
       }
     };
 
-    loadInitialData();
+    loadFocuses();
 
     return () => {
       isMounted = false;
@@ -281,12 +288,8 @@ const SemanasRefactored = () => {
         severity: 'success'
       });
 
-      // Recarregar dados
-      setLoading(true);
-      const weeksWithTrainings = await trainingService.getWeeksWithTrainings();
-      const semanasAdaptadas = adaptarSemanasParaVisualizacao(weeksWithTrainings);
-      setSemanas(semanasAdaptadas);
-      setLoading(false);
+      // Atualizar cache com dados frescos
+      await refetchWeeks();
 
     } catch (err: any) {
       console.error('❌ Erro ao excluir semana:', err);
@@ -386,12 +389,8 @@ const SemanasRefactored = () => {
 
       handleCloseDialog();
 
-      // Recarregar dados
-      setLoading(true);
-      const weeksWithTrainings = await trainingService.getWeeksWithTrainings();
-      const semanasAdaptadas = adaptarSemanasParaVisualizacao(weeksWithTrainings);
-      setSemanas(semanasAdaptadas);
-      setLoading(false);
+      // Atualizar cache com dados frescos
+      await refetchWeeks();
 
     } catch (err: any) {
       console.error('❌ Erro ao criar semana:', err);
