@@ -43,6 +43,9 @@ import { exerciseService } from '../../services/exerciseService';
 import { movementPatternService } from '../../services/movementPatternService';
 import type { Exercise, MovementPattern, CreateExerciseDTO } from '../../types/database.types';
 
+import { useFetchExercises } from 'hooks/useFetchExercises';
+
+
 // Interface para props do dialog
 interface ExerciseDialogProps {
   open: boolean;
@@ -203,9 +206,15 @@ function ExerciseDialog({
 }
 
 function ExerciciosPage() {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  // Cache-first data fetching com IndexedDB
+  const {
+    data: exercisesFromCache,
+    isLoading: loadingExercises,
+    refetch: refetchExercises,
+  } = useFetchExercises();
+  
   const [movementPatterns, setMovementPatterns] = useState<MovementPattern[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPatterns, setLoadingPatterns] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPadrao, setFilterPadrao] = useState('todos');
@@ -215,50 +224,49 @@ function ExerciciosPage() {
   // Estados para feedback
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Usar exercícios do cache ou array vazio
+  const exercises = exercisesFromCache || [];
+  const loading = loadingExercises || loadingPatterns;
 
-  // Carregar dados iniciais
+  // Carregar apenas padrões de movimento (exercícios vêm do cache)
   useEffect(() => {
     let isMounted = true;
     
-    const loadData = async () => {
+    const loadPatterns = async () => {
       try {
-        setLoading(true);
+        setLoadingPatterns(true);
         setError(null);
         
-        const [exercisesData, patternsData] = await Promise.all([
-          exerciseService.getAllExercises(),
-          movementPatternService.getAllMovementPatterns(),
-        ]);
+        const patternsData = await movementPatternService.getAllMovementPatterns();
 
         if (!isMounted) return;
-
-      setExercises(exercisesData);
-      setMovementPatterns(patternsData);
-    } catch (err: any) {
-      if (!isMounted) return;
-      console.error('❌ [Exercicios] Erro:', err);
-      
-      let errorMessage = 'Erro ao carregar dados do banco. ';
-      
-      if (err.code === '42501') {
-        errorMessage += 'Problema de permissão. Verifique as políticas RLS no Supabase.';
-      } else if (err.code === 'PGRST116') {
-        errorMessage += 'Tabelas não encontradas. Execute o script de setup do banco.';
-      } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
-        errorMessage += 'Problema de conexão. Verifique sua internet e configurações do Supabase.';
-      } else {
-        errorMessage += `Detalhes: ${err.message || 'Erro desconhecido'}.`;
+        setMovementPatterns(patternsData);
+      } catch (err: any) {
+        if (!isMounted) return;
+        console.error('❌ [Exercicios] Erro ao carregar padrões:', err);
+        
+        let errorMessage = 'Erro ao carregar padrões de movimento. ';
+        
+        if (err.code === '42501') {
+          errorMessage += 'Problema de permissão. Verifique as políticas RLS no Supabase.';
+        } else if (err.code === 'PGRST116') {
+          errorMessage += 'Tabelas não encontradas. Execute o script de setup do banco.';
+        } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
+          errorMessage += 'Problema de conexão. Verifique sua internet e configurações do Supabase.';
+        } else {
+          errorMessage += `Detalhes: ${err.message || 'Erro desconhecido'}.`;
+        }
+        
+        setError(errorMessage);
+      } finally {
+        if (isMounted) {
+          setLoadingPatterns(false);
+        }
       }
-      
-      setError(errorMessage);
-    } finally {
-      if (isMounted) {
-        setLoading(false);
-      }
-    }
     };
     
-    loadData();
+    loadPatterns();
     
     return () => {
       isMounted = false;
@@ -266,35 +274,7 @@ function ExerciciosPage() {
   }, []);
 
   const loadInitialData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const [exercisesData, patternsData] = await Promise.all([
-        exerciseService.getAllExercises(),
-        movementPatternService.getAllMovementPatterns(),
-      ]);
-
-      setExercises(exercisesData);
-      setMovementPatterns(patternsData);
-    } catch (err: any) {
-      
-      let errorMessage = 'Erro ao carregar dados do banco. ';
-      
-      if (err.code === '42501') {
-        errorMessage += 'Problema de permissão. Verifique as políticas RLS no Supabase.';
-      } else if (err.code === 'PGRST116') {
-        errorMessage += 'Tabelas não encontradas. Execute o script de setup do banco.';
-      } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
-        errorMessage += 'Problema de conexão. Verifique sua internet e configurações do Supabase.';
-      } else {
-        errorMessage += err.message || 'Erro desconhecido';
-      }
-      
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    await refetchExercises();
   };
 
   // Exercícios filtrados
@@ -318,14 +298,15 @@ function ExerciciosPage() {
       
       if (editingExercise) {
         const updated = await exerciseService.updateExercise(editingExercise.id, exerciseData);
-        setExercises((prev) => prev.map((ex) => (ex.id === updated.id ? updated : ex)));
         setSuccessMessage(`Exercício "${updated.name}" atualizado com sucesso!`);
       } else {
         const newExercise = await exerciseService.createExercise(exerciseData);
-        setExercises((prev) => [newExercise, ...prev]);
         setSuccessMessage(`Exercício "${newExercise.name}" criado com sucesso!`);
       }
 
+      // Atualizar cache com dados frescos
+      await refetchExercises();
+      
       setOpenDialog(false);
       setEditingExercise(null);
       setShowSuccess(true);
@@ -354,7 +335,10 @@ function ExerciciosPage() {
       console.log('🗑️ [Exercicios] Excluindo exercício:', id);
       setError(null);
       await exerciseService.deleteExercise(id);
-      setExercises((prev) => prev.filter((ex) => ex.id !== id));
+      
+      // Atualizar cache com dados frescos
+      await refetchExercises();
+      
       setSuccessMessage(`Exercício "${exerciseName}" excluído com sucesso!`);
       setShowSuccess(true);
       console.log('✅ [Exercicios] Exercício excluído com sucesso');
