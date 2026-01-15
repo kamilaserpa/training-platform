@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
         tsconfigPaths(),
         react(),
     ],
+    // Deduplicate React and Emotion to prevent multiple instances
+    resolve: {
+        dedupe: ['react', 'react-dom', '@emotion/react', '@emotion/styled']
+    },
     base: mode === 'production' ? '/training-platform/' : '/',
     preview: {
         port: 5000,
