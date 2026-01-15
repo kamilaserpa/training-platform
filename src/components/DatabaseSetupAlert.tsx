@@ -1,18 +1,6 @@
 import React from 'react';
-import {
-  Alert,
-  AlertTitle,
-  Button,
-  Box,
-  Typography,
-  Paper,
-  Divider,
-  Stack,
-} from '@mui/material';
-import {
-  Storage as DatabaseIcon,
-  FileCopy as CopyIcon,
-} from '@mui/icons-material';
+import { Alert, AlertTitle, Button, Box, Typography, Paper, Divider, Stack } from '@mui/material';
+import { Storage as DatabaseIcon, FileCopy as CopyIcon } from '@mui/icons-material';
 
 interface DatabaseSetupAlertProps {
   error: string;
@@ -73,34 +61,28 @@ location.reload();`;
         <Typography gutterBottom>
           A tabela <code>training_weeks</code> não tem as políticas RLS configuradas.
         </Typography>
-        
+
         <Paper elevation={0} sx={{ bgcolor: 'grey.50', p: 2, mt: 2, mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
             📋 <strong>Passos para correção:</strong>
           </Typography>
           <Typography variant="body2" component="div">
-            1. Acesse o <strong>Supabase Dashboard</strong><br/>
-            2. Vá para <strong>SQL Editor</strong><br/>
-            3. Cole e execute o script abaixo<br/>
+            1. Acesse o <strong>Supabase Dashboard</strong>
+            <br />
+            2. Vá para <strong>SQL Editor</strong>
+            <br />
+            3. Cole e execute o script abaixo
+            <br />
             4. Volte aqui e clique em "Tentar Novamente"
           </Typography>
         </Paper>
 
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            startIcon={<CopyIcon />}
-            onClick={copyScript}
-            size="small"
-          >
+          <Button variant="outlined" startIcon={<CopyIcon />} onClick={copyScript} size="small">
             Copiar Script SQL
           </Button>
           {onRetry && (
-            <Button
-              variant="contained"
-              onClick={onRetry}
-              size="small"
-            >
+            <Button variant="contained" onClick={onRetry} size="small">
               Tentar Novamente
             </Button>
           )}
@@ -113,36 +95,27 @@ location.reload();`;
     return (
       <Alert severity="warning" sx={{ mb: 3 }}>
         <AlertTitle>🔐 Sessão Expirada</AlertTitle>
-        <Typography gutterBottom>
-          Sua sessão do Supabase expirou ou está corrompida.
-        </Typography>
+        <Typography gutterBottom>Sua sessão do Supabase expirou ou está corrompida.</Typography>
 
         <Paper elevation={0} sx={{ bgcolor: 'grey.50', p: 2, mt: 2, mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
             🧹 <strong>Solução rápida:</strong>
           </Typography>
           <Typography variant="body2" component="div">
-            1. Abra o <strong>Console do Navegador</strong> (F12)<br/>
-            2. Cole e execute o script abaixo<br/>
+            1. Abra o <strong>Console do Navegador</strong> (F12)
+            <br />
+            2. Cole e execute o script abaixo
+            <br />
             3. A página será recarregada automaticamente
           </Typography>
         </Paper>
 
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            startIcon={<CopyIcon />}
-            onClick={clearSession}
-            size="small"
-          >
+          <Button variant="outlined" startIcon={<CopyIcon />} onClick={clearSession} size="small">
             Copiar Script de Limpeza
           </Button>
           {onRetry && (
-            <Button
-              variant="contained"
-              onClick={() => window.location.reload()}
-              size="small"
-            >
+            <Button variant="contained" onClick={() => window.location.reload()} size="small">
               Recarregar Página
             </Button>
           )}
@@ -157,12 +130,7 @@ location.reload();`;
       <AlertTitle>❌ Erro</AlertTitle>
       <Typography>{error}</Typography>
       {onRetry && (
-        <Button
-          variant="outlined"
-          onClick={onRetry}
-          size="small"
-          sx={{ mt: 2 }}
-        >
+        <Button variant="outlined" onClick={onRetry} size="small" sx={{ mt: 2 }}>
           Tentar Novamente
         </Button>
       )}

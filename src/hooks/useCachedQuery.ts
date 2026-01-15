@@ -83,13 +83,13 @@ export interface UseCachedQueryResult<T> {
 
 /**
  * Cache-first data fetching hook with IndexedDB via Dexie
- * 
+ *
  * Pattern:
  * 1. Return cached data immediately if available
  * 2. Fetch fresh data in background
  * 3. Update cache and re-render when fresh data arrives
  * 4. Does not block navigation or UI
- * 
+ *
  * @example
  * ```tsx
  * const { data, isLoading, isRevalidating, refetch } = useCachedQuery({
@@ -124,7 +124,7 @@ export function useCachedQuery<T>({
   const loadFromCache = useCallback(async () => {
     try {
       const cached = await db.getCache<T>(cacheKey);
-      
+
       if (cached && isMountedRef.current) {
         setData(cached.data);
         setIsFromCache(true);
@@ -132,7 +132,7 @@ export function useCachedQuery<T>({
         setIsLoading(false);
         return true;
       }
-      
+
       return false;
     } catch (err) {
       console.error('Failed to load from cache:', err);
@@ -143,52 +143,55 @@ export function useCachedQuery<T>({
   /**
    * Fetch fresh data from server and update cache
    */
-  const fetchAndCache = useCallback(async (isBackground = false) => {
-    // Prevent concurrent fetches
-    if (fetchInProgressRef.current) return;
-    
-    fetchInProgressRef.current = true;
-    
-    if (!isBackground) {
-      setIsLoading(true);
-    } else {
-      setIsRevalidating(true);
-    }
-    
-    setError(null);
+  const fetchAndCache = useCallback(
+    async (isBackground = false) => {
+      // Prevent concurrent fetches
+      if (fetchInProgressRef.current) return;
 
-    try {
-      const freshData = await fetcher();
-      
-      if (!isMountedRef.current) return;
+      fetchInProgressRef.current = true;
 
-      // Update cache
-      await db.setCache(cacheKey, freshData, ttl);
+      if (!isBackground) {
+        setIsLoading(true);
+      } else {
+        setIsRevalidating(true);
+      }
 
-      // Update state
-      setData(freshData);
-      setIsFromCache(false);
-      setTimestamp(Date.now());
       setError(null);
 
-      onSuccess?.(freshData);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      
-      if (!isMountedRef.current) return;
-      
-      setError(error);
-      onError?.(error);
-      
-      console.error('Failed to fetch data:', error);
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-        setIsRevalidating(false);
+      try {
+        const freshData = await fetcher();
+
+        if (!isMountedRef.current) return;
+
+        // Update cache
+        await db.setCache(cacheKey, freshData, ttl);
+
+        // Update state
+        setData(freshData);
+        setIsFromCache(false);
+        setTimestamp(Date.now());
+        setError(null);
+
+        onSuccess?.(freshData);
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+
+        if (!isMountedRef.current) return;
+
+        setError(error);
+        onError?.(error);
+
+        console.error('Failed to fetch data:', error);
+      } finally {
+        if (isMountedRef.current) {
+          setIsLoading(false);
+          setIsRevalidating(false);
+        }
+        fetchInProgressRef.current = false;
       }
-      fetchInProgressRef.current = false;
-    }
-  }, [cacheKey, fetcher, ttl, onSuccess, onError]);
+    },
+    [cacheKey, fetcher, ttl, onSuccess, onError],
+  );
 
   /**
    * Manual refetch

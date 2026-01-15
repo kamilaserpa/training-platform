@@ -11,7 +11,7 @@ import {
   AccordionDetails,
   Stack,
   Tooltip,
-  Checkbox
+  Checkbox,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -19,7 +19,7 @@ import {
   KeyboardArrowUp as KeyboardArrowUpIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  PictureAsPdf as PdfIcon
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { DiaCell } from './DiaCell';
 import type { SemanaComTreinos } from '../../utils/semanaAdapter';
@@ -41,22 +41,14 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
     { key: 'terca', label: 'Terça-feira', data: semana.dias.terca },
     { key: 'quarta', label: 'Quarta-feira', data: semana.dias.quarta },
     { key: 'quinta', label: 'Quinta-feira', data: semana.dias.quinta },
-    { key: 'sexta', label: 'Sexta-feira', data: semana.dias.sexta }
+    { key: 'sexta', label: 'Sexta-feira', data: semana.dias.sexta },
   ];
 
   return (
-    <Card
-      elevation={2}
-      sx={{ width: '100%' }}
-    >
+    <Card elevation={2} sx={{ width: '100%' }}>
       <CardContent sx={{ py: 0, px: 2 }}>
         {/* Header do Card */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ mb: 1 }}
-        >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
           <Box sx={{ flex: 1 }}>
             <Typography variant="h6" fontWeight="600">
               {semana.name}
@@ -67,11 +59,13 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
               {new Date(semana.start_date).toLocaleDateString('pt-BR', {
                 day: '2-digit',
-                month: '2-digit'
-              })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', {
+                month: '2-digit',
+              })}{' '}
+              -{' '}
+              {new Date(semana.end_date).toLocaleDateString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit',
-                year: 'numeric'
+                year: 'numeric',
               })}
             </Typography>
           </Box>
@@ -86,7 +80,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
               onClick={() => setOpen(!open)}
               sx={{
                 transition: 'transform 0.3s',
-                transform: open ? 'rotate(180deg)' : 'rotate(0deg)'
+                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
               }}
             >
               {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
@@ -111,8 +105,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
                   onClick={() => onExport(semana.id)}
                   size="small"
                 >
-                  <PdfIcon
-                    color="secondary" />
+                  <PdfIcon color="secondary" />
                 </IconButton>
               </Tooltip>
             )}
@@ -123,8 +116,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
                   onClick={() => onEdit(semana.id)}
                   size="small"
                 >
-                  <EditIcon
-                  color="primary" />
+                  <EditIcon color="primary" />
                 </IconButton>
               </Tooltip>
             )}
@@ -135,8 +127,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
                   onClick={() => onDelete(semana.id)}
                   size="small"
                 >
-                  <DeleteIcon
-                    color="error" />
+                  <DeleteIcon color="error" />
                 </IconButton>
               </Tooltip>
             )}
@@ -151,7 +142,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
                   '&:before': { display: 'none' },
                   bgcolor: 'transparent',
                   mb: 1,
-                  p: 0
+                  p: 0,
                 }}
               >
                 <AccordionSummary
@@ -162,8 +153,8 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
                     minHeight: 48,
                     px: 2,
                     '&.Mui-expanded': {
-                      minHeight: 48
-                    }
+                      minHeight: 48,
+                    },
                   }}
                 >
                   <Typography variant="subtitle2" fontWeight="600" padding={0}>
@@ -171,11 +162,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails sx={{ p: 2, pt: 1.5 }}>
-                  <DiaCell
-                    dia={dia.data}
-                    diaNome={dia.key}
-                    semanaId={semana.id}
-                  />
+                  <DiaCell dia={dia.data} diaNome={dia.key} semanaId={semana.id} />
                 </AccordionDetails>
               </Accordion>
             ))}

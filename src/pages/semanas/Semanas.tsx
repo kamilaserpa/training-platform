@@ -131,12 +131,13 @@ function WeekDialog({ open, onClose, onSave, editingData, weekFocuses }: WeekDia
     }
   }, [editingData]);
 
-  const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
+  const handleChange =
+    (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: event.target.value,
+      }));
+    };
 
   const handleSelectChange = (field: string) => (event: SelectChangeEvent<string>) => {
     setFormData((prev) => ({
@@ -180,10 +181,10 @@ function WeekDialog({ open, onClose, onSave, editingData, weekFocuses }: WeekDia
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
       disableRestoreFocus
       disableEnforceFocus
@@ -277,12 +278,12 @@ function SemanasPage() {
   const [filterStatus, setFilterStatus] = useState('todos');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingWeek, setEditingWeek] = useState<TrainingWeek | null>(null);
-  
+
   // Estado para dialog de confirmação de exclusão
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
     weekId: '',
-    weekName: ''
+    weekName: '',
   });
 
   // Carregar dados iniciais
@@ -301,23 +302,31 @@ function SemanasPage() {
       ]);
 
       // Filtrar duplicatas por ID para evitar chaves duplicadas no React
-      const uniqueWeeks = weeksData.filter((week, index, self) => 
-        index === self.findIndex(w => w.id === week.id)
+      const uniqueWeeks = weeksData.filter(
+        (week, index, self) => index === self.findIndex((w) => w.id === week.id),
       );
-      const uniqueFocuses = focusesData.filter((focus, index, self) => 
-        index === self.findIndex(f => f.id === focus.id)
+      const uniqueFocuses = focusesData.filter(
+        (focus, index, self) => index === self.findIndex((f) => f.id === focus.id),
       );
 
-      console.log(`📊 [Semanas] Carregadas ${uniqueWeeks.length} semanas únicas (total original: ${weeksData.length})`);
-      console.log(`📊 [Semanas] Carregados ${uniqueFocuses.length} focos únicos (total original: ${focusesData.length})`);
+      console.log(
+        `📊 [Semanas] Carregadas ${uniqueWeeks.length} semanas únicas (total original: ${weeksData.length})`,
+      );
+      console.log(
+        `📊 [Semanas] Carregados ${uniqueFocuses.length} focos únicos (total original: ${focusesData.length})`,
+      );
 
       setTrainingWeeks(uniqueWeeks);
       setWeekFocuses(uniqueFocuses);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
-      
+
       // Verificar se é erro de autenticação
-      if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found') || err?.code === '42501') {
+      if (
+        err?.message?.includes('Invalid Refresh Token') ||
+        err?.message?.includes('refresh_token_not_found') ||
+        err?.code === '42501'
+      ) {
         console.log('🔄 [Auth] Token inválido detectado na inicialização, limpando sessão...');
         await auth.clearSession();
         setError('Sessão expirada. Execute o script de limpeza ou faça login novamente.');
@@ -354,14 +363,19 @@ function SemanasPage() {
       setEditingWeek(null);
     } catch (err: any) {
       console.error('Erro ao salvar semana:', err);
-      
+
       // Verificar se é erro de autenticação ou RLS
-      if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
+      if (
+        err?.message?.includes('Invalid Refresh Token') ||
+        err?.message?.includes('refresh_token_not_found')
+      ) {
         console.log('🔄 [Auth] Token inválido detectado, limpando sessão...');
         await auth.clearSession();
         setError('Sessão expirada. Execute o script de limpeza ou faça login novamente.');
       } else if (err?.code === '42501') {
-        setError('Erro de permissão: Execute o script fix-training-weeks-rls.sql no Supabase SQL Editor.');
+        setError(
+          'Erro de permissão: Execute o script fix-training-weeks-rls.sql no Supabase SQL Editor.',
+        );
       } else {
         setError('Erro ao salvar semana. Tente novamente.');
       }
@@ -369,11 +383,11 @@ function SemanasPage() {
   };
 
   const handleDeleteWeek = (id: string) => {
-    const week = trainingWeeks.find(w => w.id === id);
+    const week = trainingWeeks.find((w) => w.id === id);
     setDeleteDialog({
       open: true,
       weekId: id,
-      weekName: week?.name || 'esta semana'
+      weekName: week?.name || 'esta semana',
     });
   };
 
@@ -431,12 +445,12 @@ function SemanasPage() {
     <Grid container spacing={2.5}>
       {error && (
         <Grid item xs={12}>
-          <DatabaseSetupAlert 
-            error={error} 
+          <DatabaseSetupAlert
+            error={error}
             onRetry={() => {
               setError(null);
               loadInitialData();
-            }} 
+            }}
           />
         </Grid>
       )}
@@ -450,12 +464,12 @@ function SemanasPage() {
           <Button
             variant="contained"
             onClick={handleAddWeek}
-            sx={{ 
+            sx={{
               minWidth: { xs: 'auto', sm: 150 },
               px: { xs: 1.5, sm: 2 },
               display: 'flex',
               alignItems: 'center',
-              gap: 1
+              gap: 1,
             }}
           >
             <AddIcon />
@@ -470,7 +484,13 @@ function SemanasPage() {
       <Grid item xs={12}>
         <Card>
           <CardContent>
-            <Stack direction={{ xs: 'row', md: 'row' }} sx={{ mt: 3 }} spacing={2} alignItems="center" justifyContent="space-between">
+            <Stack
+              direction={{ xs: 'row', md: 'row' }}
+              sx={{ mt: 3 }}
+              spacing={2}
+              alignItems="center"
+              justifyContent="space-between"
+            >
               <TextField
                 label="Buscar semanas"
                 variant="outlined"
@@ -480,28 +500,30 @@ function SemanasPage() {
                 InputProps={{
                   startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
                 }}
-                sx={{ flexGrow: 1, minWidth: { xs: '200px', md: 300 }, maxWidth: { xs: 'calc(100% - 60px)', md: 'none' } }}
+                sx={{
+                  flexGrow: 1,
+                  minWidth: { xs: '200px', md: 300 },
+                  maxWidth: { xs: 'calc(100% - 60px)', md: 'none' },
+                }}
               />
 
               <Button
                 variant="outlined"
                 onClick={clearFilters}
-                sx={{ 
+                sx={{
                   minWidth: { xs: '48px', md: 120 },
                   width: { xs: '48px', md: 'auto' },
                   px: { xs: 1, md: 2 },
                   '& .MuiButton-startIcon': {
                     display: { xs: 'none', md: 'inline-flex' },
-                    marginRight: { xs: 0, md: '6px' }
-                  }
+                    marginRight: { xs: 0, md: '6px' },
+                  },
                 }}
               >
                 <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                   <ClearIcon />
                 </Box>
-                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-                  Limpar
-                </Box>
+                <Box sx={{ display: { xs: 'none', md: 'block' } }}>Limpar</Box>
               </Button>
             </Stack>
           </CardContent>
@@ -511,108 +533,122 @@ function SemanasPage() {
       {/* Tabela de semanas */}
       <Grid item xs={12}>
         <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>
-                <Typography variant="subtitle2">Nome</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Foco</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Período</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Status</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Treinos</Typography>
-              </TableCell>
-              <TableCell align="center">
-                <Typography variant="subtitle2">Ações</Typography>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {weeksFiltradas.length === 0 ? (
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
-                    {searchTerm || filterStatus !== 'todos'
-                      ? 'Nenhuma semana encontrada com os filtros aplicados'
-                      : 'Nenhuma semana cadastrada'}
-                  </Typography>
+                <TableCell>
+                  <Typography variant="subtitle2">Nome</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Foco</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Período</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Status</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Treinos</Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2">Ações</Typography>
                 </TableCell>
               </TableRow>
-            ) : (
-              weeksFiltradas.map((week, index) => (
-                <TableRow key={`week-${week.id}-${index}`} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {week.name}
+            </TableHead>
+            <TableBody>
+              {weeksFiltradas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      {searchTerm || filterStatus !== 'todos'
+                        ? 'Nenhuma semana encontrada com os filtros aplicados'
+                        : 'Nenhuma semana cadastrada'}
                     </Typography>
-                    {week.notes && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {week.notes}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={week.week_focus?.name || 'Sem foco'}
-                      size="small"
-                      sx={{
-                        bgcolor: week.week_focus?.color_hex || '#grey',
-                        color: 'white',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(week.start_date)} - {formatDate(week.end_date)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={getStatusLabel(week.status)}
-                      color={getStatusColor(week.status) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {week.trainings?.length || 0} treino(s)
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" justifyContent="center" spacing={1}>
-                      <Tooltip title="Exportar Semana">
-                        <IconButton size="small" onClick={() => handleExportWeekPDF(week)} color="secondary" aria-label="Exportar Semana">
-                          <PdfIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Editar">
-                        <IconButton size="small" onClick={() => handleEditWeek(week)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Excluir">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteWeek(week.id)}
-                          color="error"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                weeksFiltradas.map((week, index) => (
+                  <TableRow key={`week-${week.id}-${index}`} hover>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {week.name}
+                      </Typography>
+                      {week.notes && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {week.notes}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={week.week_focus?.name || 'Sem foco'}
+                        size="small"
+                        sx={{
+                          bgcolor: week.week_focus?.color_hex || '#grey',
+                          color: 'white',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {formatDate(week.start_date)} - {formatDate(week.end_date)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getStatusLabel(week.status)}
+                        color={
+                          getStatusColor(week.status) as
+                            | 'default'
+                            | 'primary'
+                            | 'secondary'
+                            | 'error'
+                            | 'info'
+                            | 'success'
+                            | 'warning'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {week.trainings?.length || 0} treino(s)
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" justifyContent="center" spacing={1}>
+                        <Tooltip title="Exportar Semana">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleExportWeekPDF(week)}
+                            color="secondary"
+                            aria-label="Exportar Semana"
+                          >
+                            <PdfIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Editar">
+                          <IconButton size="small" onClick={() => handleEditWeek(week)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Excluir">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteWeek(week.id)}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </TableContainer>
       </Grid>
 

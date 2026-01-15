@@ -36,7 +36,7 @@ const SignIn = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!user.email || !user.password) {
       setError('Por favor, preencha todos os campos');
       return;
@@ -47,16 +47,16 @@ const SignIn = () => {
 
     try {
       const { error: signInError } = await signIn(user.email, user.password);
-      
+
       if (signInError) {
         let errorMessage = 'Erro ao fazer login';
-        
+
         if (signInError === 'Invalid login credentials') {
           errorMessage = 'Email ou senha incorretos';
         } else if (signInError) {
           errorMessage = signInError;
         }
-        
+
         setError(errorMessage);
       } else {
         navigate(paths.dashboard);
@@ -191,7 +191,14 @@ const SignIn = () => {
             </Link>
           </Stack>
 
-          <Button type="submit" variant="contained" size="large" sx={{ mt: 3 }} fullWidth disabled={loading}>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            sx={{ mt: 3 }}
+            fullWidth
+            disabled={loading}
+          >
             {loading ? 'Signing In...' : 'Sign In'}
           </Button>
         </Box>

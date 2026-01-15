@@ -1,16 +1,6 @@
 import { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  IconButton, 
-  Collapse, 
-  Stack,
-  Tooltip 
-} from '@mui/material';
-import {
-  ExpandMore as ExpandMoreIcon,
-  Visibility as VisibilityIcon
-} from '@mui/icons-material';
+import { Box, Typography, IconButton, Collapse, Stack, Tooltip } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { BlocoResumo } from './BlocoResumo';
 import paths from '../../routes/paths';
@@ -40,43 +30,43 @@ export const TreinoResumo = ({ treino }: TreinoResumoProps) => {
         bgcolor: 'background.paper',
         borderRadius: 1,
         borderBottom: '1px solid',
-        borderColor: 'divider'
+        borderColor: 'divider',
       }}
     >
       {/* Header do Treino */}
-      <Stack 
-        direction="row" 
-        alignItems="center" 
+      <Stack
+        direction="row"
+        alignItems="center"
         justifyContent="space-between"
         sx={{ cursor: 'pointer' }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Typography 
-          variant="subtitle2" 
+        <Typography
+          variant="subtitle2"
           fontWeight="700"
           color="primary.main"
           sx={{ fontSize: '0.875rem' }}
         >
           {treino.name}
         </Typography>
-        
+
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Ver detalhes">
             <IconButton
               size="small"
               onClick={handleVerDetalhes}
-              sx={{ 
+              sx={{
                 p: 0.5,
                 '&:hover': {
                   bgcolor: 'primary.main',
-                  color: 'white'
-                }
+                  color: 'white',
+                },
               }}
             >
               <VisibilityIcon sx={{ fontSize: '1rem' }} />
             </IconButton>
           </Tooltip>
-          
+
           <IconButton
             size="small"
             onClick={(e) => {
@@ -86,7 +76,7 @@ export const TreinoResumo = ({ treino }: TreinoResumoProps) => {
             sx={{
               p: 0.5,
               transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s'
+              transition: 'transform 0.3s',
             }}
           >
             <ExpandMoreIcon sx={{ fontSize: '1rem' }} />
@@ -98,9 +88,7 @@ export const TreinoResumo = ({ treino }: TreinoResumoProps) => {
       <Collapse in={expanded} timeout="auto">
         <Box sx={{ mt: 1.5 }}>
           {blocosOrdenados.length > 0 ? (
-            blocosOrdenados.map((bloco) => (
-              <BlocoResumo key={bloco.id} bloco={bloco} />
-            ))
+            blocosOrdenados.map((bloco) => <BlocoResumo key={bloco.id} bloco={bloco} />)
           ) : (
             <Typography variant="caption" color="text.secondary">
               Nenhum bloco cadastrado

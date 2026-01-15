@@ -45,7 +45,6 @@ import type { Exercise, MovementPattern, CreateExerciseDTO } from '../../types/d
 
 import { useFetchExercises } from 'hooks/useFetchExercises';
 
-
 // Interface para props do dialog
 interface ExerciseDialogProps {
   open: boolean;
@@ -72,7 +71,7 @@ function ExerciseDialog({
 
   useEffect(() => {
     console.log('🔄 [ExerciseDialog] editingData mudou:', editingData);
-    
+
     if (editingData) {
       setFormData({
         name: editingData.name || '',
@@ -91,12 +90,13 @@ function ExerciseDialog({
     }
   }, [editingData]);
 
-  const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
+  const handleChange =
+    (field: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: event.target.value,
+      }));
+    };
 
   const handleSelectChange = (field: string) => (event: SelectChangeEvent<string>) => {
     setFormData((prev) => ({
@@ -123,7 +123,7 @@ function ExerciseDialog({
     };
 
     // Limpar undefined do objeto (PostgreSQL prefere null)
-    Object.keys(exerciseData).forEach(key => {
+    Object.keys(exerciseData).forEach((key) => {
       if (exerciseData[key as keyof CreateExerciseDTO] === undefined) {
         exerciseData[key as keyof CreateExerciseDTO] = null as any;
       }
@@ -182,7 +182,7 @@ function ExerciseDialog({
               fullWidth
             />
           </Grid>
-            <Grid item xs={12}>
+          <Grid item xs={12}>
             <TextField
               label="Descrição"
               value={formData.description}
@@ -212,7 +212,7 @@ function ExerciciosPage() {
     isLoading: loadingExercises,
     refetch: refetchExercises,
   } = useFetchExercises();
-  
+
   const [movementPatterns, setMovementPatterns] = useState<MovementPattern[]>([]);
   const [loadingPatterns, setLoadingPatterns] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -220,11 +220,11 @@ function ExerciciosPage() {
   const [filterPadrao, setFilterPadrao] = useState('todos');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  
+
   // Estados para feedback
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+
   // Usar exercícios do cache ou array vazio
   const exercises = exercisesFromCache || [];
   const loading = loadingExercises || loadingPatterns;
@@ -232,12 +232,12 @@ function ExerciciosPage() {
   // Carregar apenas padrões de movimento (exercícios vêm do cache)
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadPatterns = async () => {
       try {
         setLoadingPatterns(true);
         setError(null);
-        
+
         const patternsData = await movementPatternService.getAllMovementPatterns();
 
         if (!isMounted) return;
@@ -245,19 +245,20 @@ function ExerciciosPage() {
       } catch (err: any) {
         if (!isMounted) return;
         console.error('❌ [Exercicios] Erro ao carregar padrões:', err);
-        
+
         let errorMessage = 'Erro ao carregar padrões de movimento. ';
-        
+
         if (err.code === '42501') {
           errorMessage += 'Problema de permissão. Verifique as políticas RLS no Supabase.';
         } else if (err.code === 'PGRST116') {
           errorMessage += 'Tabelas não encontradas. Execute o script de setup do banco.';
         } else if (err.message?.includes('fetch') || err.message?.includes('network')) {
-          errorMessage += 'Problema de conexão. Verifique sua internet e configurações do Supabase.';
+          errorMessage +=
+            'Problema de conexão. Verifique sua internet e configurações do Supabase.';
         } else {
           errorMessage += `Detalhes: ${err.message || 'Erro desconhecido'}.`;
         }
-        
+
         setError(errorMessage);
       } finally {
         if (isMounted) {
@@ -265,9 +266,9 @@ function ExerciciosPage() {
         }
       }
     };
-    
+
     loadPatterns();
-    
+
     return () => {
       isMounted = false;
     };
@@ -282,7 +283,6 @@ function ExerciciosPage() {
     return exercises.filter((exercise) => {
       const matchesSearch =
         exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-
         exercise.movement_pattern?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesFilter =
@@ -295,7 +295,7 @@ function ExerciciosPage() {
   const handleSaveExercise = async (exerciseData: CreateExerciseDTO) => {
     try {
       setError(null);
-      
+
       if (editingExercise) {
         const updated = await exerciseService.updateExercise(editingExercise.id, exerciseData);
         setSuccessMessage(`Exercício "${updated.name}" atualizado com sucesso!`);
@@ -306,12 +306,11 @@ function ExerciciosPage() {
 
       // Atualizar cache com dados frescos
       await refetchExercises();
-      
+
       setOpenDialog(false);
       setEditingExercise(null);
       setShowSuccess(true);
     } catch (err: any) {
-      
       let errorMessage = 'Erro ao salvar exercício. ';
       if (err.code === '42501') {
         errorMessage += 'Sem permissão para esta operação.';
@@ -320,31 +319,31 @@ function ExerciciosPage() {
       } else {
         errorMessage += err.message || 'Tente novamente.';
       }
-      
+
       setError(errorMessage);
     }
   };
 
   const handleDeleteExercise = async (id: string) => {
-    const exerciseToDelete = exercises.find(ex => ex.id === id);
+    const exerciseToDelete = exercises.find((ex) => ex.id === id);
     const exerciseName = exerciseToDelete?.name || 'exercício';
-    
+
     if (!confirm(`Tem certeza que deseja excluir o exercício "${exerciseName}"?`)) return;
 
     try {
       console.log('🗑️ [Exercicios] Excluindo exercício:', id);
       setError(null);
       await exerciseService.deleteExercise(id);
-      
+
       // Atualizar cache com dados frescos
       await refetchExercises();
-      
+
       setSuccessMessage(`Exercício "${exerciseName}" excluído com sucesso!`);
       setShowSuccess(true);
       console.log('✅ [Exercicios] Exercício excluído com sucesso');
     } catch (err: any) {
       console.error('❌ [Exercicios] Erro ao deletar exercício:', err);
-      
+
       let errorMessage = 'Erro ao excluir exercício. ';
       if (err.code === '42501') {
         errorMessage += 'Sem permissão para esta operação.';
@@ -353,7 +352,7 @@ function ExerciciosPage() {
       } else {
         errorMessage += err.message || 'Tente novamente.';
       }
-      
+
       setError(errorMessage);
     }
   };
@@ -381,17 +380,12 @@ function ExerciciosPage() {
   return (
     <Container maxWidth="xl" sx={{ py: 4, px: { xs: 1, sm: 3 } }}>
       {error && (
-        <Alert 
-          severity="error" 
-          onClose={() => setError(null)} 
+        <Alert
+          severity="error"
+          onClose={() => setError(null)}
           sx={{ mb: 3 }}
           action={
-            <Button 
-              color="inherit" 
-              size="small" 
-              onClick={loadInitialData}
-              disabled={loading}
-            >
+            <Button color="inherit" size="small" onClick={loadInitialData} disabled={loading}>
               Tentar Novamente
             </Button>
           }
@@ -541,7 +535,9 @@ function ExerciciosPage() {
           </TableContainer>
 
           {/* Summary */}
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box
+            sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <Typography variant="body2" color="text.secondary">
               Mostrando {exercisesFiltrados.length} de {exercises.length} exercícios
             </Typography>
@@ -565,9 +561,9 @@ function ExerciciosPage() {
         onClose={() => setShowSuccess(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setShowSuccess(false)} 
-          severity="success" 
+        <Alert
+          onClose={() => setShowSuccess(false)}
+          severity="success"
           variant="filled"
           sx={{ width: '100%' }}
         >

@@ -48,7 +48,7 @@ interface Alert {
 const AlertsAndPendencies = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  
+
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [showAll, setShowAll] = useState(false);
@@ -61,30 +61,30 @@ const AlertsAndPendencies = () => {
   const analyzeAndGenerateAlerts = async () => {
     try {
       setLoading(true);
-      
+
       // Buscar dados necessários
       const weeks = await trainingService.getWeeksWithTrainings();
-      
+
       const generatedAlerts: Alert[] = [];
       const today = dayjs();
 
       // =====================================
       // 1. Verificar semanas sem treinos
       // =====================================
-      const currentAndFutureWeeks = weeks.filter(week => {
+      const currentAndFutureWeeks = weeks.filter((week) => {
         const endDate = dayjs(week.end_date);
         return endDate.isAfter(today) || endDate.isSame(today, 'day');
       });
 
-      currentAndFutureWeeks.forEach(week => {
+      currentAndFutureWeeks.forEach((week) => {
         const workoutCount = week.trainings?.length || 0;
-        
+
         if (workoutCount === 0) {
           const isCurrentWeek = today.isBetween(
             dayjs(week.start_date),
             dayjs(week.end_date),
             'day',
-            '[]'
+            '[]',
           );
 
           generatedAlerts.push({
@@ -102,7 +102,7 @@ const AlertsAndPendencies = () => {
       // =====================================
       // 2. Verificar semanas sem foco definido
       // =====================================
-      currentAndFutureWeeks.forEach(week => {
+      currentAndFutureWeeks.forEach((week) => {
         if (!week.week_focus || !week.week_focus.name) {
           generatedAlerts.push({
             id: `week-no-focus-${week.id}`,
@@ -119,10 +119,10 @@ const AlertsAndPendencies = () => {
       // =====================================
       // 3. Verificar treinos com sobreposição (mesmo dia)
       // =====================================
-      const allTrainings = weeks.flatMap(week => week.trainings || []);
+      const allTrainings = weeks.flatMap((week) => week.trainings || []);
       const trainingsByDate: { [key: string]: any[] } = {};
-      
-      allTrainings.forEach(training => {
+
+      allTrainings.forEach((training) => {
         const dateKey = training.scheduled_date;
         if (!trainingsByDate[dateKey]) {
           trainingsByDate[dateKey] = [];
@@ -134,7 +134,7 @@ const AlertsAndPendencies = () => {
         if (trainings.length > 1) {
           const formattedDate = dayjs(date).format('DD/MM/YYYY');
           const dayName = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dayjs(date).day()];
-          
+
           generatedAlerts.push({
             id: `overlap-${date}`,
             message: `${trainings.length} treinos agendados para o mesmo dia (${dayName}, ${formattedDate})`,
@@ -150,16 +150,17 @@ const AlertsAndPendencies = () => {
       // =====================================
       // 4. Verificar treinos incompletos (blocos sem exercícios)
       // =====================================
-      allTrainings.forEach(training => {
+      allTrainings.forEach((training) => {
         if (training.training_blocks) {
           let hasIncompleteBlocks = false;
           let incompleteBlocksCount = 0;
 
           training.training_blocks.forEach((block: TrainingBlock) => {
             // Ignorar bloco de condicionamento físico
-            const isConditioningBlock = block.block_type === 'CONDICIONAMENTO_FISICO' || 
-                                       block.name?.toLowerCase().includes('condicionamento');
-            
+            const isConditioningBlock =
+              block.block_type === 'CONDICIONAMENTO_FISICO' ||
+              block.name?.toLowerCase().includes('condicionamento');
+
             if (!isConditioningBlock) {
               const exerciseCount = block.exercise_prescriptions?.length || 0;
               if (exerciseCount === 0) {
@@ -253,20 +254,21 @@ const AlertsAndPendencies = () => {
               Alertas & Pendências
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {alerts.length === 0 
+              {alerts.length === 0
                 ? 'Tudo em ordem!'
-                : `${alerts.length} ${alerts.length === 1 ? 'item requer' : 'itens requerem'} atenção`
-              }
+                : `${alerts.length} ${alerts.length === 1 ? 'item requer' : 'itens requerem'} atenção`}
             </Typography>
           </Box>
-          
+
           {alerts.length > 0 && (
             <Chip
               label={alerts.length}
               color={
-                alerts.some(a => a.severity === 'critical') ? 'error' :
-                alerts.some(a => a.severity === 'warning') ? 'warning' : 
-                'info'
+                alerts.some((a) => a.severity === 'critical')
+                  ? 'error'
+                  : alerts.some((a) => a.severity === 'warning')
+                    ? 'warning'
+                    : 'info'
               }
               sx={{ fontWeight: 700, fontSize: '1rem', minWidth: 45 }}
             />
@@ -275,9 +277,9 @@ const AlertsAndPendencies = () => {
 
         {/* Empty State */}
         {alerts.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
+          <Box
+            sx={{
+              textAlign: 'center',
               py: 6,
               bgcolor: 'success.lighter',
               borderRadius: 2,
@@ -317,7 +319,12 @@ const AlertsAndPendencies = () => {
                     }}
                   >
                     {/* Icon & Severity */}
-                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: { sm: 150 } }}>
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      alignItems="center"
+                      sx={{ minWidth: { sm: 150 } }}
+                    >
                       {getSeverityIcon(alert.severity)}
                       <Chip
                         label={getSeverityLabel(alert.severity)}
@@ -355,10 +362,8 @@ const AlertsAndPendencies = () => {
                       {alert.ctaLabel}
                     </Button>
                   </Stack>
-                  
-                  {index < visibleAlerts.length - 1 && (
-                    <Divider sx={{ mt: 2, opacity: 0.3 }} />
-                  )}
+
+                  {index < visibleAlerts.length - 1 && <Divider sx={{ mt: 2, opacity: 0.3 }} />}
                 </Box>
               ))}
             </Stack>
@@ -372,10 +377,9 @@ const AlertsAndPendencies = () => {
                   onClick={() => setShowAll(!showAll)}
                   sx={{ fontWeight: 600 }}
                 >
-                  {showAll 
-                    ? 'Ver menos' 
-                    : `Ver todos (${alerts.length - MAX_VISIBLE_ALERTS} restantes)`
-                  }
+                  {showAll
+                    ? 'Ver menos'
+                    : `Ver todos (${alerts.length - MAX_VISIBLE_ALERTS} restantes)`}
                 </Button>
               </Box>
             )}

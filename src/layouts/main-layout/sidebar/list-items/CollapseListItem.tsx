@@ -17,11 +17,11 @@ interface CollapseListItemProps extends MenuItem {
 const CollapseListItem = ({ subheader, items, icon, onItemClick }: CollapseListItemProps) => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  
+
   // Verificar se algum item filho está ativo
-  const isAnyChildActive = items?.some(item => location.pathname === item.path);
+  const isAnyChildActive = items?.some((item) => location.pathname === item.path);
   const isActive = isAnyChildActive;
-  
+
   // Abrir automaticamente se algum filho estiver ativo
   useEffect(() => {
     if (isAnyChildActive) {

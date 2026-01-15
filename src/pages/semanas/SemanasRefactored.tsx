@@ -29,12 +29,9 @@ import {
   DialogActions,
   Grid,
   Snackbar,
-  Checkbox
+  Checkbox,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  Add as AddIcon
-} from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
 
 // Componentes, dados e serviços
 import { weekService } from '../../services/weekService';
@@ -55,23 +52,21 @@ const SemanasRefactored = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Cache-first data fetching com IndexedDB
-  const {
-    data: weeksFromCache,
-    isLoading: loadingWeeks,
-    refetch: refetchWeeks,
-  } = useFetchWeeks();
+  const { data: weeksFromCache, isLoading: loadingWeeks, refetch: refetchWeeks } = useFetchWeeks();
 
   const [weekFocuses, setWeekFocuses] = useState<WeekFocus[]>([]);
   const [loadingFocuses, setLoadingFocuses] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Adaptar semanas do cache (garantir que trainings existe)
-  const semanas = weeksFromCache 
-    ? adaptarSemanasParaVisualizacao(weeksFromCache.map(w => ({
-        ...w,
-        trainings: w.trainings || []
-      })))
+  const semanas = weeksFromCache
+    ? adaptarSemanasParaVisualizacao(
+        weeksFromCache.map((w) => ({
+          ...w,
+          trainings: w.trainings || [],
+        })),
+      )
     : [];
   const loading = loadingWeeks || loadingFocuses;
 
@@ -88,7 +83,7 @@ const SemanasRefactored = () => {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error'
+    severity: 'success' as 'success' | 'error',
   });
 
   const { selectedWeekIds, setSelectedWeeks, clearSelection } = useWeeksSelection();
@@ -99,7 +94,7 @@ const SemanasRefactored = () => {
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
     semanaId: '',
-    semanaNome: ''
+    semanaNome: '',
   });
 
   // Carregar apenas focos (semanas vêm do cache)
@@ -193,7 +188,7 @@ const SemanasRefactored = () => {
 
   const handleGlobalExportClick = async () => {
     // Determine target weeks: selected or current week
-    let targetIds = selectedWeekIds;
+    const targetIds = selectedWeekIds;
     if (targetIds.length === 0) {
       const current = filteredSemanas.find(isWeekInCurrentDateRange) || filteredSemanas[0];
       if (current) {
@@ -203,7 +198,9 @@ const SemanasRefactored = () => {
       }
     } else {
       const selectedMap = new Map(filteredSemanas.map((s) => [s.id, s]));
-      setQuickExportWeeks(targetIds.map((id) => selectedMap.get(id)).filter(Boolean) as SemanaComTreinos[]);
+      setQuickExportWeeks(
+        targetIds.map((id) => selectedMap.get(id)).filter(Boolean) as SemanaComTreinos[],
+      );
     }
     setQuickExportOpen(true);
   };
@@ -220,14 +217,14 @@ const SemanasRefactored = () => {
     });
   };
 
-  const handleFormChange = (field: string) => (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
+  const handleFormChange =
+    (field: string) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: event.target.value,
+      }));
+    };
 
   const handleEditWeek = async (semanaId: string) => {
     console.log('📝 Editar semana:', semanaId);
@@ -240,7 +237,7 @@ const SemanasRefactored = () => {
         setSnackbar({
           open: true,
           message: 'Semana não encontrada',
-          severity: 'error'
+          severity: 'error',
         });
         return;
       }
@@ -255,23 +252,22 @@ const SemanasRefactored = () => {
 
       setEditingSemanaId(semanaId);
       setOpenDialog(true);
-
     } catch (err: any) {
       console.error('❌ Erro ao carregar semana:', err);
       setSnackbar({
         open: true,
         message: 'Erro ao carregar dados da semana',
-        severity: 'error'
+        severity: 'error',
       });
     }
   };
 
   const handleDeleteWeek = (semanaId: string) => {
-    const semana = semanas.find(s => s.id === semanaId);
+    const semana = semanas.find((s) => s.id === semanaId);
     setDeleteDialog({
       open: true,
       semanaId,
-      semanaNome: semana?.name || 'esta semana'
+      semanaNome: semana?.name || 'esta semana',
     });
   };
 
@@ -285,25 +281,24 @@ const SemanasRefactored = () => {
       setSnackbar({
         open: true,
         message: 'Semana excluída com sucesso!',
-        severity: 'success'
+        severity: 'success',
       });
 
       // Atualizar cache com dados frescos
       await refetchWeeks();
-
     } catch (err: any) {
       console.error('❌ Erro ao excluir semana:', err);
       setSnackbar({
         open: true,
         message: err?.message || 'Erro ao excluir semana. Tente novamente.',
-        severity: 'error'
+        severity: 'error',
       });
     }
   };
 
   const handleExportWeek = async (semanaId: string) => {
     try {
-      const semana = semanas.find(s => s.id === semanaId);
+      const semana = semanas.find((s) => s.id === semanaId);
       if (!semana) return;
       const treinos = await trainingService.getTrainingsByWeek(semanaId);
       const logoBase64 = await imageToBase64(logoImage);
@@ -317,7 +312,11 @@ const SemanasRefactored = () => {
       await generateSemanaPDF(semanaPdf, treinos, logoBase64);
     } catch (err: any) {
       console.error('❌ Erro ao exportar semana:', err);
-      setSnackbar({ open: true, message: err?.message || 'Erro ao exportar semana', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: err?.message || 'Erro ao exportar semana',
+        severity: 'error',
+      });
     }
   };
 
@@ -326,7 +325,7 @@ const SemanasRefactored = () => {
       setSnackbar({
         open: true,
         message: 'Por favor, informe o nome da semana',
-        severity: 'error'
+        severity: 'error',
       });
       return;
     }
@@ -335,7 +334,7 @@ const SemanasRefactored = () => {
       setSnackbar({
         open: true,
         message: 'Por favor, selecione um foco para a semana',
-        severity: 'error'
+        severity: 'error',
       });
       return;
     }
@@ -344,7 +343,7 @@ const SemanasRefactored = () => {
       setSnackbar({
         open: true,
         message: 'Por favor, informe as datas de início e fim',
-        severity: 'error'
+        severity: 'error',
       });
       return;
     }
@@ -353,7 +352,7 @@ const SemanasRefactored = () => {
       setSnackbar({
         open: true,
         message: 'A data de fim deve ser posterior à data de início',
-        severity: 'error'
+        severity: 'error',
       });
       return;
     }
@@ -374,7 +373,7 @@ const SemanasRefactored = () => {
         setSnackbar({
           open: true,
           message: 'Semana atualizada com sucesso!',
-          severity: 'success'
+          severity: 'success',
         });
       } else {
         // Criar nova semana
@@ -383,7 +382,7 @@ const SemanasRefactored = () => {
         setSnackbar({
           open: true,
           message: 'Semana criada com sucesso!',
-          severity: 'success'
+          severity: 'success',
         });
       }
 
@@ -391,13 +390,12 @@ const SemanasRefactored = () => {
 
       // Atualizar cache com dados frescos
       await refetchWeeks();
-
     } catch (err: any) {
       console.error('❌ Erro ao criar semana:', err);
       setSnackbar({
         open: true,
         message: err?.message || 'Erro ao criar semana. Tente novamente.',
-        severity: 'error'
+        severity: 'error',
       });
     }
   };
@@ -406,7 +404,12 @@ const SemanasRefactored = () => {
     <Container maxWidth="xl" sx={{ py: 3, px: { xs: 0, sm: 3 } }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'flex-start' }} spacing={{ xs: 2, md: 0 }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'stretch', md: 'flex-start' }}
+          spacing={{ xs: 2, md: 0 }}
+        >
           <Box sx={{ flex: 1 }}>
             <Typography variant="h4" fontWeight="700" gutterBottom>
               Semanas de Treino
@@ -435,7 +438,11 @@ const SemanasRefactored = () => {
                   clearSelection();
                 }
               }}
-              sx={{ whiteSpace: 'nowrap', minWidth: { xs: 'auto', sm: 120 }, px: { xs: 1.5, sm: 2 } }}
+              sx={{
+                whiteSpace: 'nowrap',
+                minWidth: { xs: 'auto', sm: 120 },
+                px: { xs: 1.5, sm: 2 },
+              }}
             >
               {selectedWeekIds.length === 0 ? 'Selecionar todas' : 'Limpar seleção'}
             </Button>
@@ -523,8 +530,14 @@ const SemanasRefactored = () => {
                   <TableRow>
                     <TableCell width={48}>
                       <Checkbox
-                        checked={selectedWeekIds.length > 0 && filteredSemanas.every((s) => selectedWeekIds.includes(s.id))}
-                        indeterminate={selectedWeekIds.length > 0 && !filteredSemanas.every((s) => selectedWeekIds.includes(s.id))}
+                        checked={
+                          selectedWeekIds.length > 0 &&
+                          filteredSemanas.every((s) => selectedWeekIds.includes(s.id))
+                        }
+                        indeterminate={
+                          selectedWeekIds.length > 0 &&
+                          !filteredSemanas.every((s) => selectedWeekIds.includes(s.id))
+                        }
                         onChange={(e) => {
                           if (e.target.checked) {
                             setSelectedWeeks(filteredSemanas.map((s) => s.id));
@@ -580,7 +593,7 @@ const SemanasRefactored = () => {
               spacing={2}
               sx={{
                 width: '100%',
-                flexDirection: 'column'
+                flexDirection: 'column',
               }}
             >
               {filteredSemanas.map((semana) => (
@@ -605,7 +618,7 @@ const SemanasRefactored = () => {
             p: 6,
             textAlign: 'center',
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'divider',
           }}
         >
           <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -614,19 +627,13 @@ const SemanasRefactored = () => {
           <Typography variant="body2" color="text.secondary">
             {semanas.length === 0
               ? 'Não há semanas cadastradas ainda.'
-              : 'Tente ajustar os filtros de busca.'
-            }
+              : 'Tente ajustar os filtros de busca.'}
           </Typography>
         </Paper>
       )}
 
       {/* Dialog para criar/editar semana */}
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editingSemanaId ? 'Editar Semana' : 'Nova Semana'}</DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           <Grid container spacing={3} sx={{ mt: 1 }}>

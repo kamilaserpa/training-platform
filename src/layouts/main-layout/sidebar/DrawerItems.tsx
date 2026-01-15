@@ -26,12 +26,12 @@ const DrawerItems = ({ onItemClick }: DrawerItemsProps) => {
     if (route.requireManageUsers) {
       return canManageUsers; // Mostrar apenas para Owner ou Admin
     }
-    
+
     // Verificar se requer autenticação
     if (route.requireAuth) {
       return !!user; // Mostrar apenas se estiver autenticado
     }
-    
+
     return true; // Mostrar itens públicos sempre
   });
 
@@ -51,11 +51,7 @@ const DrawerItems = ({ onItemClick }: DrawerItemsProps) => {
       >
         <ButtonBase component={Link} href="/" disableRipple>
           <Image src={HorizonLogo} alt="logo" height={44} width={44} sx={{ mr: 1.75 }} />
-          <Typography
-            variant="h3"
-            letterSpacing={1}
-            fontFamily={fontFamily.poppins}
-          >
+          <Typography variant="h3" letterSpacing={1} fontFamily={fontFamily.poppins}>
             Training Platform
           </Typography>
         </ButtonBase>

@@ -32,7 +32,7 @@ const WeekWorkouts = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<any[]>([]);
@@ -49,10 +49,10 @@ const WeekWorkouts = () => {
 
       // Buscar todas as semanas com treinos
       const weeks = await trainingService.getWeeksWithTrainings();
-      
+
       // Encontrar a semana atual
       const today = dayjs();
-      const currentWeek = weeks.find(week => {
+      const currentWeek = weeks.find((week) => {
         const start = dayjs(week.start_date);
         const end = dayjs(week.end_date);
         return today.isBetween(start, end, 'day', '[]');
@@ -60,8 +60,8 @@ const WeekWorkouts = () => {
 
       if (currentWeek && currentWeek.trainings) {
         // Ordenar treinos por data
-        const sortedWorkouts = currentWeek.trainings.sort((a: any, b: any) => 
-          dayjs(a.scheduled_date).diff(dayjs(b.scheduled_date))
+        const sortedWorkouts = currentWeek.trainings.sort((a: any, b: any) =>
+          dayjs(a.scheduled_date).diff(dayjs(b.scheduled_date)),
         );
         setWorkouts(sortedWorkouts);
       }
@@ -97,10 +97,9 @@ const WeekWorkouts = () => {
     const container = document.getElementById('workouts-scroll-container');
     if (container) {
       const scrollAmount = 300;
-      const newPosition = direction === 'left' 
-        ? scrollPosition - scrollAmount 
-        : scrollPosition + scrollAmount;
-      
+      const newPosition =
+        direction === 'left' ? scrollPosition - scrollAmount : scrollPosition + scrollAmount;
+
       container.scrollTo({ left: newPosition, behavior: 'smooth' });
       setScrollPosition(newPosition);
     }
@@ -162,9 +161,9 @@ const WeekWorkouts = () => {
 
         {/* Workouts List */}
         {workouts.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
+          <Box
+            sx={{
+              textAlign: 'center',
               py: 6,
               bgcolor: 'action.hover',
               borderRadius: 2,
@@ -177,11 +176,7 @@ const WeekWorkouts = () => {
             <Typography variant="body2" color="text.secondary" mb={3}>
               Adicione treinos para organizar sua programação
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddWorkout}
-            >
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddWorkout}>
               Adicionar Treino
             </Button>
           </Box>

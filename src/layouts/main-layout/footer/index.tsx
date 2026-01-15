@@ -16,7 +16,8 @@ const Footer = () => {
       Made with ❤️ by{' '}
       <Link href="https://themewagon.com/" target="_blank" rel="noreferrer" fontWeight={600}>
         {'ThemeWagon'}
-      </Link> and KS
+      </Link>{' '}
+      and KS
     </Typography>
   );
 };

@@ -7,8 +7,8 @@ export function DevModeAlert() {
   return (
     <Box sx={{ mb: 2 }}>
       <Alert severity="info" variant="filled">
-        <strong>🛠️ MODO DESENVOLVIMENTO</strong> - Usando dados simulados (mock). 
-        Configure credenciais reais do Supabase no arquivo .env para persistir dados.
+        <strong>🛠️ MODO DESENVOLVIMENTO</strong> - Usando dados simulados (mock). Configure
+        credenciais reais do Supabase no arquivo .env para persistir dados.
       </Alert>
     </Box>
   );

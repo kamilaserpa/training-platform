@@ -11,17 +11,17 @@ export interface WeekWithTrainings extends TrainingWeek {
 
 /**
  * Hook to fetch all training weeks with cache-first strategy
- * 
+ *
  * Returns cached data immediately if available, then fetches fresh data
  * in the background and updates the UI when ready.
- * 
+ *
  * @example
  * ```tsx
  * function WeeksPage() {
  *   const { data: weeks, isLoading, refetch } = useFetchWeeks();
- *   
+ *
  *   if (isLoading && !weeks) return <Skeleton />;
- *   
+ *
  *   return (
  *     <div>
  *       {weeks?.map(week => <WeekCard key={week.id} week={week} />)}
@@ -43,7 +43,7 @@ export function useFetchWeeks(): UseCachedQueryResult<WeekWithTrainings[]> {
 
 /**
  * Hook to fetch a single week by ID with cache-first strategy
- * 
+ *
  * @param id Week ID
  */
 export function useFetchWeek(id: string | null): UseCachedQueryResult<WeekWithTrainings> {
@@ -67,7 +67,7 @@ export function useFetchWeek(id: string | null): UseCachedQueryResult<WeekWithTr
  */
 export function useInvalidateWeeksCache() {
   const { clearCache: clearAll } = useFetchWeeks();
-  
+
   return {
     invalidateAll: clearAll,
     invalidateOne: async (id: string) => {

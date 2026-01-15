@@ -33,7 +33,7 @@ interface CurrentWeekProps {
 
 const CurrentWeek = (props: CurrentWeekProps) => {
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weekData, setWeekData] = useState<any>(null);
@@ -50,10 +50,10 @@ const CurrentWeek = (props: CurrentWeekProps) => {
 
       // Buscar todas as semanas
       const weeks = await trainingService.getWeeksWithTrainings();
-      
+
       // Encontrar a semana atual (baseado na data)
       const today = dayjs();
-      const currentWeek = weeks.find(week => {
+      const currentWeek = weeks.find((week) => {
         const start = dayjs(week.start_date);
         const end = dayjs(week.end_date);
         return today.isBetween(start, end, 'day', '[]');
@@ -61,7 +61,7 @@ const CurrentWeek = (props: CurrentWeekProps) => {
 
       if (currentWeek) {
         setWeekData(currentWeek);
-        
+
         // Contar treinos por dia
         const trainings = currentWeek.trainings || [];
         setWorkoutsThisWeek(trainings);
@@ -78,16 +78,16 @@ const CurrentWeek = (props: CurrentWeekProps) => {
 
   const getDayStatus = (dayName: string) => {
     const dayMap: { [key: string]: number } = {
-      'segunda': 1,
-      'terca': 2,
-      'quarta': 3,
-      'quinta': 4,
-      'sexta': 5,
+      segunda: 1,
+      terca: 2,
+      quarta: 3,
+      quinta: 4,
+      sexta: 5,
     };
 
     const targetDay = dayMap[dayName.toLowerCase()];
-    
-    const hasWorkout = workoutsThisWeek.some(training => {
+
+    const hasWorkout = workoutsThisWeek.some((training) => {
       const trainingDay = dayjs(training.scheduled_date).day();
       return trainingDay === targetDay;
     });
@@ -153,9 +153,7 @@ const CurrentWeek = (props: CurrentWeekProps) => {
     return (
       <Card sx={{ height: '100%' }}>
         <CardContent>
-          <Alert severity="info">
-            Nenhuma semana ativa no momento
-          </Alert>
+          <Alert severity="info">Nenhuma semana ativa no momento</Alert>
         </CardContent>
       </Card>
     );
@@ -170,8 +168,8 @@ const CurrentWeek = (props: CurrentWeekProps) => {
   ];
 
   return (
-    <Card 
-      sx={{ 
+    <Card
+      sx={{
         height: '100%',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
@@ -181,7 +179,10 @@ const CurrentWeek = (props: CurrentWeekProps) => {
         {/* Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={3}>
           <Box>
-            <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem' }}>
+            <Typography
+              variant="overline"
+              sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem' }}
+            >
               SEMANA ATUAL
             </Typography>
             <Typography variant="h4" fontWeight="700" gutterBottom>
@@ -194,7 +195,7 @@ const CurrentWeek = (props: CurrentWeekProps) => {
           <Chip
             label={getStatusLabel(weekData.status)}
             color={getStatusColor(weekData.status)}
-            sx={{ 
+            sx={{
               fontWeight: 600,
               bgcolor: 'rgba(255,255,255,0.2)',
               color: 'white',
@@ -216,7 +217,8 @@ const CurrentWeek = (props: CurrentWeekProps) => {
                 </Typography>
               </Stack>
               <Typography variant="body2" fontWeight="600">
-                {dayjs(weekData.start_date).format('DD/MM')} - {dayjs(weekData.end_date).format('DD/MM/YYYY')}
+                {dayjs(weekData.start_date).format('DD/MM')} -{' '}
+                {dayjs(weekData.end_date).format('DD/MM/YYYY')}
               </Typography>
             </Box>
           </Grid>
@@ -237,7 +239,10 @@ const CurrentWeek = (props: CurrentWeekProps) => {
 
         {/* Days of Week */}
         <Box mb={3}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)', mb: 1, display: 'block' }}>
+          <Typography
+            variant="caption"
+            sx={{ color: 'rgba(255,255,255,0.8)', mb: 1, display: 'block' }}
+          >
             DIAS DA SEMANA
           </Typography>
           <Stack direction="row" spacing={1}>
@@ -252,7 +257,9 @@ const CurrentWeek = (props: CurrentWeekProps) => {
                   sx={{
                     bgcolor: hasWorkout ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255,255,255,0.1)',
                     color: 'white',
-                    border: hasWorkout ? '1px solid rgba(76, 175, 80, 0.5)' : '1px solid rgba(255,255,255,0.2)',
+                    border: hasWorkout
+                      ? '1px solid rgba(76, 175, 80, 0.5)'
+                      : '1px solid rgba(255,255,255,0.2)',
                     fontWeight: 600,
                     '& .MuiChip-icon': {
                       color: 'white',

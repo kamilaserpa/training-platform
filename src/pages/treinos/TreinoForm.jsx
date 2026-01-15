@@ -1,19 +1,19 @@
 // Formulário de Treino - Criar/Editar
-import { useState, useEffect } from 'react'
-import { useForm, FormProvider } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import dayjs from 'dayjs'
+import { useState, useEffect } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import dayjs from 'dayjs';
 
 // Imports dos serviços
-import { weekService } from '../../services/weekService'
-import { movementPatternService } from '../../services/movementPatternService'
-import { exerciseService } from '../../services/exerciseService'
-import { trainingService } from '../../services/trainingService'
-import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
-import { imageToBase64 } from '../../utils/pdf/pdfUtils'
-import logoImage from '../../assets/images/logo-main.png'
+import { weekService } from '../../services/weekService';
+import { movementPatternService } from '../../services/movementPatternService';
+import { exerciseService } from '../../services/exerciseService';
+import { trainingService } from '../../services/trainingService';
+import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
+import { imageToBase64 } from '../../utils/pdf/pdfUtils';
+import logoImage from '../../assets/images/logo-main.png';
 
 import {
   Container,
@@ -40,8 +40,8 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  Tooltip
-} from '@mui/material'
+  Tooltip,
+} from '@mui/material';
 
 import {
   Save as SaveIcon,
@@ -55,14 +55,9 @@ import {
   Link as LinkIcon,
   CheckCircle as CheckCircleIcon,
   PictureAsPdf as PdfIcon,
-} from '@mui/icons-material'
+} from '@mui/icons-material';
 
-import {
-  FormInput,
-  FormSelect,
-  FormDatePicker,
-  FormCheckbox,
-} from '../../components/form'
+import { FormInput, FormSelect, FormDatePicker, FormCheckbox } from '../../components/form';
 
 // Schema de validação (Yup)
 const validationSchema = yup.object().shape({
@@ -72,28 +67,28 @@ const validationSchema = yup.object().shape({
   observacoes: yup.string(),
   observacoes_internas: yup.string(),
   link_ativo: yup.boolean(),
-})
+});
 
 function TreinoForm() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { id: editingTrainingId } = useParams()
-  const searchParams = new URLSearchParams(location.search)
-  const isEditMode = !!editingTrainingId
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id: editingTrainingId } = useParams();
+  const searchParams = new URLSearchParams(location.search);
+  const isEditMode = !!editingTrainingId;
 
   // Estados para cada seção do treino
-  const [mobilidadeItems, setMobilidadeItems] = useState([])
-  const [coreItems, setCoreItems] = useState([])
-  const [neuralItems, setNeuralItems] = useState([])
-  const [treinoBloco1, setTreinoBloco1] = useState([])
-  const [treinoBloco2, setTreinoBloco2] = useState([])
-  const [condicionamentoItems, setCondicionamentoItems] = useState([])
+  const [mobilidadeItems, setMobilidadeItems] = useState([]);
+  const [coreItems, setCoreItems] = useState([]);
+  const [neuralItems, setNeuralItems] = useState([]);
+  const [treinoBloco1, setTreinoBloco1] = useState([]);
+  const [treinoBloco2, setTreinoBloco2] = useState([]);
+  const [condicionamentoItems, setCondicionamentoItems] = useState([]);
 
   // Estados para dialogs
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [currentSection, setCurrentSection] = useState('')
-  const [editingItem, setEditingItem] = useState(null)
-  const [formData, setFormData] = useState({})
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentSection, setCurrentSection] = useState('');
+  const [editingItem, setEditingItem] = useState(null);
+  const [formData, setFormData] = useState({});
 
   // Configuração do React Hook Form
   const methods = useForm({
@@ -106,267 +101,296 @@ function TreinoForm() {
       observacoes_internas: '',
       link_ativo: false,
     },
-  })
+  });
 
-  const { handleSubmit, formState: { errors }, watch, setValue } = methods
+  const {
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+  } = methods;
 
   // Estados para dados dos selects
-  const [semanasOptions, setSemanasOptions] = useState([])
-  const [semanasCompletas, setSemanasCompletas] = useState([]) // Semanas com todas as informações
-  const [padroesMovimentoOptions, setPadroesMovimentoOptions] = useState([])
-  const [exerciciosOptions, setExerciciosOptions] = useState([])
+  const [semanasOptions, setSemanasOptions] = useState([]);
+  const [semanasCompletas, setSemanasCompletas] = useState([]); // Semanas com todas as informações
+  const [padroesMovimentoOptions, setPadroesMovimentoOptions] = useState([]);
+  const [exerciciosOptions, setExerciciosOptions] = useState([]);
 
   // Estados para destacar dias da semana no date picker
-  const [weekStartDate, setWeekStartDate] = useState(null)
+  const [weekStartDate, setWeekStartDate] = useState(null);
 
   // Responsividade tratada via props responsivas (sx/breakpoints)
-  const [weekEndDate, setWeekEndDate] = useState(null)
+  const [weekEndDate, setWeekEndDate] = useState(null);
 
   // Função helper para formatar protocolo do exercício
   const formatProtocol = (item) => {
-    const parts = []
+    const parts = [];
 
     // Séries e repetições
     if (item.series && item.repeticoes) {
-      parts.push(`${item.series} séries × ${item.repeticoes} reps`)
+      parts.push(`${item.series} séries × ${item.repeticoes} reps`);
     }
 
     // Carga
     if (item.carga && item.carga !== '' && item.carga !== 'undefined') {
-      const carga = item.carga.toString().includes('kg') ? item.carga : `${item.carga}kg`
-      parts.push(carga)
+      const carga = item.carga.toString().includes('kg') ? item.carga : `${item.carga}kg`;
+      parts.push(carga);
     }
 
     // Tempo
-    if (item.tempoSegundos && item.tempoSegundos !== '' && item.tempoSegundos !== 'undefined' && item.tempoSegundos !== 0) {
-      parts.push(`Tempo: ${item.tempoSegundos}s`)
+    if (
+      item.tempoSegundos &&
+      item.tempoSegundos !== '' &&
+      item.tempoSegundos !== 'undefined' &&
+      item.tempoSegundos !== 0
+    ) {
+      parts.push(`Tempo: ${item.tempoSegundos}s`);
     }
 
     // Intervalo
-    if (item.intervaloSegundos && item.intervaloSegundos !== '' && item.intervaloSegundos !== 'undefined' && item.intervaloSegundos !== 0) {
-      parts.push(`Intervalo: ${item.intervaloSegundos}s`)
+    if (
+      item.intervaloSegundos &&
+      item.intervaloSegundos !== '' &&
+      item.intervaloSegundos !== 'undefined' &&
+      item.intervaloSegundos !== 0
+    ) {
+      parts.push(`Intervalo: ${item.intervaloSegundos}s`);
     }
 
     // Total
-    if (item.tempoTotal && item.tempoTotal !== '' && item.tempoTotal !== 'undefined' && item.tempoTotal !== 0) {
-      parts.push(`Total: ${item.tempoTotal}s`)
+    if (
+      item.tempoTotal &&
+      item.tempoTotal !== '' &&
+      item.tempoTotal !== 'undefined' &&
+      item.tempoTotal !== 0
+    ) {
+      parts.push(`Total: ${item.tempoTotal}s`);
     }
 
-    return parts.join(' • ')
-  }
+    return parts.join(' • ');
+  };
 
   // Estados para controle de loading
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(null)
-  const [loadingTrainingData, setLoadingTrainingData] = useState(isEditMode)
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [loadingTrainingData, setLoadingTrainingData] = useState(isEditMode);
 
   // Estados para feedback
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success'
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const [submittingMessage, setSubmittingMessage] = useState('')
+    severity: 'success',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submittingMessage, setSubmittingMessage] = useState('');
 
   // Watch para mudanças na data e semana para atualizar nome do treino automaticamente
-  const watchedValues = watch(['data', 'semana'])
-  const watchedSemana = watch('semana')
+  const watchedValues = watch(['data', 'semana']);
+  const watchedSemana = watch('semana');
 
   useEffect(() => {
     // Evitar execuções durante o carregamento inicial ou quando não há dados
     if (loading || loadingTrainingData) return;
 
-    const [data, semana] = watchedValues
+    const [data, semana] = watchedValues;
     if (data && semana && semanasOptions.length > 0) {
-      const newName = generateTrainingName(semana, data)
-      console.log('🔄 Nome do treino atualizado automaticamente:', newName)
+      const newName = generateTrainingName(semana, data);
+      console.log('🔄 Nome do treino atualizado automaticamente:', newName);
     }
-  }, [watchedValues, semanasOptions, loading, loadingTrainingData])
+  }, [watchedValues, semanasOptions, loading, loadingTrainingData]);
 
   // Estados para compartilhamento
-  const [shareLink, setShareLink] = useState('')
-  const [linkToken, setLinkToken] = useState('')
-  const [copySuccess, setCopySuccess] = useState(false)
+  const [shareLink, setShareLink] = useState('');
+  const [linkToken, setLinkToken] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Estado para nome do treino (usado no breadcrumb)
-  const [trainingName, setTrainingName] = useState('')
+  const [trainingName, setTrainingName] = useState('');
 
   // Função para gerar nome do treino baseado na semana e data
   const generateTrainingName = (weekId, date) => {
-    console.log('🏷️ Gerando nome do treino:', { weekId, date, semanasOptions: semanasOptions.length })
+    console.log('🏷️ Gerando nome do treino:', {
+      weekId,
+      date,
+      semanasOptions: semanasOptions.length,
+    });
 
     if (!weekId || !date) {
-      console.log('⚠️ Dados insuficientes para gerar nome')
-      return 'Treino'
+      console.log('⚠️ Dados insuficientes para gerar nome');
+      return 'Treino';
     }
 
     // Encontrar a semana selecionada
-    const selectedWeek = semanasOptions.find(w => w.id === weekId)
-    console.log('📅 Semana selecionada:', selectedWeek)
+    const selectedWeek = semanasOptions.find((w) => w.id === weekId);
+    console.log('📅 Semana selecionada:', selectedWeek);
 
     if (!selectedWeek) {
-      console.log('⚠️ Semana não encontrada')
-      return 'Treino'
+      console.log('⚠️ Semana não encontrada');
+      return 'Treino';
     }
 
     // Extrair número da semana do label (assumindo formato como "Semana 01 - ...")
-    const weekMatch = selectedWeek.label.match(/\d+/)
-    const weekNumber = weekMatch ? weekMatch[0].padStart(2, '0') : '01'
+    const weekMatch = selectedWeek.label.match(/\d+/);
+    const weekNumber = weekMatch ? weekMatch[0].padStart(2, '0') : '01';
 
     // Converter data para dia da semana (1=domingo, 2=segunda, etc)
-    const dayOfWeek = new Date(date).getDay() + 1 // getDay() retorna 0=domingo, queremos 1=domingo
-    const dayNumber = dayOfWeek.toString().padStart(2, '0')
+    const dayOfWeek = new Date(date).getDay() + 1; // getDay() retorna 0=domingo, queremos 1=domingo
+    const dayNumber = dayOfWeek.toString().padStart(2, '0');
 
-    const finalName = `Treino S${weekNumber}-${dayNumber}`
-    console.log('✨ Nome do treino gerado:', finalName, { weekNumber, dayNumber, dayOfWeek })
+    const finalName = `Treino S${weekNumber}-${dayNumber}`;
+    console.log('✨ Nome do treino gerado:', finalName, { weekNumber, dayNumber, dayOfWeek });
 
     // Atualizar estado
-    setTrainingName(finalName)
+    setTrainingName(finalName);
 
     // Salvar nome no sessionStorage para o breadcrumb (se estiver editando)
     if (editingTrainingId) {
-      sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, finalName)
+      sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, finalName);
     }
 
-    return finalName
-  }
+    return finalName;
+  };
 
   // Carregar dados dos selects ao montar o componente
   useEffect(() => {
     const loadSelectData = async () => {
       try {
-        setLoading(true)
-        setLoadError(null)
+        setLoading(true);
+        setLoadError(null);
 
         // Buscar semanas de treino
-        const semanas = await weekService.getAllTrainingWeeks()
-        const semanasFormatted = semanas.map(semana => ({
+        const semanas = await weekService.getAllTrainingWeeks();
+        const semanasFormatted = semanas.map((semana) => ({
           id: semana.id,
-          label: `${semana.name} - ${semana.week_focus?.name || 'Sem foco'}`
-        }))
+          label: `${semana.name} - ${semana.week_focus?.name || 'Sem foco'}`,
+        }));
 
         // Buscar padrões de movimento
-        const padroes = await movementPatternService.getAllMovementPatterns()
-        const padroesFormatted = padroes.map(padrao => ({
+        const padroes = await movementPatternService.getAllMovementPatterns();
+        const padroesFormatted = padroes.map((padrao) => ({
           id: padrao.id,
-          label: padrao.name
-        }))
+          label: padrao.name,
+        }));
 
         // Buscar exercícios
-        const exercicios = await exerciseService.getAllExercises()
-        const exerciciosFormatted = exercicios.map(exercicio => ({
+        const exercicios = await exerciseService.getAllExercises();
+        const exerciciosFormatted = exercicios.map((exercicio) => ({
           id: exercicio.id,
           label: exercicio.name,
-          movement_pattern: exercicio.movement_pattern?.name || 'Sem padrão'
-        }))
+          movement_pattern: exercicio.movement_pattern?.name || 'Sem padrão',
+        }));
 
-        setSemanasOptions(semanasFormatted)
-        setSemanasCompletas(semanas) // Armazenar semanas completas com datas
-        setPadroesMovimentoOptions(padroesFormatted)
-        setExerciciosOptions(exerciciosFormatted)
+        setSemanasOptions(semanasFormatted);
+        setSemanasCompletas(semanas); // Armazenar semanas completas com datas
+        setPadroesMovimentoOptions(padroesFormatted);
+        setExerciciosOptions(exerciciosFormatted);
 
-        console.log('🔍 Debug - Opções de semanas:', semanasFormatted)
-        console.log('🔍 Debug - Opções de padrões:', padroesFormatted)
-
+        console.log('🔍 Debug - Opções de semanas:', semanasFormatted);
+        console.log('🔍 Debug - Opções de padrões:', padroesFormatted);
       } catch (error) {
-        console.error('❌ Erro ao carregar dados dos selects:', error)
-        setLoadError(error.message)
+        console.error('❌ Erro ao carregar dados dos selects:', error);
+        setLoadError(error.message);
 
         // Fallback para dados básicos em caso de erro
-        setSemanasOptions([
-          { id: 'erro', label: 'Erro ao carregar semanas' }
-        ])
-        setPadroesMovimentoOptions([
-          { id: 'erro', label: 'Erro ao carregar padrões' }
-        ])
-        setExerciciosOptions([
-          { id: 'erro', label: 'Erro ao carregar exercícios' }
-        ])
+        setSemanasOptions([{ id: 'erro', label: 'Erro ao carregar semanas' }]);
+        setPadroesMovimentoOptions([{ id: 'erro', label: 'Erro ao carregar padrões' }]);
+        setExerciciosOptions([{ id: 'erro', label: 'Erro ao carregar exercícios' }]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadSelectData()
-  }, [])
+    loadSelectData();
+  }, []);
 
   // Hook para preencher semana automaticamente via query param
   useEffect(() => {
-    const semanaParam = searchParams.get('semana')
+    const semanaParam = searchParams.get('semana');
 
     if (semanaParam && !isEditMode && semanasOptions.length > 0) {
       // Verificar se a semana existe nas opções
-      const semanaValida = semanasOptions.find(s => s.id === semanaParam)
+      const semanaValida = semanasOptions.find((s) => s.id === semanaParam);
 
       if (semanaValida) {
-        console.log('✅ Preenchendo semana automaticamente:', semanaValida.label)
-        setValue('semana', semanaParam, { shouldValidate: false, shouldDirty: false })
+        console.log('✅ Preenchendo semana automaticamente:', semanaValida.label);
+        setValue('semana', semanaParam, { shouldValidate: false, shouldDirty: false });
       } else {
-        console.warn('⚠️ Semana não encontrada nas opções:', semanaParam)
+        console.warn('⚠️ Semana não encontrada nas opções:', semanaParam);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [semanasOptions.length, isEditMode])
+  }, [semanasOptions.length, isEditMode]);
 
   // Hook para atualizar datas de destaque quando semana é selecionada
   useEffect(() => {
     if (watchedSemana && semanasCompletas.length > 0) {
-      const semanaCompleta = semanasCompletas.find(s => s.id === watchedSemana)
+      const semanaCompleta = semanasCompletas.find((s) => s.id === watchedSemana);
 
       if (semanaCompleta && semanaCompleta.start_date && semanaCompleta.end_date) {
-        console.log('📅 Destacando dias da semana:', semanaCompleta.start_date, '-', semanaCompleta.end_date)
-        setWeekStartDate(semanaCompleta.start_date)
-        setWeekEndDate(semanaCompleta.end_date)
+        console.log(
+          '📅 Destacando dias da semana:',
+          semanaCompleta.start_date,
+          '-',
+          semanaCompleta.end_date,
+        );
+        setWeekStartDate(semanaCompleta.start_date);
+        setWeekEndDate(semanaCompleta.end_date);
       } else {
-        console.log('⚠️ Semana sem datas definidas, não destacando dias')
-        setWeekStartDate(null)
-        setWeekEndDate(null)
+        console.log('⚠️ Semana sem datas definidas, não destacando dias');
+        setWeekStartDate(null);
+        setWeekEndDate(null);
       }
     } else {
-      setWeekStartDate(null)
-      setWeekEndDate(null)
+      setWeekStartDate(null);
+      setWeekEndDate(null);
     }
-  }, [watchedSemana, semanasCompletas])
+  }, [watchedSemana, semanasCompletas]);
 
   // Hook para carregar dados do treino em modo de edição
   useEffect(() => {
     let isMounted = true;
 
     const loadTrainingData = async () => {
-      if (!isEditMode || !editingTrainingId || loading ||
-        semanasOptions.length === 0 || padroesMovimentoOptions.length === 0) {
-        return
+      if (
+        !isEditMode ||
+        !editingTrainingId ||
+        loading ||
+        semanasOptions.length === 0 ||
+        padroesMovimentoOptions.length === 0
+      ) {
+        return;
       }
 
       try {
-        setLoadingTrainingData(true)
-        console.log('🔄 Carregando dados do treino:', editingTrainingId)
+        setLoadingTrainingData(true);
+        console.log('🔄 Carregando dados do treino:', editingTrainingId);
 
-        const trainingData = await trainingService.getTrainingById(editingTrainingId)
+        const trainingData = await trainingService.getTrainingById(editingTrainingId);
 
         if (!isMounted) return; // Evitar atualização se o componente foi desmontado
 
         if (!trainingData) {
-          throw new Error('Treino não encontrado')
+          throw new Error('Treino não encontrado');
         }
 
         // Validar semana contra opções disponíveis
-        const validWeekId = semanasOptions.find(week => week.id === trainingData.training_week_id)?.id || ''
+        const validWeekId =
+          semanasOptions.find((week) => week.id === trainingData.training_week_id)?.id || '';
 
         // Extrair o padrão de movimento do nome do treino se não estiver no campo específico
-        let selectedPatternId = ''
+        let selectedPatternId = '';
         if (trainingData.name) {
-          const patternMatch = padroesMovimentoOptions.find(pattern =>
-            trainingData.name.toLowerCase().includes(pattern.label.toLowerCase())
-          )
-          selectedPatternId = patternMatch?.id || ''
+          const patternMatch = padroesMovimentoOptions.find((pattern) =>
+            trainingData.name.toLowerCase().includes(pattern.label.toLowerCase()),
+          );
+          selectedPatternId = patternMatch?.id || '';
         }
 
         // Validar padrão de movimento contra opções disponíveis
-        const validPatternId = padroesMovimentoOptions.find(pattern =>
-          pattern.id === (trainingData.movement_pattern_id || selectedPatternId)
-        )?.id || ''
+        const validPatternId =
+          padroesMovimentoOptions.find(
+            (pattern) => pattern.id === (trainingData.movement_pattern_id || selectedPatternId),
+          )?.id || '';
 
         // Popular o formulário principal com conversão de data para dayjs
         const formData = {
@@ -377,337 +401,374 @@ function TreinoForm() {
           observacoes: trainingData.description || '',
           observacoes_internas: trainingData.internal_notes || '',
           link_ativo: trainingData.share_status === 'public',
-        }
+        };
 
         // Salvar nome do treino no sessionStorage para o breadcrumb (genérico)
-        const currentName = trainingData.name || 'Treino'
-        setTrainingName(currentName)
-        sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, currentName)
+        const currentName = trainingData.name || 'Treino';
+        setTrainingName(currentName);
+        sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, currentName);
 
-        console.log('🔍 Dados formatados para o formulário:', formData)
-        console.log('📊 Opções válidas - Semanas:', semanasOptions.length, 'Padrões:', padroesMovimentoOptions.length)
+        console.log('🔍 Dados formatados para o formulário:', formData);
+        console.log(
+          '📊 Opções válidas - Semanas:',
+          semanasOptions.length,
+          'Padrões:',
+          padroesMovimentoOptions.length,
+        );
 
         // Carregar dados de compartilhamento se existirem
         if (trainingData.share_token) {
-          setLinkToken(trainingData.share_token)
-          setShareLink(generateShareLink(trainingData.share_token))
+          setLinkToken(trainingData.share_token);
+          setShareLink(generateShareLink(trainingData.share_token));
         }
 
-        methods.reset(formData)
+        methods.reset(formData);
 
         // Popular os blocos do treino
-        populateTrainingBlocks(trainingData.training_blocks || [])
-
+        populateTrainingBlocks(trainingData.training_blocks || []);
       } catch (error) {
-        console.error('❌ Erro ao carregar dados do treino:', error)
+        console.error('❌ Erro ao carregar dados do treino:', error);
         if (isMounted) {
           setSnackbar({
             open: true,
             message: 'Erro ao carregar dados do treino',
-            severity: 'error'
-          })
+            severity: 'error',
+          });
         }
       } finally {
         if (isMounted) {
-          setLoadingTrainingData(false)
+          setLoadingTrainingData(false);
         }
       }
-    }
+    };
 
-    loadTrainingData()
+    loadTrainingData();
 
     return () => {
       isMounted = false;
-    }
-  }, [isEditMode, editingTrainingId, loading, semanasOptions.length, padroesMovimentoOptions.length])
+    };
+  }, [
+    isEditMode,
+    editingTrainingId,
+    loading,
+    semanasOptions.length,
+    padroesMovimentoOptions.length,
+  ]);
 
   // Função para popular os blocos do treino
   const populateTrainingBlocks = (blocks) => {
     // Limpar todos os blocos
-    setMobilidadeItems([])
-    setCoreItems([])
-    setNeuralItems([])
-    setTreinoBloco1([])
-    setTreinoBloco2([])
-    setCondicionamentoItems([])
+    setMobilidadeItems([]);
+    setCoreItems([]);
+    setNeuralItems([]);
+    setTreinoBloco1([]);
+    setTreinoBloco2([]);
+    setCondicionamentoItems([]);
 
     // Popular cada bloco baseado no tipo
-    blocks.forEach(block => {
+    blocks.forEach((block) => {
       switch (block.block_type) {
         case 'MOBILIDADE_ARTICULAR':
           // Para mobilidade, preservar ID do exercício
-          const mobilityItems = block.exercise_prescriptions?.map(prescription => ({
-            nome: prescription.exercise?.name || 'Exercício não encontrado',
-            exercicioId: prescription.exercise?.id
-          })) || []
-          setMobilidadeItems(mobilityItems)
-          break
+          const mobilityItems =
+            block.exercise_prescriptions?.map((prescription) => ({
+              nome: prescription.exercise?.name || 'Exercício não encontrado',
+              exercicioId: prescription.exercise?.id,
+            })) || [];
+          setMobilidadeItems(mobilityItems);
+          break;
         case 'ATIVACAO_CORE':
-          const coreItems = block.exercise_prescriptions?.map(prescription => {
-            const series = prescription.sets || 0
-            const tempoSegundos = prescription.duration_seconds || 0
-            const intervaloSegundos = prescription.rest_seconds || 0
-            const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0
+          const coreItems =
+            block.exercise_prescriptions?.map((prescription) => {
+              const series = prescription.sets || 0;
+              const tempoSegundos = prescription.duration_seconds || 0;
+              const intervaloSegundos = prescription.rest_seconds || 0;
+              const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0;
 
-            return {
-              nome: prescription.exercise?.name || 'Exercício não encontrado',
-              exercicioId: prescription.exercise?.id,
-              series: prescription.sets || '',
-              repeticoes: prescription.reps || '',
-              carga: prescription.weight_kg || '',
-              tempoSegundos: prescription.duration_seconds || '',
-              intervaloSegundos: prescription.rest_seconds || '',
-              tempoTotal: tempoTotal,
-              observacoes: prescription.notes || ''
-            }
-          }) || []
-          setCoreItems(coreItems)
-          break
+              return {
+                nome: prescription.exercise?.name || 'Exercício não encontrado',
+                exercicioId: prescription.exercise?.id,
+                series: prescription.sets || '',
+                repeticoes: prescription.reps || '',
+                carga: prescription.weight_kg || '',
+                tempoSegundos: prescription.duration_seconds || '',
+                intervaloSegundos: prescription.rest_seconds || '',
+                tempoTotal: tempoTotal,
+                observacoes: prescription.notes || '',
+              };
+            }) || [];
+          setCoreItems(coreItems);
+          break;
         case 'ATIVACAO_NEURAL':
-          const neuralItems = block.exercise_prescriptions?.map(prescription => {
-            const series = prescription.sets || 0
-            const tempoSegundos = prescription.duration_seconds || 0
-            const intervaloSegundos = prescription.rest_seconds || 0
-            const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0
+          const neuralItems =
+            block.exercise_prescriptions?.map((prescription) => {
+              const series = prescription.sets || 0;
+              const tempoSegundos = prescription.duration_seconds || 0;
+              const intervaloSegundos = prescription.rest_seconds || 0;
+              const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0;
 
-            return {
-              nome: prescription.exercise?.name || 'Exercício não encontrado',
-              exercicioId: prescription.exercise?.id,
-              series: prescription.sets || '',
-              repeticoes: prescription.reps || '',
-              carga: prescription.weight_kg || '',
-              tempoSegundos: prescription.duration_seconds || '',
-              intervaloSegundos: prescription.rest_seconds || '',
-              tempoTotal: tempoTotal,
-              observacoes: prescription.notes || ''
-            }
-          }) || []
-          setNeuralItems(neuralItems)
-          break
+              return {
+                nome: prescription.exercise?.name || 'Exercício não encontrado',
+                exercicioId: prescription.exercise?.id,
+                series: prescription.sets || '',
+                repeticoes: prescription.reps || '',
+                carga: prescription.weight_kg || '',
+                tempoSegundos: prescription.duration_seconds || '',
+                intervaloSegundos: prescription.rest_seconds || '',
+                tempoTotal: tempoTotal,
+                observacoes: prescription.notes || '',
+              };
+            }) || [];
+          setNeuralItems(neuralItems);
+          break;
         case 'TREINO_PRINCIPAL':
           // Identificar qual bloco principal pelo nome ou ordem
-          const principalItems = block.exercise_prescriptions?.map(prescription => {
-            const series = prescription.sets || 0
-            const tempoSegundos = prescription.duration_seconds || 0
-            const intervaloSegundos = prescription.rest_seconds || 0
-            const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0
+          const principalItems =
+            block.exercise_prescriptions?.map((prescription) => {
+              const series = prescription.sets || 0;
+              const tempoSegundos = prescription.duration_seconds || 0;
+              const intervaloSegundos = prescription.rest_seconds || 0;
+              const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0;
 
-            return {
-              nome: prescription.exercise?.name || 'Exercício não encontrado',
-              exercicioId: prescription.exercise?.id,
-              series: prescription.sets || '',
-              repeticoes: prescription.reps || '',
-              carga: prescription.weight_kg || '',
-              tempoSegundos: prescription.duration_seconds || '',
-              intervaloSegundos: prescription.rest_seconds || '',
-              tempoTotal: tempoTotal,
-              observacoes: prescription.notes || ''
-            }
-          }) || []
+              return {
+                nome: prescription.exercise?.name || 'Exercício não encontrado',
+                exercicioId: prescription.exercise?.id,
+                series: prescription.sets || '',
+                repeticoes: prescription.reps || '',
+                carga: prescription.weight_kg || '',
+                tempoSegundos: prescription.duration_seconds || '',
+                intervaloSegundos: prescription.rest_seconds || '',
+                tempoTotal: tempoTotal,
+                observacoes: prescription.notes || '',
+              };
+            }) || [];
 
           // Verificar pelo nome do bloco ou ordem para saber qual bloco é
           if (block.name === 'Bloco Principal 1' || block.order_index === 4) {
-            setTreinoBloco1(principalItems)
-            console.log('📦 [DEBUG] Carregando exercícios para Bloco Principal 1:', principalItems.length, 'itens')
+            setTreinoBloco1(principalItems);
+            console.log(
+              '📦 [DEBUG] Carregando exercícios para Bloco Principal 1:',
+              principalItems.length,
+              'itens',
+            );
           } else if (block.name === 'Bloco Principal 2' || block.order_index === 5) {
-            setTreinoBloco2(principalItems)
-            console.log('📦 [DEBUG] Carregando exercícios para Bloco Principal 2:', principalItems.length, 'itens')
+            setTreinoBloco2(principalItems);
+            console.log(
+              '📦 [DEBUG] Carregando exercícios para Bloco Principal 2:',
+              principalItems.length,
+              'itens',
+            );
           } else {
             // Fallback: se não conseguir identificar, dividir pela metade (comportamento antigo)
-            const midPoint = Math.ceil(principalItems.length / 2)
-            setTreinoBloco1(principalItems.slice(0, midPoint))
-            setTreinoBloco2(principalItems.slice(midPoint))
-            console.log('📦 [DEBUG] Dividindo exercícios principal (fallback) - Bloco 1:', midPoint, '- Bloco 2:', principalItems.length - midPoint)
+            const midPoint = Math.ceil(principalItems.length / 2);
+            setTreinoBloco1(principalItems.slice(0, midPoint));
+            setTreinoBloco2(principalItems.slice(midPoint));
+            console.log(
+              '📦 [DEBUG] Dividindo exercícios principal (fallback) - Bloco 1:',
+              midPoint,
+              '- Bloco 2:',
+              principalItems.length - midPoint,
+            );
           }
-          break
+          break;
         case 'CONDICIONAMENTO_FISICO':
-          const condicionamentoItems = block.exercise_prescriptions?.map(prescription => ({
-            nome: prescription.exercise?.name || 'Exercício não encontrado',
-            exercicioId: prescription.exercise?.id,
-            series: prescription.sets || '',
-            repeticoes: prescription.reps || '',
-            tempoSegundos: prescription.duration_seconds || '',
-            intervaloSegundos: prescription.rest_seconds || '',
-            observacoes: prescription.notes || ''
-          })) || []
-          setCondicionamentoItems(condicionamentoItems)
-          break
+          const condicionamentoItems =
+            block.exercise_prescriptions?.map((prescription) => ({
+              nome: prescription.exercise?.name || 'Exercício não encontrado',
+              exercicioId: prescription.exercise?.id,
+              series: prescription.sets || '',
+              repeticoes: prescription.reps || '',
+              tempoSegundos: prescription.duration_seconds || '',
+              intervaloSegundos: prescription.rest_seconds || '',
+              observacoes: prescription.notes || '',
+            })) || [];
+          setCondicionamentoItems(condicionamentoItems);
+          break;
         default:
-          console.warn('Tipo de bloco não reconhecido:', block.block_type)
+          console.warn('Tipo de bloco não reconhecido:', block.block_type);
       }
-    })
-  }
+    });
+  };
 
   // Handlers para abrir dialogs
   const handleOpenDialog = (section, itemOrIndex = null) => {
-    setCurrentSection(section)
+    setCurrentSection(section);
 
     // Se itemOrIndex é um número, é um índice (para edição)
     // Se é um objeto ou null, é um item direto ou novo item
     if (typeof itemOrIndex === 'number') {
       // Está editando - encontrar o item pelo índice
-      let item = null
-      let index = itemOrIndex
+      let item = null;
+      const index = itemOrIndex;
 
       switch (section) {
         case 'mobilidade':
-          item = mobilidadeItems[index]
-          break
+          item = mobilidadeItems[index];
+          break;
         case 'core':
-          item = coreItems[index]
-          break
+          item = coreItems[index];
+          break;
         case 'neural':
-          item = neuralItems[index]
-          break
+          item = neuralItems[index];
+          break;
         case 'treino1':
-          item = treinoBloco1[index]
-          break
+          item = treinoBloco1[index];
+          break;
         case 'treino2':
-          item = treinoBloco2[index]
-          break
+          item = treinoBloco2[index];
+          break;
         case 'condicionamento':
-          item = condicionamentoItems[index]
-          break
+          item = condicionamentoItems[index];
+          break;
       }
 
-      setEditingItem(index)
-      setFormData(item || {})
+      setEditingItem(index);
+      setFormData(item || {});
     } else {
       // Novo item ou item direto
-      setEditingItem(null)
-      setFormData(itemOrIndex || {})
+      setEditingItem(null);
+      setFormData(itemOrIndex || {});
     }
 
-    setDialogOpen(true)
-  }
+    setDialogOpen(true);
+  };
 
   const handleCloseDialog = () => {
-    setDialogOpen(false)
-    setCurrentSection('')
-    setEditingItem(null)
-    setFormData({})
-  }
-
+    setDialogOpen(false);
+    setCurrentSection('');
+    setEditingItem(null);
+    setFormData({});
+  };
 
   // Handler para salvar item
   const handleSaveItem = () => {
-    console.log('💾 Salvando item na seção:', currentSection, 'Dados:', formData)
+    console.log('💾 Salvando item na seção:', currentSection, 'Dados:', formData);
 
     switch (currentSection) {
       case 'mobilidade':
         if (!formData.nome) {
-          console.warn('⚠️ Nome do exercício de mobilidade não definido:', formData)
+          console.warn('⚠️ Nome do exercício de mobilidade não definido:', formData);
           setSnackbar({
             open: true,
             message: 'Por favor, selecione um exercício de mobilidade',
-            severity: 'warning'
-          })
-          return
+            severity: 'warning',
+          });
+          return;
         }
 
         // Para mobilidade, vamos armazenar um objeto com ID e nome se disponível
         const mobilityItem = formData.exercicioId
           ? { nome: formData.nome, exercicioId: formData.exercicioId }
-          : formData.nome
+          : formData.nome;
 
         if (editingItem !== null) {
-          const newItems = [...mobilidadeItems]
-          newItems[editingItem] = mobilityItem
-          setMobilidadeItems(newItems)
-          console.log('✏️ Item de mobilidade editado:', mobilityItem)
+          const newItems = [...mobilidadeItems];
+          newItems[editingItem] = mobilityItem;
+          setMobilidadeItems(newItems);
+          console.log('✏️ Item de mobilidade editado:', mobilityItem);
         } else {
-          setMobilidadeItems([...mobilidadeItems, mobilityItem])
-          console.log('➕ Item de mobilidade adicionado:', mobilityItem)
+          setMobilidadeItems([...mobilidadeItems, mobilityItem]);
+          console.log('➕ Item de mobilidade adicionado:', mobilityItem);
         }
-        break
+        break;
 
       case 'core':
         if (editingItem !== null) {
-          const newItems = [...coreItems]
-          newItems[editingItem] = formData
-          setCoreItems(newItems)
+          const newItems = [...coreItems];
+          newItems[editingItem] = formData;
+          setCoreItems(newItems);
         } else {
-          setCoreItems([...coreItems, formData])
+          setCoreItems([...coreItems, formData]);
         }
-        break
+        break;
 
       case 'neural':
         if (editingItem !== null) {
-          const newItems = [...neuralItems]
-          newItems[editingItem] = formData
-          setNeuralItems(newItems)
+          const newItems = [...neuralItems];
+          newItems[editingItem] = formData;
+          setNeuralItems(newItems);
         } else {
-          setNeuralItems([...neuralItems, formData])
+          setNeuralItems([...neuralItems, formData]);
         }
-        break
+        break;
 
       case 'treino1':
         if (editingItem !== null) {
-          const newItems = [...treinoBloco1]
-          newItems[editingItem] = formData
-          setTreinoBloco1(newItems)
+          const newItems = [...treinoBloco1];
+          newItems[editingItem] = formData;
+          setTreinoBloco1(newItems);
         } else {
-          setTreinoBloco1([...treinoBloco1, formData])
+          setTreinoBloco1([...treinoBloco1, formData]);
         }
-        break
+        break;
 
       case 'treino2':
         if (editingItem !== null) {
-          const newItems = [...treinoBloco2]
-          newItems[editingItem] = formData
-          setTreinoBloco2(newItems)
-          console.log('✏️ [DEBUG] Exercício editado no Bloco 2:', formData.exercicio, '- Total itens:', newItems.length)
+          const newItems = [...treinoBloco2];
+          newItems[editingItem] = formData;
+          setTreinoBloco2(newItems);
+          console.log(
+            '✏️ [DEBUG] Exercício editado no Bloco 2:',
+            formData.exercicio,
+            '- Total itens:',
+            newItems.length,
+          );
         } else {
-          setTreinoBloco2([...treinoBloco2, formData])
-          console.log('➕ [DEBUG] Exercício adicionado ao Bloco 2:', formData.exercicio, '- Total itens:', treinoBloco2.length + 1)
+          setTreinoBloco2([...treinoBloco2, formData]);
+          console.log(
+            '➕ [DEBUG] Exercício adicionado ao Bloco 2:',
+            formData.exercicio,
+            '- Total itens:',
+            treinoBloco2.length + 1,
+          );
         }
-        break
+        break;
 
       case 'condicionamento':
         if (editingItem !== null) {
-          const newItems = [...condicionamentoItems]
-          newItems[editingItem] = formData
-          setCondicionamentoItems(newItems)
+          const newItems = [...condicionamentoItems];
+          newItems[editingItem] = formData;
+          setCondicionamentoItems(newItems);
         } else {
-          setCondicionamentoItems([...condicionamentoItems, formData])
+          setCondicionamentoItems([...condicionamentoItems, formData]);
         }
-        break
+        break;
     }
 
-    handleCloseDialog()
-  }
+    handleCloseDialog();
+  };
 
   // Handlers para remover itens
   const handleRemoveItem = (section, index) => {
     switch (section) {
       case 'mobilidade':
-        setMobilidadeItems(mobilidadeItems.filter((_, i) => i !== index))
-        break
+        setMobilidadeItems(mobilidadeItems.filter((_, i) => i !== index));
+        break;
       case 'core':
-        setCoreItems(coreItems.filter((_, i) => i !== index))
-        break
+        setCoreItems(coreItems.filter((_, i) => i !== index));
+        break;
       case 'neural':
-        setNeuralItems(neuralItems.filter((_, i) => i !== index))
-        break
+        setNeuralItems(neuralItems.filter((_, i) => i !== index));
+        break;
       case 'treino1':
-        setTreinoBloco1(treinoBloco1.filter((_, i) => i !== index))
-        break
+        setTreinoBloco1(treinoBloco1.filter((_, i) => i !== index));
+        break;
       case 'treino2':
-        setTreinoBloco2(treinoBloco2.filter((_, i) => i !== index))
-        break
+        setTreinoBloco2(treinoBloco2.filter((_, i) => i !== index));
+        break;
       case 'condicionamento':
-        setCondicionamentoItems(condicionamentoItems.filter((_, i) => i !== index))
-        break
+        setCondicionamentoItems(condicionamentoItems.filter((_, i) => i !== index));
+        break;
     }
-  }
+  };
 
   // Calcular tempo total do treino bloco
   const calcularTempoTotal = (items) => {
-    const totalSegundos = items.reduce((acc, item) => acc + (item.tempoTotal || 0), 0)
-    const minutos = Math.floor(totalSegundos / 60)
-    const segundos = totalSegundos % 60
-    return `${minutos}min ${segundos}s`
-  }
+    const totalSegundos = items.reduce((acc, item) => acc + (item.tempoTotal || 0), 0);
+    const minutos = Math.floor(totalSegundos / 60);
+    const segundos = totalSegundos % 60;
+    return `${minutos}min ${segundos}s`;
+  };
 
   // Função para criar os blocos do treino no banco
   const createTrainingBlocks = async (trainingId) => {
@@ -716,55 +777,56 @@ function TreinoForm() {
         name: 'Mobilidade Articular',
         type: 'MOBILIDADE_ARTICULAR',
         items: mobilidadeItems,
-        order: 1
+        order: 1,
       },
       {
         name: 'Ativação de Core',
         type: 'ATIVACAO_CORE',
         items: coreItems,
-        order: 2
+        order: 2,
       },
       {
         name: 'Ativação Neural',
         type: 'ATIVACAO_NEURAL',
         items: neuralItems,
-        order: 3
+        order: 3,
       },
       {
         name: 'Bloco Principal 1',
         type: 'TREINO_PRINCIPAL',
         items: treinoBloco1,
-        order: 4
+        order: 4,
       },
       {
         name: 'Bloco Principal 2',
         type: 'TREINO_PRINCIPAL',
         items: treinoBloco2,
-        order: 5
+        order: 5,
       },
       {
         name: 'Condicionamento Físico',
         type: 'CONDICIONAMENTO_FISICO',
         items: condicionamentoItems,
-        order: 6
-      }
-    ]
+        order: 6,
+      },
+    ];
 
-    console.log('🔍 [DEBUG] Estados dos blocos antes do filtro:')
-    console.log('- Mobilidade:', mobilidadeItems.length, 'itens')
-    console.log('- Core:', coreItems.length, 'itens')
-    console.log('- Neural:', neuralItems.length, 'itens')
-    console.log('- Bloco 1:', treinoBloco1.length, 'itens')
-    console.log('- Bloco 2:', treinoBloco2.length, 'itens')
-    console.log('- Condicionamento:', condicionamentoItems.length, 'itens')
+    console.log('🔍 [DEBUG] Estados dos blocos antes do filtro:');
+    console.log('- Mobilidade:', mobilidadeItems.length, 'itens');
+    console.log('- Core:', coreItems.length, 'itens');
+    console.log('- Neural:', neuralItems.length, 'itens');
+    console.log('- Bloco 1:', treinoBloco1.length, 'itens');
+    console.log('- Bloco 2:', treinoBloco2.length, 'itens');
+    console.log('- Condicionamento:', condicionamentoItems.length, 'itens');
 
     // Filtrar apenas blocos que têm itens
-    const blocksWithItems = blocksToCreate.filter(block =>
-      block.items && block.items.length > 0
-    )
+    const blocksWithItems = blocksToCreate.filter((block) => block.items && block.items.length > 0);
 
-    console.log('📊 Criando', blocksWithItems.length, 'blocos com exercícios')
-    console.log('🔍 [DEBUG] Blocos que serão criados:', blocksWithItems.map(b => `${b.name}: ${b.items.length} itens`))
+    console.log('📊 Criando', blocksWithItems.length, 'blocos com exercícios');
+    console.log(
+      '🔍 [DEBUG] Blocos que serão criados:',
+      blocksWithItems.map((b) => `${b.name}: ${b.items.length} itens`),
+    );
 
     for (const blockConfig of blocksWithItems) {
       try {
@@ -774,79 +836,90 @@ function TreinoForm() {
           name: blockConfig.name,
           block_type: blockConfig.type,
           order_index: blockConfig.order,
-          rest_between_exercises_seconds: 60
-        }
+          rest_between_exercises_seconds: 60,
+        };
 
-        console.log('🛠️ Criando bloco:', blockData.name)
-        const createdBlock = await trainingService.createTrainingBlock(blockData)
+        console.log('🛠️ Criando bloco:', blockData.name);
+        const createdBlock = await trainingService.createTrainingBlock(blockData);
 
         // Adicionar exercícios ao bloco
         for (let i = 0; i < blockConfig.items.length; i++) {
-          const item = blockConfig.items[i]
+          const item = blockConfig.items[i];
 
           // Se o item é uma string (mobilidade), buscar exercício existente
           if (typeof item === 'string') {
-            await createExerciseFromString(createdBlock.id, item, i + 1, blockConfig.type)
+            await createExerciseFromString(createdBlock.id, item, i + 1, blockConfig.type);
           } else if (item.nome) {
             // Se o item tem estrutura de exercício
-            await createExerciseFromObject(createdBlock.id, item, i + 1)
+            await createExerciseFromObject(createdBlock.id, item, i + 1);
           }
         }
 
-        console.log('✅ Bloco', blockData.name, 'criado com', blockConfig.items.length, 'exercícios')
-
+        console.log(
+          '✅ Bloco',
+          blockData.name,
+          'criado com',
+          blockConfig.items.length,
+          'exercícios',
+        );
       } catch (error) {
-        console.error('❌ Erro ao criar bloco', blockConfig.name, ':', error)
+        console.error('❌ Erro ao criar bloco', blockConfig.name, ':', error);
       }
     }
-  }
+  };
 
   // Função auxiliar para criar exercício a partir de string
   const createExerciseFromString = async (blockId, exerciseName, order, blockType) => {
     try {
       // Buscar exercícios existentes
-      const exercises = await exerciseService.getAllExercises()
-      let exercise = null
+      const exercises = await exerciseService.getAllExercises();
+      let exercise = null;
 
-      console.log(`🔍 Buscando exercício '${exerciseName}' para bloco tipo '${blockType}'`)
+      console.log(`🔍 Buscando exercício '${exerciseName}' para bloco tipo '${blockType}'`);
 
       // Para mobilidade articular, priorizar exercícios com padrão "mobilidade"
       if (blockType === 'MOBILIDADE_ARTICULAR') {
         // Primeiro buscar por nome exato (caso o nome seja exato)
-        exercise = exercises.find(ex => ex.name.toLowerCase() === exerciseName.toLowerCase())
+        exercise = exercises.find((ex) => ex.name.toLowerCase() === exerciseName.toLowerCase());
 
         if (!exercise) {
           // Buscar exercícios de mobilidade por nome similar
-          exercise = exercises.find(ex =>
-            ex.movement_pattern?.name?.toLowerCase().includes('mobilidade') &&
-            ex.name.toLowerCase().includes(exerciseName.toLowerCase())
-          )
+          exercise = exercises.find(
+            (ex) =>
+              ex.movement_pattern?.name?.toLowerCase().includes('mobilidade') &&
+              ex.name.toLowerCase().includes(exerciseName.toLowerCase()),
+          );
         }
 
         if (!exercise) {
           // Buscar qualquer exercício de mobilidade que contenha parte do nome
-          exercise = exercises.find(ex =>
-            ex.movement_pattern?.name?.toLowerCase().includes('mobilidade') &&
-            exerciseName.toLowerCase().includes(ex.name.toLowerCase())
-          )
+          exercise = exercises.find(
+            (ex) =>
+              ex.movement_pattern?.name?.toLowerCase().includes('mobilidade') &&
+              exerciseName.toLowerCase().includes(ex.name.toLowerCase()),
+          );
         }
 
         if (!exercise) {
           // Como último recurso, buscar qualquer exercício de mobilidade
-          exercise = exercises.find(ex =>
-            ex.movement_pattern?.name?.toLowerCase().includes('mobilidade')
-          )
+          exercise = exercises.find((ex) =>
+            ex.movement_pattern?.name?.toLowerCase().includes('mobilidade'),
+          );
         }
 
-        console.log(`🎯 Exercício de mobilidade ${exercise ? 'encontrado' : 'não encontrado'}:`,
-          exercise ? exercise.name : 'N/A')
+        console.log(
+          `🎯 Exercício de mobilidade ${exercise ? 'encontrado' : 'não encontrado'}:`,
+          exercise ? exercise.name : 'N/A',
+        );
       } else {
         // Para outros tipos, buscar por nome exato primeiro
-        exercise = exercises.find(ex => ex.name.toLowerCase() === exerciseName.toLowerCase())
+        exercise = exercises.find((ex) => ex.name.toLowerCase() === exerciseName.toLowerCase());
 
         // Se não encontrou, buscar por nome similar
         if (!exercise) {
-          exercise = exercises.find(ex => ex.name.toLowerCase().includes(exerciseName.toLowerCase()))
+          exercise = exercises.find((ex) =>
+            ex.name.toLowerCase().includes(exerciseName.toLowerCase()),
+          );
         }
       }
 
@@ -858,23 +931,28 @@ function TreinoForm() {
           order_index: order,
           sets: blockType === 'MOBILIDADE_ARTICULAR' ? 1 : 2,
           reps: blockType === 'MOBILIDADE_ARTICULAR' ? '30s' : '15',
-          rest_seconds: blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 60
-        })
-        console.log(`✅ Exercício '${exercise.name}' adicionado ao bloco com sucesso`)
+          rest_seconds: blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 60,
+        });
+        console.log(`✅ Exercício '${exercise.name}' adicionado ao bloco com sucesso`);
       } else {
-        console.log(`⚠️ Exercício '${exerciseName}' não encontrado no banco, pulando...`)
+        console.log(`⚠️ Exercício '${exerciseName}' não encontrado no banco, pulando...`);
       }
-
     } catch (error) {
-      console.error('❌ Erro ao processar exercício', exerciseName, ':', error)
+      console.error('❌ Erro ao processar exercício', exerciseName, ':', error);
     }
-  }
+  };
 
   // Função auxiliar para criar exercício a partir de ID
-  const createExerciseFromId = async (blockId, exerciseId, order, blockType, exerciseData = null) => {
+  const createExerciseFromId = async (
+    blockId,
+    exerciseId,
+    order,
+    blockType,
+    exerciseData = null,
+  ) => {
     try {
-      console.log(`🔍 Adicionando exercício por ID '${exerciseId}' ao bloco tipo '${blockType}'`)
-      console.log(`🔍 Dados do exercício recebidos:`, exerciseData)
+      console.log(`🔍 Adicionando exercício por ID '${exerciseId}' ao bloco tipo '${blockType}'`);
+      console.log(`🔍 Dados do exercício recebidos:`, exerciseData);
 
       // Usar dados específicos se fornecidos, senão usar padrões
       const prescriptionData = {
@@ -882,217 +960,272 @@ function TreinoForm() {
         exercise_id: exerciseId,
         order_index: order,
         sets: exerciseData?.series || (blockType === 'MOBILIDADE_ARTICULAR' ? 1 : 2),
-        rest_seconds: exerciseData?.intervaloSegundos !== undefined && exerciseData?.intervaloSegundos !== '' && exerciseData?.intervaloSegundos !== null ?
-          parseInt(exerciseData.intervaloSegundos) :
-          (blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 60)
-      }
+        rest_seconds:
+          exerciseData?.intervaloSegundos !== undefined &&
+          exerciseData?.intervaloSegundos !== '' &&
+          exerciseData?.intervaloSegundos !== null
+            ? parseInt(exerciseData.intervaloSegundos)
+            : blockType === 'MOBILIDADE_ARTICULAR'
+              ? 30
+              : 60,
+      };
 
       // Definir repetições ou tempo
-      if (exerciseData?.tempoSegundos !== undefined && exerciseData?.tempoSegundos !== '' && exerciseData?.tempoSegundos !== null) {
-        prescriptionData.duration_seconds = parseInt(exerciseData.tempoSegundos)
-        prescriptionData.reps = null
+      if (
+        exerciseData?.tempoSegundos !== undefined &&
+        exerciseData?.tempoSegundos !== '' &&
+        exerciseData?.tempoSegundos !== null
+      ) {
+        prescriptionData.duration_seconds = parseInt(exerciseData.tempoSegundos);
+        prescriptionData.reps = null;
       } else if (exerciseData?.repeticoes) {
-        prescriptionData.reps = exerciseData.repeticoes
-        prescriptionData.duration_seconds = null
+        prescriptionData.reps = exerciseData.repeticoes;
+        prescriptionData.duration_seconds = null;
       } else {
         // Valores padrão
-        prescriptionData.reps = blockType === 'MOBILIDADE_ARTICULAR' ? '30s' : '15'
-        prescriptionData.duration_seconds = null
+        prescriptionData.reps = blockType === 'MOBILIDADE_ARTICULAR' ? '30s' : '15';
+        prescriptionData.duration_seconds = null;
       }
 
       // Adicionar peso se disponível
       if (exerciseData?.carga && exerciseData.carga !== '') {
-        const peso = parseFloat(exerciseData.carga.replace('kg', '').trim())
+        const peso = parseFloat(exerciseData.carga.replace('kg', '').trim());
         if (!isNaN(peso)) {
-          prescriptionData.weight_kg = peso
+          prescriptionData.weight_kg = peso;
         }
       }
 
-      console.log('💾 [DEBUG] Dados da prescrição que serão salvos (createExerciseFromId):', prescriptionData)
-      await trainingService.addExerciseToBlock(prescriptionData)
+      console.log(
+        '💾 [DEBUG] Dados da prescrição que serão salvos (createExerciseFromId):',
+        prescriptionData,
+      );
+      await trainingService.addExerciseToBlock(prescriptionData);
 
-      console.log(`✅ Exercício ID '${exerciseId}' adicionado ao bloco com sucesso`)
-
+      console.log(`✅ Exercício ID '${exerciseId}' adicionado ao bloco com sucesso`);
     } catch (error) {
-      console.error('❌ Erro ao processar exercício por ID', exerciseId, ':', error)
+      console.error('❌ Erro ao processar exercício por ID', exerciseId, ':', error);
     }
-  }
+  };
 
   // Função auxiliar para criar exercício a partir de objeto
   const createExerciseFromObject = async (blockId, exerciseObj, order) => {
     try {
-      console.log('🔍 [DEBUG] Dados do exercício recebidos:', exerciseObj)
+      console.log('🔍 [DEBUG] Dados do exercício recebidos:', exerciseObj);
       console.log('🔍 [DEBUG] Campos relevantes:', {
         nome: exerciseObj.nome,
         series: exerciseObj.series,
         tempoSegundos: exerciseObj.tempoSegundos,
         intervaloSegundos: exerciseObj.intervaloSegundos,
         tempo: exerciseObj.tempo,
-        intervalo: exerciseObj.intervalo
-      })
+        intervalo: exerciseObj.intervalo,
+      });
 
-      console.log('🔍 [DEBUG] Verificações de valores:')
-      console.log('- tempoSegundos !== undefined:', exerciseObj.tempoSegundos !== undefined)
-      console.log('- tempoSegundos !== "":', exerciseObj.tempoSegundos !== '')
-      console.log('- tempoSegundos !== null:', exerciseObj.tempoSegundos !== null)
-      console.log('- valor tempoSegundos:', exerciseObj.tempoSegundos)
-      console.log('- tipo tempoSegundos:', typeof exerciseObj.tempoSegundos)
+      console.log('🔍 [DEBUG] Verificações de valores:');
+      console.log('- tempoSegundos !== undefined:', exerciseObj.tempoSegundos !== undefined);
+      console.log('- tempoSegundos !== "":', exerciseObj.tempoSegundos !== '');
+      console.log('- tempoSegundos !== null:', exerciseObj.tempoSegundos !== null);
+      console.log('- valor tempoSegundos:', exerciseObj.tempoSegundos);
+      console.log('- tipo tempoSegundos:', typeof exerciseObj.tempoSegundos);
 
-      console.log('- intervaloSegundos !== undefined:', exerciseObj.intervaloSegundos !== undefined)
-      console.log('- intervaloSegundos !== "":', exerciseObj.intervaloSegundos !== '')
-      console.log('- intervaloSegundos !== null:', exerciseObj.intervaloSegundos !== null)
-      console.log('- valor intervaloSegundos:', exerciseObj.intervaloSegundos)
-      console.log('- tipo intervaloSegundos:', typeof exerciseObj.intervaloSegundos)
+      console.log(
+        '- intervaloSegundos !== undefined:',
+        exerciseObj.intervaloSegundos !== undefined,
+      );
+      console.log('- intervaloSegundos !== "":', exerciseObj.intervaloSegundos !== '');
+      console.log('- intervaloSegundos !== null:', exerciseObj.intervaloSegundos !== null);
+      console.log('- valor intervaloSegundos:', exerciseObj.intervaloSegundos);
+      console.log('- tipo intervaloSegundos:', typeof exerciseObj.intervaloSegundos);
 
       // Se já tem exercicioId, usar diretamente
       if (exerciseObj.exercicioId) {
-        console.log('🔍 Usando exercícioId diretamente:', exerciseObj.exercicioId)
+        console.log('🔍 Usando exercícioId diretamente:', exerciseObj.exercicioId);
 
         // Preparar dados de prescrição
-        let prescriptionData = {
+        const prescriptionData = {
           training_block_id: blockId,
           exercise_id: exerciseObj.exercicioId,
           order_index: order,
           sets: exerciseObj.series || 1,
-          rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null ?
-            parseInt(exerciseObj.intervaloSegundos) :
-            (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null ?
-              parseInt(exerciseObj.intervalo) :
-              (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null ?
-                parseInt(exerciseObj.rest_seconds) : 60))
-        }
+          rest_seconds:
+            exerciseObj.intervaloSegundos !== undefined &&
+            exerciseObj.intervaloSegundos !== '' &&
+            exerciseObj.intervaloSegundos !== null
+              ? parseInt(exerciseObj.intervaloSegundos)
+              : exerciseObj.intervalo !== undefined &&
+                  exerciseObj.intervalo !== '' &&
+                  exerciseObj.intervalo !== null
+                ? parseInt(exerciseObj.intervalo)
+                : exerciseObj.rest_seconds !== undefined &&
+                    exerciseObj.rest_seconds !== '' &&
+                    exerciseObj.rest_seconds !== null
+                  ? parseInt(exerciseObj.rest_seconds)
+                  : 60,
+        };
 
         // Se tem tempo definido, usar duration_seconds
-        if (exerciseObj.tempoSegundos !== undefined && exerciseObj.tempoSegundos !== '' && exerciseObj.tempoSegundos !== null) {
-          prescriptionData.duration_seconds = parseInt(exerciseObj.tempoSegundos)
-          prescriptionData.reps = null
-        } else if (exerciseObj.tempo !== undefined && exerciseObj.tempo !== '' && exerciseObj.tempo !== null) {
-          prescriptionData.duration_seconds = parseInt(exerciseObj.tempo)
-          prescriptionData.reps = null
+        if (
+          exerciseObj.tempoSegundos !== undefined &&
+          exerciseObj.tempoSegundos !== '' &&
+          exerciseObj.tempoSegundos !== null
+        ) {
+          prescriptionData.duration_seconds = parseInt(exerciseObj.tempoSegundos);
+          prescriptionData.reps = null;
+        } else if (
+          exerciseObj.tempo !== undefined &&
+          exerciseObj.tempo !== '' &&
+          exerciseObj.tempo !== null
+        ) {
+          prescriptionData.duration_seconds = parseInt(exerciseObj.tempo);
+          prescriptionData.reps = null;
         } else if (exerciseObj.duracao && exerciseObj.duracao !== '') {
           // Para condicionamento: duracao vem como string "30s"
-          const duracaoNum = parseInt(exerciseObj.duracao.replace('s', ''))
+          const duracaoNum = parseInt(exerciseObj.duracao.replace('s', ''));
           if (!isNaN(duracaoNum)) {
-            prescriptionData.duration_seconds = duracaoNum
-            prescriptionData.reps = null
+            prescriptionData.duration_seconds = duracaoNum;
+            prescriptionData.reps = null;
           } else {
-            prescriptionData.reps = '1'
-            prescriptionData.duration_seconds = null
+            prescriptionData.reps = '1';
+            prescriptionData.duration_seconds = null;
           }
         } else if (exerciseObj.repeticoes && exerciseObj.repeticoes !== '') {
           // Se não tem tempo, usar repetições
-          prescriptionData.reps = exerciseObj.repeticoes
-          prescriptionData.duration_seconds = null
+          prescriptionData.reps = exerciseObj.repeticoes;
+          prescriptionData.duration_seconds = null;
         } else {
-          prescriptionData.reps = '1'
-          prescriptionData.duration_seconds = null
+          prescriptionData.reps = '1';
+          prescriptionData.duration_seconds = null;
         }
 
         // Adicionar peso se disponível
         if (exerciseObj.carga && exerciseObj.carga !== '') {
-          const peso = parseFloat(exerciseObj.carga.replace('kg', '').trim())
+          const peso = parseFloat(exerciseObj.carga.replace('kg', '').trim());
           if (!isNaN(peso)) {
-            prescriptionData.weight_kg = peso
+            prescriptionData.weight_kg = peso;
           }
         }
 
         // Adicionar observações/notes se disponível
         if (exerciseObj.observacoes && exerciseObj.observacoes !== '') {
-          prescriptionData.notes = exerciseObj.observacoes
+          prescriptionData.notes = exerciseObj.observacoes;
         }
 
-        console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData)
-        await trainingService.addExerciseToBlock(prescriptionData)
-        console.log(`✅ Exercício '${exerciseObj.nome}' adicionado ao bloco com protocolo:`, prescriptionData)
-        return
+        console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData);
+        await trainingService.addExerciseToBlock(prescriptionData);
+        console.log(
+          `✅ Exercício '${exerciseObj.nome}' adicionado ao bloco com protocolo:`,
+          prescriptionData,
+        );
+        return;
       }
 
       // Se não tem exercicioId, buscar exercício por nome
-      const exercises = await exerciseService.getAllExercises()
-      let exercise = exercises.find(ex => ex.name.toLowerCase() === exerciseObj.nome.toLowerCase())
+      const exercises = await exerciseService.getAllExercises();
+      let exercise = exercises.find(
+        (ex) => ex.name.toLowerCase() === exerciseObj.nome.toLowerCase(),
+      );
 
       // Se não encontrou por nome exato, buscar por nome similar
       if (!exercise) {
-        exercise = exercises.find(ex => ex.name.toLowerCase().includes(exerciseObj.nome.toLowerCase()))
+        exercise = exercises.find((ex) =>
+          ex.name.toLowerCase().includes(exerciseObj.nome.toLowerCase()),
+        );
       }
 
       // Se encontrou exercício, criar prescrição
       if (exercise) {
         // Preparar dados de prescrição
-        let prescriptionData = {
+        const prescriptionData = {
           training_block_id: blockId,
           exercise_id: exercise.id,
           order_index: order,
           sets: exerciseObj.series || 1,
-          rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null ?
-            parseInt(exerciseObj.intervaloSegundos) :
-            (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null ?
-              parseInt(exerciseObj.intervalo) :
-              (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null ?
-                parseInt(exerciseObj.rest_seconds) : 60))
-        }
+          rest_seconds:
+            exerciseObj.intervaloSegundos !== undefined &&
+            exerciseObj.intervaloSegundos !== '' &&
+            exerciseObj.intervaloSegundos !== null
+              ? parseInt(exerciseObj.intervaloSegundos)
+              : exerciseObj.intervalo !== undefined &&
+                  exerciseObj.intervalo !== '' &&
+                  exerciseObj.intervalo !== null
+                ? parseInt(exerciseObj.intervalo)
+                : exerciseObj.rest_seconds !== undefined &&
+                    exerciseObj.rest_seconds !== '' &&
+                    exerciseObj.rest_seconds !== null
+                  ? parseInt(exerciseObj.rest_seconds)
+                  : 60,
+        };
 
         // Se tem tempo definido, usar duration_seconds
-        if (exerciseObj.tempoSegundos !== undefined && exerciseObj.tempoSegundos !== '' && exerciseObj.tempoSegundos !== null) {
-          prescriptionData.duration_seconds = parseInt(exerciseObj.tempoSegundos)
-          prescriptionData.reps = null
-        } else if (exerciseObj.tempo !== undefined && exerciseObj.tempo !== '' && exerciseObj.tempo !== null) {
-          prescriptionData.duration_seconds = parseInt(exerciseObj.tempo)
-          prescriptionData.reps = null
+        if (
+          exerciseObj.tempoSegundos !== undefined &&
+          exerciseObj.tempoSegundos !== '' &&
+          exerciseObj.tempoSegundos !== null
+        ) {
+          prescriptionData.duration_seconds = parseInt(exerciseObj.tempoSegundos);
+          prescriptionData.reps = null;
+        } else if (
+          exerciseObj.tempo !== undefined &&
+          exerciseObj.tempo !== '' &&
+          exerciseObj.tempo !== null
+        ) {
+          prescriptionData.duration_seconds = parseInt(exerciseObj.tempo);
+          prescriptionData.reps = null;
         } else if (exerciseObj.duracao && exerciseObj.duracao !== '') {
           // Para condicionamento: duracao vem como string "30s"
-          const duracaoNum = parseInt(exerciseObj.duracao.replace('s', ''))
+          const duracaoNum = parseInt(exerciseObj.duracao.replace('s', ''));
           if (!isNaN(duracaoNum)) {
-            prescriptionData.duration_seconds = duracaoNum
-            prescriptionData.reps = null
+            prescriptionData.duration_seconds = duracaoNum;
+            prescriptionData.reps = null;
           } else {
-            prescriptionData.reps = '1'
-            prescriptionData.duration_seconds = null
+            prescriptionData.reps = '1';
+            prescriptionData.duration_seconds = null;
           }
         } else if (exerciseObj.repeticoes && exerciseObj.repeticoes !== '') {
           // Se não tem tempo, usar repetições
-          prescriptionData.reps = exerciseObj.repeticoes
-          prescriptionData.duration_seconds = null
+          prescriptionData.reps = exerciseObj.repeticoes;
+          prescriptionData.duration_seconds = null;
         } else {
-          prescriptionData.reps = '1'
-          prescriptionData.duration_seconds = null
+          prescriptionData.reps = '1';
+          prescriptionData.duration_seconds = null;
         }
 
         // Adicionar peso se disponível
         if (exerciseObj.carga && exerciseObj.carga !== '') {
-          const peso = parseFloat(exerciseObj.carga.replace('kg', '').trim())
+          const peso = parseFloat(exerciseObj.carga.replace('kg', '').trim());
           if (!isNaN(peso)) {
-            prescriptionData.weight_kg = peso
+            prescriptionData.weight_kg = peso;
           }
         }
 
         // Adicionar observações/notes se disponível
         if (exerciseObj.observacoes && exerciseObj.observacoes !== '') {
-          prescriptionData.notes = exerciseObj.observacoes
+          prescriptionData.notes = exerciseObj.observacoes;
         }
 
-        console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData)
-        await trainingService.addExerciseToBlock(prescriptionData)
-        console.log(`✅ Exercício '${exercise.name}' adicionado ao bloco com protocolo:`, prescriptionData)
+        console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData);
+        await trainingService.addExerciseToBlock(prescriptionData);
+        console.log(
+          `✅ Exercício '${exercise.name}' adicionado ao bloco com protocolo:`,
+          prescriptionData,
+        );
       } else {
-        console.log(`⚠️ Exercício '${exerciseObj.nome}' não encontrado, pulando...`)
+        console.log(`⚠️ Exercício '${exerciseObj.nome}' não encontrado, pulando...`);
       }
-
     } catch (error) {
-      console.error('❌ Erro ao processar exercício', exerciseObj.nome, ':', error)
+      console.error('❌ Erro ao processar exercício', exerciseObj.nome, ':', error);
     }
-  }
+  };
 
   // Função para atualizar os blocos do treino existente
   const updateTrainingBlocks = async (trainingId) => {
     try {
-      console.log('🔄 Iniciando atualização de blocos para treino:', trainingId)
+      console.log('🔄 Iniciando atualização de blocos para treino:', trainingId);
 
       // Primeiro, carregar os blocos existentes do banco
-      const existingTraining = await trainingService.getTrainingById(trainingId)
-      const existingBlocks = existingTraining.training_blocks || []
+      const existingTraining = await trainingService.getTrainingById(trainingId);
+      const existingBlocks = existingTraining.training_blocks || [];
 
-      console.log('📊 Blocos existentes encontrados:', existingBlocks.length)
+      console.log('📊 Blocos existentes encontrados:', existingBlocks.length);
 
       // Definir novos blocos baseados no estado atual
       const newBlocks = [
@@ -1100,65 +1233,65 @@ function TreinoForm() {
           name: 'Mobilidade Articular',
           type: 'MOBILIDADE_ARTICULAR',
           items: mobilidadeItems,
-          order: 1
+          order: 1,
         },
         {
           name: 'Ativação de Core',
           type: 'ATIVACAO_CORE',
           items: coreItems,
-          order: 2
+          order: 2,
         },
         {
           name: 'Ativação Neural',
           type: 'ATIVACAO_NEURAL',
           items: neuralItems,
-          order: 3
+          order: 3,
         },
         {
           name: 'Bloco Principal 1',
           type: 'TREINO_PRINCIPAL',
           items: treinoBloco1,
-          order: 4
+          order: 4,
         },
         {
           name: 'Bloco Principal 2',
           type: 'TREINO_PRINCIPAL',
           items: treinoBloco2,
-          order: 5
+          order: 5,
         },
         {
           name: 'Condicionamento Físico',
           type: 'CONDICIONAMENTO_FISICO',
           items: condicionamentoItems,
-          order: 6
-        }
-      ]
+          order: 6,
+        },
+      ];
 
       // Para simplicidade, vamos remover todos os blocos existentes e criar novos
       // TODO: Implementar lógica mais sofisticada para atualizar apenas os que mudaram
-      console.log('🗑️ Removendo blocos existentes...')
-      setSubmittingMessage('🗑️ Removendo blocos existentes...')
+      console.log('🗑️ Removendo blocos existentes...');
+      setSubmittingMessage('🗑️ Removendo blocos existentes...');
       try {
-        await trainingService.deleteAllTrainingBlocks(trainingId)
-        console.log('✅ Todos os blocos existentes foram removidos')
-        setSubmittingMessage('✅ Blocos removidos, criando novos...')
+        await trainingService.deleteAllTrainingBlocks(trainingId);
+        console.log('✅ Todos os blocos existentes foram removidos');
+        setSubmittingMessage('✅ Blocos removidos, criando novos...');
       } catch (error) {
-        console.warn('⚠️ Erro ao remover blocos existentes:', error)
-        setSubmittingMessage('⚠️ Erro ao remover blocos, continuando...')
+        console.warn('⚠️ Erro ao remover blocos existentes:', error);
+        setSubmittingMessage('⚠️ Erro ao remover blocos, continuando...');
         // Continue mesmo se houver erro na remoção
       }
 
       // Agora criar os novos blocos (mesmo processo que createTrainingBlocks)
-      const blocksWithItems = newBlocks.filter(block =>
-        block.items && block.items.length > 0
-      )
+      const blocksWithItems = newBlocks.filter((block) => block.items && block.items.length > 0);
 
-      console.log('📊 Criando', blocksWithItems.length, 'blocos atualizados com exercícios')
+      console.log('📊 Criando', blocksWithItems.length, 'blocos atualizados com exercícios');
 
       for (let blockIndex = 0; blockIndex < blocksWithItems.length; blockIndex++) {
-        const blockConfig = blocksWithItems[blockIndex]
+        const blockConfig = blocksWithItems[blockIndex];
         try {
-          setSubmittingMessage(`🛠️ Criando bloco ${blockIndex + 1}/${blocksWithItems.length}: ${blockConfig.name}`)
+          setSubmittingMessage(
+            `🛠️ Criando bloco ${blockIndex + 1}/${blocksWithItems.length}: ${blockConfig.name}`,
+          );
 
           // Criar o bloco
           const blockData = {
@@ -1166,180 +1299,196 @@ function TreinoForm() {
             name: blockConfig.name,
             block_type: blockConfig.type,
             order_index: blockConfig.order,
-            rest_between_exercises_seconds: 60
-          }
+            rest_between_exercises_seconds: 60,
+          };
 
-          console.log('🛠️ Criando bloco atualizado:', blockData.name)
-          const createdBlock = await trainingService.createTrainingBlock(blockData)
+          console.log('🛠️ Criando bloco atualizado:', blockData.name);
+          const createdBlock = await trainingService.createTrainingBlock(blockData);
 
           // Adicionar exercícios ao bloco
           for (let i = 0; i < blockConfig.items.length; i++) {
-            const item = blockConfig.items[i]
+            const item = blockConfig.items[i];
 
             // Se o item é uma string (mobilidade antiga), buscar exercício existente
             if (typeof item === 'string') {
-              await createExerciseFromString(createdBlock.id, item, i + 1, blockConfig.type)
-            } else if (item && item.nome && (item.series || item.tempoSegundos || item.intervaloSegundos || item.repeticoes || item.duracao || item.observacoes)) {
+              await createExerciseFromString(createdBlock.id, item, i + 1, blockConfig.type);
+            } else if (
+              item &&
+              item.nome &&
+              (item.series ||
+                item.tempoSegundos ||
+                item.intervaloSegundos ||
+                item.repeticoes ||
+                item.duracao ||
+                item.observacoes)
+            ) {
               // Se o item tem dados completos de protocolo (incluindo condicionamento com duracao/observacoes), usar função para objetos completos
-              await createExerciseFromObject(createdBlock.id, item, i + 1)
+              await createExerciseFromObject(createdBlock.id, item, i + 1);
             } else if (item && item.nome && item.exercicioId) {
               // Se o item tem apenas ID e nome (sem protocolo específico), usar ID diretamente
-              await createExerciseFromId(createdBlock.id, item.exercicioId, i + 1, blockConfig.type, item)
+              await createExerciseFromId(
+                createdBlock.id,
+                item.exercicioId,
+                i + 1,
+                blockConfig.type,
+                item,
+              );
             } else if (item && item.nome) {
               // Se o item tem apenas nome, buscar por nome
-              await createExerciseFromString(createdBlock.id, item.nome, i + 1, blockConfig.type)
+              await createExerciseFromString(createdBlock.id, item.nome, i + 1, blockConfig.type);
             }
           }
 
-          console.log('✅ Bloco', blockData.name, 'atualizado com', blockConfig.items.length, 'exercícios')
-
+          console.log(
+            '✅ Bloco',
+            blockData.name,
+            'atualizado com',
+            blockConfig.items.length,
+            'exercícios',
+          );
         } catch (error) {
-          console.error('❌ Erro ao atualizar bloco', blockConfig.name, ':', error)
+          console.error('❌ Erro ao atualizar bloco', blockConfig.name, ':', error);
         }
       }
 
-      console.log('✅ Todos os blocos foram atualizados!')
-      setSubmittingMessage('✅ Treino salvo com sucesso!')
+      console.log('✅ Todos os blocos foram atualizados!');
+      setSubmittingMessage('✅ Treino salvo com sucesso!');
 
       // Pequeno delay para mostrar mensagem de sucesso
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
-      console.error('❌ Erro geral ao atualizar blocos:', error)
-      throw error
+      console.error('❌ Erro geral ao atualizar blocos:', error);
+      throw error;
     }
-  }
+  };
 
   // Funções para gerenciar compartilhamento
   const generateShareLink = (token) => {
-    const baseUrl = window.location.origin
-    const basePath = import.meta.env.PROD ? '/training-platform' : ''
-    return `${baseUrl}${basePath}/#/treino-publico/${token}`
-  }
+    const baseUrl = window.location.origin;
+    const basePath = import.meta.env.PROD ? '/training-platform' : '';
+    return `${baseUrl}${basePath}/#/treino-publico/${token}`;
+  };
 
   const handleGenerateLink = async () => {
     try {
-      setSubmitting(true)
-      setSubmittingMessage('🔗 Gerando link de compartilhamento...')
+      setSubmitting(true);
+      setSubmittingMessage('🔗 Gerando link de compartilhamento...');
 
       // Gerar token único
-      const newToken = crypto.randomUUID()
-      const newShareLink = generateShareLink(newToken)
+      const newToken = crypto.randomUUID();
+      const newShareLink = generateShareLink(newToken);
 
-      setLinkToken(newToken)
-      setShareLink(newShareLink)
+      setLinkToken(newToken);
+      setShareLink(newShareLink);
 
       // Atualizar o campo link_ativo no formulário
-      methods.setValue('link_ativo', true)
+      methods.setValue('link_ativo', true);
 
       setSnackbar({
         open: true,
         message: 'Link de compartilhamento gerado com sucesso!',
-        severity: 'success'
-      })
-
+        severity: 'success',
+      });
     } catch (error) {
-      console.error('❌ Erro ao gerar link:', error)
+      console.error('❌ Erro ao gerar link:', error);
       setSnackbar({
         open: true,
         message: 'Erro ao gerar link de compartilhamento',
-        severity: 'error'
-      })
+        severity: 'error',
+      });
     } finally {
-      setSubmitting(false)
-      setSubmittingMessage('')
+      setSubmitting(false);
+      setSubmittingMessage('');
     }
-  }
+  };
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareLink)
-      setCopySuccess(true)
+      await navigator.clipboard.writeText(shareLink);
+      setCopySuccess(true);
 
       setSnackbar({
         open: true,
         message: 'Link copiado para a área de transferência!',
-        severity: 'success'
-      })
+        severity: 'success',
+      });
 
       // Reset do feedback visual após 3 segundos
       setTimeout(() => {
-        setCopySuccess(false)
-      }, 3000)
-
+        setCopySuccess(false);
+      }, 3000);
     } catch (error) {
-      console.error('❌ Erro ao copiar link:', error)
+      console.error('❌ Erro ao copiar link:', error);
       setSnackbar({
         open: true,
         message: 'Erro ao copiar link',
-        severity: 'error'
-      })
+        severity: 'error',
+      });
     }
-  }
+  };
 
   const handleRegenerateLink = async () => {
     try {
-      const newToken = crypto.randomUUID()
-      const newShareLink = generateShareLink(newToken)
+      const newToken = crypto.randomUUID();
+      const newShareLink = generateShareLink(newToken);
 
-      setLinkToken(newToken)
-      setShareLink(newShareLink)
-      setCopySuccess(false)
+      setLinkToken(newToken);
+      setShareLink(newShareLink);
+      setCopySuccess(false);
 
       setSnackbar({
         open: true,
         message: 'Novo link de compartilhamento gerado!',
-        severity: 'success'
-      })
-
+        severity: 'success',
+      });
     } catch (error) {
-      console.error('❌ Erro ao regenerar link:', error)
+      console.error('❌ Erro ao regenerar link:', error);
       setSnackbar({
         open: true,
         message: 'Erro ao regenerar link',
-        severity: 'error'
-      })
+        severity: 'error',
+      });
     }
-  }
+  };
 
   const handleExportPDF = async () => {
     if (!isEditMode || !editingTrainingId) {
       setSnackbar({
         open: true,
         message: 'Salve o treino antes de exportar em PDF',
-        severity: 'warning'
-      })
-      return
+        severity: 'warning',
+      });
+      return;
     }
 
     try {
-      const treino = await trainingService.getTrainingById(editingTrainingId)
-      const logoBase64 = await imageToBase64(logoImage)
-      await generateTreinoPDF(treino, logoBase64)
+      const treino = await trainingService.getTrainingById(editingTrainingId);
+      const logoBase64 = await imageToBase64(logoImage);
+      await generateTreinoPDF(treino, logoBase64);
 
       setSnackbar({
         open: true,
         message: 'PDF gerado com sucesso!',
-        severity: 'success'
-      })
+        severity: 'success',
+      });
     } catch (error) {
-      console.error('❌ Erro ao gerar PDF:', error)
+      console.error('❌ Erro ao gerar PDF:', error);
       setSnackbar({
         open: true,
         message: 'Erro ao gerar PDF: ' + error.message,
-        severity: 'error'
-      })
+        severity: 'error',
+      });
     }
-  }
+  };
 
   const onSubmit = async (data) => {
     try {
-      setSubmitting(true)
-      setSubmittingMessage(isEditMode ? '🔄 Atualizando treino...' : '💾 Salvando treino...')
-      console.log('📋 Dados do formulário:', data)
+      setSubmitting(true);
+      setSubmittingMessage(isEditMode ? '🔄 Atualizando treino...' : '💾 Salvando treino...');
+      console.log('📋 Dados do formulário:', data);
 
       // Preparar dados para o CreateTrainingDTO
-      const trainingName = generateTrainingName(data.semana, data.data)
+      const trainingName = generateTrainingName(data.semana, data.data);
       const trainingData = {
         training_week_id: data.semana,
         name: trainingName,
@@ -1353,65 +1502,66 @@ function TreinoForm() {
         // Se nunca foi gerado link, não incluir campos
         ...(linkToken && {
           share_token: linkToken,
-          share_status: data.link_ativo ? 'public' : 'private'
-        })
-      }
+          share_status: data.link_ativo ? 'public' : 'private',
+        }),
+      };
 
-      let training
+      let training;
 
       if (isEditMode) {
-        console.log('🔄 Atualizando treino:', editingTrainingId, trainingData)
-        training = await trainingService.updateTraining(editingTrainingId, trainingData)
-        console.log('✅ Treino atualizado com sucesso:', training)
+        console.log('🔄 Atualizando treino:', editingTrainingId, trainingData);
+        training = await trainingService.updateTraining(editingTrainingId, trainingData);
+        console.log('✅ Treino atualizado com sucesso:', training);
       } else {
-        console.log('🚀 Criando treino com dados:', trainingData)
-        training = await trainingService.createTraining(trainingData)
-        console.log('✅ Treino criado com sucesso:', training)
+        console.log('🚀 Criando treino com dados:', trainingData);
+        training = await trainingService.createTraining(trainingData);
+        console.log('✅ Treino criado com sucesso:', training);
       }
 
       // Criar/atualizar os blocos do treino com todos os exercícios
-      console.log('🛠️ Processando blocos do treino...')
+      console.log('🛠️ Processando blocos do treino...');
       if (isEditMode) {
-        console.log('🔄 Atualizando blocos do treino existente...')
-        await updateTrainingBlocks(training.id)
+        console.log('🔄 Atualizando blocos do treino existente...');
+        await updateTrainingBlocks(training.id);
       } else {
-        await createTrainingBlocks(training.id)
+        await createTrainingBlocks(training.id);
       }
-      console.log('✅ Blocos processados com sucesso!')
+      console.log('✅ Blocos processados com sucesso!');
 
       // Mostrar feedback de sucesso
       const linkStatusMessage = linkToken
-        ? (data.link_ativo ? ' Link de compartilhamento ativado.' : ' Link de compartilhamento desativado.')
-        : ''
+        ? data.link_ativo
+          ? ' Link de compartilhamento ativado.'
+          : ' Link de compartilhamento desativado.'
+        : '';
 
       setSnackbar({
         open: true,
         message: isEditMode
           ? `Treino atualizado com sucesso!${linkStatusMessage}`
           : 'Treino criado com sucesso! Agora você pode gerar o link de compartilhamento.',
-        severity: 'success'
-      })
+        severity: 'success',
+      });
 
       // Se for criação, redirecionar para o modo de edição do treino recém-criado
       if (!isEditMode) {
-        console.log('🔄 Redirecionando para modo de edição do treino:', training.id)
+        console.log('🔄 Redirecionando para modo de edição do treino:', training.id);
         setTimeout(() => {
-          navigate(`/pages/treinos/${training.id}/editar`)
-        }, 1500)
+          navigate(`/pages/treinos/${training.id}/editar`);
+        }, 1500);
       }
-
     } catch (error) {
-      console.error('❌ Erro ao criar treino:', error)
+      console.error('❌ Erro ao criar treino:', error);
       setSnackbar({
         open: true,
         message: error.message || 'Erro ao criar treino. Tente novamente.',
-        severity: 'error'
-      })
+        severity: 'error',
+      });
     } finally {
-      setSubmitting(false)
-      setSubmittingMessage('')
+      setSubmitting(false);
+      setSubmittingMessage('');
     }
-  }
+  };
 
   return (
     <Container maxWidth="xl" sx={{ pb: 4, px: 0 }}>
@@ -1453,8 +1603,7 @@ function TreinoForm() {
               <Typography variant="body1" color="text.secondary">
                 {isEditMode
                   ? 'Modifique os campos abaixo para atualizar o treino.'
-                  : 'Preencha os campos abaixo para criar um treino completo.'
-                }
+                  : 'Preencha os campos abaixo para criar um treino completo.'}
               </Typography>
             </Box>
             <Box sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
@@ -1469,8 +1618,11 @@ function TreinoForm() {
             </Box>
           </Stack>
 
-
-          <Stack direction="row" spacing={1.5} sx={{ width: '100%', justifyContent: 'flex-end', mb: 2 }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ width: '100%', justifyContent: 'flex-end', mb: 2 }}
+          >
             {isEditMode && (
               <>
                 <Box sx={{ display: { sm: 'inline-flex' } }}>
@@ -1508,7 +1660,9 @@ function TreinoForm() {
                         <FormSelect
                           name="padrao_movimento"
                           label="Padrão de Movimento"
-                          options={loading ? [{ id: '', label: 'Carregando...' }] : padroesMovimentoOptions}
+                          options={
+                            loading ? [{ id: '', label: 'Carregando...' }] : padroesMovimentoOptions
+                          }
                           disabled={loading || submitting}
                           required
                         />
@@ -1525,7 +1679,9 @@ function TreinoForm() {
                             <FormSelect
                               name="semana"
                               label="Semana"
-                              options={loading ? [{ id: '', label: 'Carregando...' }] : semanasOptions}
+                              options={
+                                loading ? [{ id: '', label: 'Carregando...' }] : semanasOptions
+                              }
                               disabled={loading || submitting}
                               required
                             />
@@ -1548,7 +1704,7 @@ function TreinoForm() {
                                 p: 0,
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
                               }}
                             >
                               <AddIcon fontSize="small" />
@@ -1595,7 +1751,12 @@ function TreinoForm() {
                     <Grid container spacing={3}>
                       {/* Mobilidade Articular */}
                       <Grid item md={6} lg={4} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={1}
+                        >
                           <Typography variant="subtitle1" fontWeight="600">
                             Mobilidade Articular
                           </Typography>
@@ -1633,7 +1794,11 @@ function TreinoForm() {
                               >
                                 <ListItemText
                                   primary={typeof item === 'string' ? item : item.nome}
-                                  secondary={typeof item === 'object' && item.exercicioId ? 'Exercício do banco' : undefined}
+                                  secondary={
+                                    typeof item === 'object' && item.exercicioId
+                                      ? 'Exercício do banco'
+                                      : undefined
+                                  }
                                 />
                               </ListItem>
                             ))
@@ -1643,7 +1808,12 @@ function TreinoForm() {
 
                       {/* Ativação de Core */}
                       <Grid item md={6} lg={4} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={1}
+                        >
                           <Typography variant="subtitle1" fontWeight="600">
                             Ativação de Core
                           </Typography>
@@ -1701,7 +1871,12 @@ function TreinoForm() {
 
                       {/* Ativação Neural */}
                       <Grid item md={6} lg={4} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={1}
+                        >
                           <Typography variant="subtitle1" fontWeight="600">
                             Ativação Neural
                           </Typography>
@@ -1757,7 +1932,12 @@ function TreinoForm() {
 
                       {/* Treino Bloco 01 */}
                       <Grid item md={6} lg={4} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={1}
+                        >
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="subtitle1" fontWeight="600">
                               Treino Bloco 01
@@ -1823,7 +2003,12 @@ function TreinoForm() {
 
                       {/* Treino Bloco 02 (Opcional) */}
                       <Grid item md={6} lg={4} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={1}
+                        >
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="subtitle1" fontWeight="600">
                               Treino Bloco 02 <Chip label="Opcional" size="small" />
@@ -1874,7 +2059,9 @@ function TreinoForm() {
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
-                                  </Stack>}                          >
+                                  </Stack>
+                                }
+                              >
                                 <ListItemText
                                   primary={`${index + 1}. ${item.nome}`}
                                   secondary={formatProtocol(item)}
@@ -1887,7 +2074,12 @@ function TreinoForm() {
 
                       {/* Condicionamento Físico */}
                       <Grid item md={6} lg={4} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          mb={1}
+                        >
                           <Typography variant="subtitle1" fontWeight="600">
                             Condicionamento Físico <Chip label="Opcional" size="small" />
                           </Typography>
@@ -1930,10 +2122,7 @@ function TreinoForm() {
                                   </Stack>
                                 }
                               >
-                                <ListItemText
-                                  primary={item.nome}
-                                  secondary={item.duracao}
-                                />
+                                <ListItemText primary={item.nome} secondary={item.duracao} />
                               </ListItem>
                             ))
                           )}
@@ -1957,7 +2146,6 @@ function TreinoForm() {
 
                       {shareLink ? (
                         <Grid container spacing={2}>
-
                           {/* Checkbox ativar compartilhamento */}
                           <Grid item xs={12}>
                             <FormCheckbox
@@ -1965,7 +2153,11 @@ function TreinoForm() {
                               label="Link de compartilhamento ativo"
                               disabled={submitting}
                             />
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 4, display: 'block', mt: 0.5 }}>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ ml: 4, display: 'block', mt: 0.5 }}
+                            >
                               Desmarque para desativar o acesso ao link sem excluí-lo
                             </Typography>
                           </Grid>
@@ -2003,31 +2195,44 @@ function TreinoForm() {
                                 ),
                               }}
                               fullWidth
-                              helperText={copySuccess ? "Link copiado com sucesso! ✅" : "Clique no ícone para copiar o link"}
+                              helperText={
+                                copySuccess
+                                  ? 'Link copiado com sucesso! ✅'
+                                  : 'Clique no ícone para copiar o link'
+                              }
                               FormHelperTextProps={{
-                                sx: { color: copySuccess ? 'success.main' : 'text.secondary' }
+                                sx: { color: copySuccess ? 'success.main' : 'text.secondary' },
                               }}
                               sx={{
                                 '& .MuiInputBase-root': {
                                   backgroundColor: 'action.hover',
                                   '&:hover': {
-                                    backgroundColor: 'action.selected'
-                                  }
-                                }
+                                    backgroundColor: 'action.selected',
+                                  },
+                                },
                               }}
                             />
                           </Grid>
 
                           <Grid item xs={12} md={8} sx={{ p: 0 }}>
                             {/* Instruções */}
-                            <Paper sx={{ p: 0, bgcolor: 'info.lighter', border: 1, borderColor: 'info.light' }}>
+                            <Paper
+                              sx={{
+                                p: 0,
+                                bgcolor: 'info.lighter',
+                                border: 1,
+                                borderColor: 'info.light',
+                              }}
+                            >
                               <Typography variant="body2">
                                 <strong>Como usar:</strong>
                               </Typography>
                               <Typography variant="body2" sx={{ mt: 1, p: 0 }}>
-                                • Copie e cole o link para enviar ao seu aluno<br />
-                                • O aluno poderá visualizar o treino sem fazer login<br />
-                                • Para desativar, desmarque "Link de compartilhamento ativo" acima
+                                • Copie e cole o link para enviar ao seu aluno
+                                <br />
+                                • O aluno poderá visualizar o treino sem fazer login
+                                <br />• Para desativar, desmarque "Link de compartilhamento ativo"
+                                acima
                               </Typography>
                             </Paper>
                           </Grid>
@@ -2077,7 +2282,8 @@ function TreinoForm() {
                       🔒 Observações Internas
                     </Typography>
                     <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-                      Estas observações são visíveis apenas para o profissional, não aparecem no compartilhamento
+                      Estas observações são visíveis apenas para o profissional, não aparecem no
+                      compartilhamento
                     </Typography>
                     <Divider sx={{ mb: 3 }} />
 
@@ -2094,7 +2300,14 @@ function TreinoForm() {
 
                 {/* Resumo de Erros */}
                 {Object.keys(errors).length > 0 && (
-                  <Paper sx={{ p: 3, bgcolor: 'error.lighter', borderLeft: 4, borderColor: 'error.main' }}>
+                  <Paper
+                    sx={{
+                      p: 3,
+                      bgcolor: 'error.lighter',
+                      borderLeft: 4,
+                      borderColor: 'error.main',
+                    }}
+                  >
                     <Typography variant="h6" color="error" gutterBottom>
                       ⚠️ Erros de Validação
                     </Typography>
@@ -2119,9 +2332,10 @@ function TreinoForm() {
                   disabled={submitting || loading || loadingTrainingData}
                 >
                   {submitting
-                    ? (submittingMessage || (isEditMode ? 'Atualizando...' : 'Salvando...'))
-                    : (isEditMode ? 'Atualizar Treino' : 'Salvar Treino')
-                  }
+                    ? submittingMessage || (isEditMode ? 'Atualizando...' : 'Salvando...')
+                    : isEditMode
+                      ? 'Atualizar Treino'
+                      : 'Salvar Treino'}
                 </Button>
                 <Button
                   variant="outlined"
@@ -2135,44 +2349,48 @@ function TreinoForm() {
             </form>
           </FormProvider>
         </>
-      )
-      }
+      )}
 
       {/* Dialog para Adicionar/Editar Itens */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {editingItem !== null ? 'Editar' : 'Adicionar'} {
-            currentSection === 'mobilidade' ? 'Mobilidade' :
-              currentSection === 'core' ? 'Ativação de Core' :
-                currentSection === 'neural' ? 'Ativação Neural' :
-                  currentSection === 'treino1' ? 'Exercício (Bloco 1)' :
-                    currentSection === 'treino2' ? 'Exercício (Bloco 2)' :
-                      'Condicionamento'
-          }
+          {editingItem !== null ? 'Editar' : 'Adicionar'}{' '}
+          {currentSection === 'mobilidade'
+            ? 'Mobilidade'
+            : currentSection === 'core'
+              ? 'Ativação de Core'
+              : currentSection === 'neural'
+                ? 'Ativação Neural'
+                : currentSection === 'treino1'
+                  ? 'Exercício (Bloco 1)'
+                  : currentSection === 'treino2'
+                    ? 'Exercício (Bloco 2)'
+                    : 'Condicionamento'}
         </DialogTitle>
         <DialogContent sx={{ px: { xs: 0, sm: 3 }, py: 2 }}>
           <Stack spacing={3} sx={{ mt: 4 }}>
             {/* Mobilidade: select de exercícios com padrão mobilidade */}
             {currentSection === 'mobilidade' && (
               <Autocomplete
-                options={exerciciosOptions.filter(ex =>
-                  ex.movement_pattern?.toLowerCase().includes('mobilidade') ||
-                  ex.label.toLowerCase().includes('mobilidade') ||
-                  ex.label.toLowerCase().includes('alongamento')
+                options={exerciciosOptions.filter(
+                  (ex) =>
+                    ex.movement_pattern?.toLowerCase().includes('mobilidade') ||
+                    ex.label.toLowerCase().includes('mobilidade') ||
+                    ex.label.toLowerCase().includes('alongamento'),
                 )}
-                value={exerciciosOptions.find(opt => opt.label === formData.nome) || null}
+                value={exerciciosOptions.find((opt) => opt.label === formData.nome) || null}
                 onChange={(_, newValue) => {
-                  console.log('🔄 Autocomplete onChange mobilidade:', newValue)
-                  console.log('📝 formData antes:', formData)
+                  console.log('🔄 Autocomplete onChange mobilidade:', newValue);
+                  console.log('📝 formData antes:', formData);
 
                   const newFormData = {
                     ...formData,
                     exercicioId: newValue?.id || '',
-                    nome: newValue?.label || ''
-                  }
+                    nome: newValue?.label || '',
+                  };
 
-                  console.log('📝 formData depois:', newFormData)
-                  setFormData(newFormData)
+                  console.log('📝 formData depois:', newFormData);
+                  setFormData(newFormData);
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -2211,12 +2429,14 @@ function TreinoForm() {
                 <Grid item xs={12} sm={12}>
                   <Autocomplete
                     options={exerciciosOptions}
-                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
-                    onChange={(_, newValue) => setFormData({
-                      ...formData,
-                      exercicioId: newValue?.id || '',
-                      nome: newValue?.label || ''
-                    })}
+                    value={exerciciosOptions.find((opt) => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) =>
+                      setFormData({
+                        ...formData,
+                        exercicioId: newValue?.id || '',
+                        nome: newValue?.label || '',
+                      })
+                    }
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -2239,20 +2459,24 @@ function TreinoForm() {
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>                <TextField
-                  label="Tempo (segundos)"
-                  type="number"
-                  value={formData.tempo || ''}
-                  onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
-                  fullWidth
-                />
+                <Grid item xs={12} sm={6} md={4}>
+                  {' '}
+                  <TextField
+                    label="Tempo (segundos)"
+                    type="number"
+                    value={formData.tempo || ''}
+                    onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
+                    fullWidth
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <TextField
                     label="Intervalo (segundos)"
                     type="number"
                     value={formData.intervalo || ''}
-                    onChange={(e) => setFormData({ ...formData, intervalo: parseInt(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, intervalo: parseInt(e.target.value) })
+                    }
                     fullWidth
                   />
                 </Grid>
@@ -2275,12 +2499,14 @@ function TreinoForm() {
                 <Grid item xs={12} sm={6}>
                   <Autocomplete
                     options={exerciciosOptions}
-                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
-                    onChange={(_, newValue) => setFormData({
-                      ...formData,
-                      exercicioId: newValue?.id || '',
-                      nome: newValue?.label || ''
-                    })}
+                    value={exerciciosOptions.find((opt) => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) =>
+                      setFormData({
+                        ...formData,
+                        exercicioId: newValue?.id || '',
+                        nome: newValue?.label || '',
+                      })
+                    }
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -2331,12 +2557,14 @@ function TreinoForm() {
                 <Grid item xs={12}>
                   <Autocomplete
                     options={exerciciosOptions}
-                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
-                    onChange={(_, newValue) => setFormData({
-                      ...formData,
-                      exercicioId: newValue?.id || '',
-                      nome: newValue?.label || ''
-                    })}
+                    value={exerciciosOptions.find((opt) => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) =>
+                      setFormData({
+                        ...formData,
+                        exercicioId: newValue?.id || '',
+                        nome: newValue?.label || '',
+                      })
+                    }
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -2357,16 +2585,16 @@ function TreinoForm() {
                     type="number"
                     value={formData.series || ''}
                     onChange={(e) => {
-                      const series = parseInt(e.target.value) || 0
-                      const tempo = formData.tempoSegundos || 0
-                      const intervalo = formData.intervaloSegundos || 0
-                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+                      const series = parseInt(e.target.value) || 0;
+                      const tempo = formData.tempoSegundos || 0;
+                      const intervalo = formData.intervaloSegundos || 0;
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0;
 
                       setFormData({
                         ...formData,
                         series: series,
-                        tempoTotal: tempoTotal
-                      })
+                        tempoTotal: tempoTotal,
+                      });
                     }}
                     fullWidth
                   />
@@ -2395,16 +2623,16 @@ function TreinoForm() {
                     type="number"
                     value={formData.tempoSegundos || ''}
                     onChange={(e) => {
-                      const tempo = parseInt(e.target.value) || 0
-                      const intervalo = formData.intervaloSegundos || 0
-                      const series = formData.series || 0
-                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+                      const tempo = parseInt(e.target.value) || 0;
+                      const intervalo = formData.intervaloSegundos || 0;
+                      const series = formData.series || 0;
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0;
 
                       setFormData({
                         ...formData,
                         tempoSegundos: tempo,
-                        tempoTotal: tempoTotal
-                      })
+                        tempoTotal: tempoTotal,
+                      });
                     }}
                     fullWidth
                     helperText="Duração de cada série em segundos"
@@ -2416,16 +2644,16 @@ function TreinoForm() {
                     type="number"
                     value={formData.intervaloSegundos || ''}
                     onChange={(e) => {
-                      const intervalo = parseInt(e.target.value) || 0
-                      const tempo = formData.tempoSegundos || 0
-                      const series = formData.series || 0
-                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+                      const intervalo = parseInt(e.target.value) || 0;
+                      const tempo = formData.tempoSegundos || 0;
+                      const series = formData.series || 0;
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0;
 
                       setFormData({
                         ...formData,
                         intervaloSegundos: intervalo,
-                        tempoTotal: tempoTotal
-                      })
+                        tempoTotal: tempoTotal,
+                      });
                     }}
                     fullWidth
                     helperText="Descanso entre séries em segundos"
@@ -2439,7 +2667,9 @@ function TreinoForm() {
                     disabled
                     helperText="Calculado automaticamente: (Tempo + Intervalo) × Séries"
                     InputProps={{
-                      endAdornment: <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                      endAdornment: (
+                        <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                      ),
                     }}
                   />
                 </Grid>
@@ -2462,12 +2692,14 @@ function TreinoForm() {
                 <Grid item xs={12}>
                   <Autocomplete
                     options={exerciciosOptions}
-                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
-                    onChange={(_, newValue) => setFormData({
-                      ...formData,
-                      exercicioId: newValue?.id || '',
-                      nome: newValue?.label || ''
-                    })}
+                    value={exerciciosOptions.find((opt) => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) =>
+                      setFormData({
+                        ...formData,
+                        exercicioId: newValue?.id || '',
+                        nome: newValue?.label || '',
+                      })
+                    }
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -2488,16 +2720,16 @@ function TreinoForm() {
                     type="number"
                     value={formData.series || ''}
                     onChange={(e) => {
-                      const series = parseInt(e.target.value) || 0
-                      const tempo = formData.tempoSegundos || 0
-                      const intervalo = formData.intervaloSegundos || 0
-                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+                      const series = parseInt(e.target.value) || 0;
+                      const tempo = formData.tempoSegundos || 0;
+                      const intervalo = formData.intervaloSegundos || 0;
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0;
 
                       setFormData({
                         ...formData,
                         series: series,
-                        tempoTotal: tempoTotal
-                      })
+                        tempoTotal: tempoTotal,
+                      });
                     }}
                     fullWidth
                   />
@@ -2519,16 +2751,16 @@ function TreinoForm() {
                     type="number"
                     value={formData.tempoSegundos || ''}
                     onChange={(e) => {
-                      const tempo = parseInt(e.target.value) || 0
-                      const intervalo = formData.intervaloSegundos || 0
-                      const series = formData.series || 0
-                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+                      const tempo = parseInt(e.target.value) || 0;
+                      const intervalo = formData.intervaloSegundos || 0;
+                      const series = formData.series || 0;
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0;
 
                       setFormData({
                         ...formData,
                         tempoSegundos: tempo,
-                        tempoTotal: tempoTotal
-                      })
+                        tempoTotal: tempoTotal,
+                      });
                     }}
                     fullWidth
                     helperText="Duração de cada série em segundos"
@@ -2541,16 +2773,16 @@ function TreinoForm() {
                     type="number"
                     value={formData.intervaloSegundos || ''}
                     onChange={(e) => {
-                      const intervalo = parseInt(e.target.value) || 0
-                      const tempo = formData.tempoSegundos || 0
-                      const series = formData.series || 0
-                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+                      const intervalo = parseInt(e.target.value) || 0;
+                      const tempo = formData.tempoSegundos || 0;
+                      const series = formData.series || 0;
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0;
 
                       setFormData({
                         ...formData,
                         intervaloSegundos: intervalo,
-                        tempoTotal: tempoTotal
-                      })
+                        tempoTotal: tempoTotal,
+                      });
                     }}
                     fullWidth
                     helperText="Descanso entre séries em segundos"
@@ -2565,7 +2797,9 @@ function TreinoForm() {
                     disabled
                     helperText="Calculado automaticamente: (Tempo + Intervalo) × Séries"
                     InputProps={{
-                      endAdornment: <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                      endAdornment: (
+                        <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                      ),
                     }}
                   />
                 </Grid>
@@ -2589,10 +2823,10 @@ function TreinoForm() {
           <Button
             variant="contained"
             onClick={() => {
-              console.log('🔘 Botão salvar clicado - formData atual:', formData)
-              console.log('🔘 formData.nome:', formData.nome)
-              console.log('🔘 Botão desabilitado?', !formData.nome)
-              handleSaveItem()
+              console.log('🔘 Botão salvar clicado - formData atual:', formData);
+              console.log('🔘 formData.nome:', formData.nome);
+              console.log('🔘 Botão desabilitado?', !formData.nome);
+              handleSaveItem();
             }}
             disabled={!formData.nome}
           >
@@ -2617,10 +2851,8 @@ function TreinoForm() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container >
-  )
+    </Container>
+  );
 }
 
 export default TreinoForm;
-
-

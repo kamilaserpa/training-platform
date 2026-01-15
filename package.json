@@ -11,6 +11,8 @@
     "build:prod": "npm run build",
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix --max-warnings 0",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "preview": "vite preview",
     "preview:mock": "VITE_USE_MOCK=true npm run preview",
     "predeploy": "vite build && cp ./dist/index.html ./dist/404.html",

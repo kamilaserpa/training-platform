@@ -7,27 +7,28 @@ import { NavigateNext as NavigateNextIcon, Home as HomeIcon } from '@mui/icons-m
  */
 const routeLabels: Record<string, string> = {
   '': 'Dashboard',
-  'semanas': 'Semanas',
-  'treinos': 'Treinos',
-  'exercicios': 'Exercícios',
-  'configuracoes': 'Parâmetros da Semana',
+  semanas: 'Semanas',
+  treinos: 'Treinos',
+  exercicios: 'Exercícios',
+  configuracoes: 'Parâmetros da Semana',
   'export-settings': 'Configurações de exportação',
-  'novo': 'Novo',
-  'editar': 'Editar',
-  'pages': '', // Ignorar 'pages' no breadcrumb
+  novo: 'Novo',
+  editar: 'Editar',
+  pages: '', // Ignorar 'pages' no breadcrumb
 };
 
 export default function Breadcrumb() {
   const location = useLocation();
-  
+
   // Com hash router, usar location.pathname ao invés de hash
   // O React Router já gerencia isso corretamente
   const pathnames = location.pathname.split('/').filter((x) => x && x !== 'pages');
 
   // Caso especial: export-settings deve aparecer sob Semanas
-  const effectivePathnames = pathnames.includes('export-settings') && !pathnames.includes('semanas')
-    ? ['semanas', ...pathnames]
-    : pathnames;
+  const effectivePathnames =
+    pathnames.includes('export-settings') && !pathnames.includes('semanas')
+      ? ['semanas', ...pathnames]
+      : pathnames;
 
   // Se estiver na home, não mostrar breadcrumb
   if (pathnames.length === 0) {
@@ -71,16 +72,19 @@ export default function Breadcrumb() {
 
           // Buscar label customizado no sessionStorage (genérico para qualquer ID)
           const customLabel = sessionStorage.getItem(`breadcrumb_${value}`);
-          const label = customLabel || routeLabels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+          const label =
+            customLabel || routeLabels[value] || value.charAt(0).toUpperCase() + value.slice(1);
 
           // Se for um UUID (ID de recurso), não tornar clicável a menos que seja o último
-          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+          const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            value,
+          );
 
           // Se for o último item OU for um UUID intermediário, mostrar como texto (sem link)
           return last || isUUID ? (
             <Typography
               key={to}
-              color={last ? "text.primary" : "text.secondary"}
+              color={last ? 'text.primary' : 'text.secondary'}
               sx={{ fontWeight: last ? 600 : 400 }}
             >
               {label}

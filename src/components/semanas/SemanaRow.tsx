@@ -11,14 +11,14 @@ import {
   TableBody,
   Tooltip,
   Stack,
-  Checkbox
+  Checkbox,
 } from '@mui/material';
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  PictureAsPdf as PdfIcon
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { DiaCell } from './DiaCell';
 import type { SemanaComTreinos } from '../../utils/semanaAdapter';
@@ -40,7 +40,7 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
     { key: 'terca', label: 'TER', data: semana.dias.terca },
     { key: 'quarta', label: 'QUA', data: semana.dias.quarta },
     { key: 'quinta', label: 'QUI', data: semana.dias.quinta },
-    { key: 'sexta', label: 'SEX', data: semana.dias.sexta }
+    { key: 'sexta', label: 'SEX', data: semana.dias.sexta },
   ];
 
   return (
@@ -55,10 +55,7 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
           />
         </TableCell>
         <TableCell width={48}>
-          <IconButton
-            size="small"
-            onClick={() => setOpen(!open)}
-          >
+          <IconButton size="small" onClick={() => setOpen(!open)}>
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
           </IconButton>
         </TableCell>
@@ -76,11 +73,13 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
           <Typography variant="body2" color="text.secondary">
             {new Date(semana.start_date).toLocaleDateString('pt-BR', {
               day: '2-digit',
-              month: '2-digit'
-            })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', {
+              month: '2-digit',
+            })}{' '}
+            -{' '}
+            {new Date(semana.end_date).toLocaleDateString('pt-BR', {
               day: '2-digit',
               month: '2-digit',
-              year: 'numeric'
+              year: 'numeric',
             })}
           </Typography>
         </TableCell>
@@ -100,22 +99,14 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
             )}
             {onEdit && (
               <Tooltip title="Editar semana">
-                <IconButton
-                  size="small"
-                  onClick={() => onEdit(semana.id)}
-                  color="primary"
-                >
+                <IconButton size="small" onClick={() => onEdit(semana.id)} color="primary">
                   <EditIcon fontSize="small" color="primary" />
                 </IconButton>
               </Tooltip>
             )}
             {onDelete && (
               <Tooltip title="Excluir semana">
-                <IconButton
-                  size="small"
-                  onClick={() => onDelete(semana.id)}
-                  color="error"
-                >
+                <IconButton size="small" onClick={() => onDelete(semana.id)} color="error">
                   <DeleteIcon fontSize="small" color="error" />
                 </IconButton>
               </Tooltip>
@@ -145,8 +136,8 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
                   tableLayout: 'fixed',
                   '& .MuiTableCell-root': {
                     verticalAlign: 'top',
-                    px: 1
-                  }
+                    px: 1,
+                  },
                 }}
               >
                 <TableHead>
@@ -163,8 +154,8 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
                           borderRight: '1px solid',
                           borderColor: 'divider',
                           '&:last-child': {
-                            borderRight: 'none'
-                          }
+                            borderRight: 'none',
+                          },
                         }}
                       >
                         {dia.label}
@@ -182,15 +173,11 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
                           borderRight: '1px solid',
                           borderColor: 'divider',
                           '&:last-child': {
-                            borderRight: 'none'
-                          }
+                            borderRight: 'none',
+                          },
                         }}
                       >
-                        <DiaCell
-                          dia={dia.data}
-                          diaNome={dia.key}
-                          semanaId={semana.id}
-                        />
+                        <DiaCell dia={dia.data} diaNome={dia.key} semanaId={semana.id} />
                       </TableCell>
                     ))}
                   </TableRow>

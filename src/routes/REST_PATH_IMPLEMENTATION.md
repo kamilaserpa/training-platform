@@ -19,7 +19,7 @@ Vamos implementar uma nova funcionalidade de gestão de alunos seguindo o padrã
 ```typescript
 export default {
   // ... rotas existentes ...
-  
+
   // ==========================================
   // Alunos (CRUD completo com rotas separadas)
   // ==========================================
@@ -31,6 +31,7 @@ export default {
 ```
 
 **Resultado:**
+
 - `/pages/alunos` → Listagem
 - `/pages/alunos/novo` → Criar
 - `/pages/alunos/:id/editar` → Editar
@@ -62,7 +63,7 @@ export default function Alunos() {
       <Button onClick={handleCreate}>
         Adicionar Aluno
       </Button>
-      
+
       {/* Lista de alunos */}
       {alunos.map(aluno => (
         <Card key={aluno.id}>
@@ -93,7 +94,7 @@ export default function AlunoForm() {
     } else {
       await createAluno(data);
     }
-    
+
     // Voltar para listagem
     navigate(paths.alunos);
   };
@@ -107,10 +108,10 @@ export default function AlunoForm() {
       <Typography variant="h4">
         {isEditMode ? 'Editar Aluno' : 'Novo Aluno'}
       </Typography>
-      
+
       <form onSubmit={handleSubmit}>
         {/* Campos do formulário */}
-        
+
         <Button type="submit">
           {isEditMode ? 'Atualizar' : 'Criar'}
         </Button>
@@ -150,7 +151,7 @@ export const routes = [
         element: <MainLayout><Outlet /></MainLayout>,
         children: [
           // ... rotas existentes ...
-          
+
           // ==========================================
           // Alunos
           // ==========================================
@@ -184,7 +185,7 @@ export const routes = [
 ```typescript
 const sitemap: MenuItem[] = [
   // ... itens existentes ...
-  
+
   {
     id: 9,
     subheader: 'Alunos',
@@ -204,32 +205,22 @@ import { supabase } from '../lib/supabase';
 
 class AlunoService {
   async getAllAlunos() {
-    const { data, error } = await supabase
-      .from('alunos')
-      .select('*');
-    
+    const { data, error } = await supabase.from('alunos').select('*');
+
     if (error) throw error;
     return data;
   }
 
   async getAlunoById(id: string) {
-    const { data, error } = await supabase
-      .from('alunos')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
+    const { data, error } = await supabase.from('alunos').select('*').eq('id', id).single();
+
     if (error) throw error;
     return data;
   }
 
   async createAluno(alunoData) {
-    const { data, error } = await supabase
-      .from('alunos')
-      .insert(alunoData)
-      .select()
-      .single();
-    
+    const { data, error } = await supabase.from('alunos').insert(alunoData).select().single();
+
     if (error) throw error;
     return data;
   }
@@ -241,17 +232,14 @@ class AlunoService {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   }
 
   async deleteAluno(id: string) {
-    const { error } = await supabase
-      .from('alunos')
-      .delete()
-      .eq('id', id);
-    
+    const { error } = await supabase.from('alunos').delete().eq('id', id);
+
     if (error) throw error;
   }
 }
@@ -264,6 +252,7 @@ export const alunoService = new AlunoService();
 ## 🧪 Testando a Implementação
 
 ### Teste 1: Listagem
+
 ```bash
 # Navegar para: http://localhost:3000/pages/alunos
 ✅ Deve mostrar lista de alunos
@@ -271,6 +260,7 @@ export const alunoService = new AlunoService();
 ```
 
 ### Teste 2: Criar Novo
+
 ```bash
 # Clicar em "Adicionar Aluno"
 # URL deve ser: http://localhost:3000/pages/alunos/novo
@@ -280,6 +270,7 @@ export const alunoService = new AlunoService();
 ```
 
 ### Teste 3: Editar Existente
+
 ```bash
 # Clicar em "Editar" em um aluno
 # URL deve ser: http://localhost:3000/pages/alunos/[id]/editar
@@ -289,6 +280,7 @@ export const alunoService = new AlunoService();
 ```
 
 ### Teste 4: Navegação
+
 ```bash
 ✅ Voltar/Cancelar retorna para /pages/alunos
 ✅ Após salvar retorna para /pages/alunos
@@ -300,7 +292,9 @@ export const alunoService = new AlunoService();
 ## ❌ Erros Comuns
 
 ### Erro 1: 404 ao acessar rota de edição
+
 **Problema:** Rota não registrada corretamente
+
 ```typescript
 // ❌ Errado
 {
@@ -316,7 +310,9 @@ export const alunoService = new AlunoService();
 ```
 
 ### Erro 2: useParams() retorna undefined
+
 **Problema:** Não importou `useParams` corretamente
+
 ```typescript
 // ❌ Errado
 import { useNavigate } from 'react-router-dom';
@@ -326,7 +322,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 ```
 
 ### Erro 3: Navegação não funciona
+
 **Problema:** Path com typo ou não registrado
+
 ```typescript
 // ❌ Errado
 navigate('/pages/aluno/novo'); // singular
@@ -340,6 +338,7 @@ navigate(paths.alunoNovo); // usar constante
 ## 🎯 Boas Práticas
 
 ### ✅ DO (Faça)
+
 - Use constantes de `paths.ts` sempre
 - Use `useParams()` para pegar IDs da URL
 - Mantenha formulários de edição/criação no mesmo componente
@@ -347,6 +346,7 @@ navigate(paths.alunoNovo); // usar constante
 - Adicione loading states
 
 ### ❌ DON'T (Não Faça)
+
 - Não use query strings para IDs (`?id=123`)
 - Não use strings hardcoded para rotas
 - Não crie componentes separados para criar/editar sem necessidade
@@ -358,12 +358,14 @@ navigate(paths.alunoNovo); // usar constante
 ## 📊 Comparação: Modal vs Página Separada
 
 ### Use Modal quando:
+
 ✅ Formulário simples (2-5 campos)
 ✅ Edição rápida
 ✅ Não precisa compartilhar link
 ✅ Exemplo: Exercícios, Tags, Categorias
 
 ### Use Página Separada quando:
+
 ✅ Formulário complexo (múltiplas seções)
 ✅ Precisa de URL própria
 ✅ Precisa compartilhar/bookmarkar
@@ -373,8 +375,7 @@ navigate(paths.alunoNovo); // usar constante
 
 **Dúvidas?** Consulte o `README.md` nesta pasta!
 
-
-____
+---
 
 # ⚡ Referência Rápida - Rotas RESTful
 
@@ -428,6 +429,7 @@ ____
 ## 💻 Snippets de Código
 
 ### Navegação Básica
+
 ```typescript
 import { useNavigate } from 'react-router-dom';
 import paths from './routes/paths';
@@ -445,18 +447,20 @@ navigate(paths.treinoEditar('id-do-treino'));
 ```
 
 ### Pegar ID da URL
+
 ```typescript
 import { useParams } from 'react-router-dom';
 
 function TreinoForm() {
   const { id } = useParams();
   const isEditMode = !!id;
-  
+
   return <h1>{isEditMode ? 'Editar' : 'Criar'} Treino</h1>;
 }
 ```
 
 ### Voltar para Listagem
+
 ```typescript
 const handleCancel = () => {
   navigate(paths.treinos);
@@ -473,6 +477,7 @@ const handleSave = async (data) => {
 ## 🎨 Quando usar?
 
 ### Modal (Dialog)
+
 ```typescript
 ✅ Formulário pequeno (2-5 campos)
 ✅ Edição rápida
@@ -481,6 +486,7 @@ const handleSave = async (data) => {
 ```
 
 ### Página Separada
+
 ```typescript
 ✅ Formulário complexo
 ✅ Múltiplas seções
@@ -494,44 +500,47 @@ const handleSave = async (data) => {
 ## 🚨 Erros Comuns
 
 ### ❌ NÃO use query strings
+
 ```typescript
 // ❌ ERRADO
-navigate('/treinos?id=123')
+navigate('/treinos?id=123');
 
 // ✅ CORRETO
-navigate(paths.treinoEditar('123'))
+navigate(paths.treinoEditar('123'));
 ```
 
 ### ❌ NÃO use strings hardcoded
+
 ```typescript
 // ❌ ERRADO
-navigate('/pages/treinos/novo')
+navigate('/pages/treinos/novo');
 
 // ✅ CORRETO
-navigate(paths.treinoNovo)
+navigate(paths.treinoNovo);
 ```
 
 ### ❌ NÃO esqueça useParams
+
 ```typescript
 // ❌ ERRADO
-const id = location.search.get('id')
+const id = location.search.get('id');
 
 // ✅ CORRETO
-const { id } = useParams()
+const { id } = useParams();
 ```
 
 ---
 
 ## 📱 URLs por Funcionalidade
 
-| Ação | URL | Método Navegação |
-|------|-----|------------------|
-| Ver todos os treinos | `/pages/treinos` | `navigate(paths.treinos)` |
-| Criar treino | `/pages/treinos/novo` | `navigate(paths.treinoNovo)` |
-| Editar treino | `/pages/treinos/abc123/editar` | `navigate(paths.treinoEditar('abc123'))` |
-| Ver exercícios | `/pages/exercicios` | `navigate(paths.exercicios)` |
-| Ver semanas | `/pages/semanas` | `navigate(paths.semanas)` |
-| Configurações | `/pages/configuracoes` | `navigate(paths.configuracoes)` |
+| Ação                 | URL                            | Método Navegação                         |
+| -------------------- | ------------------------------ | ---------------------------------------- |
+| Ver todos os treinos | `/pages/treinos`               | `navigate(paths.treinos)`                |
+| Criar treino         | `/pages/treinos/novo`          | `navigate(paths.treinoNovo)`             |
+| Editar treino        | `/pages/treinos/abc123/editar` | `navigate(paths.treinoEditar('abc123'))` |
+| Ver exercícios       | `/pages/exercicios`            | `navigate(paths.exercicios)`             |
+| Ver semanas          | `/pages/semanas`               | `navigate(paths.semanas)`                |
+| Configurações        | `/pages/configuracoes`         | `navigate(paths.configuracoes)`          |
 
 ---
 
@@ -585,4 +594,3 @@ const isEditMode = !!id;
 
 **Última atualização:** Janeiro 2026  
 **Versão:** 2.0.0
-

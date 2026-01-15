@@ -71,9 +71,7 @@ const ProfileMenu = () => {
     }
 
     try {
-      const { data, error } = await supabase.storage
-        .from('images')
-        .download(user.avatar_url);
+      const { data, error } = await supabase.storage.from('images').download(user.avatar_url);
 
       if (error) {
         console.error('Erro ao carregar avatar:', error);
@@ -97,7 +95,7 @@ const ProfileMenu = () => {
 
   const handleMenuItemClick = async (item: MenuItems) => {
     setAnchorEl(null);
-    
+
     if (item.title === 'Logout') {
       await signOut();
       navigate(paths.signin);
@@ -125,7 +123,8 @@ const ProfileMenu = () => {
             color: 'white',
           }}
         >
-          {!avatarUrl && (user?.name?.charAt(0).toUpperCase() || <IconifyIcon icon="ic:round-person" />)}
+          {!avatarUrl &&
+            (user?.name?.charAt(0).toUpperCase() || <IconifyIcon icon="ic:round-person" />)}
         </Avatar>
       </ButtonBase>
 
@@ -147,17 +146,18 @@ const ProfileMenu = () => {
       >
         <Box p={1}>
           <MenuItem onClick={handleProfileMenuClose} sx={{ '&:hover': { bgcolor: 'info.dark' } }}>
-            <Avatar 
-              src={avatarUrl || undefined} 
-              sx={{ 
-                mr: 1, 
-                height: 42, 
+            <Avatar
+              src={avatarUrl || undefined}
+              sx={{
+                mr: 1,
+                height: 42,
                 width: 42,
                 bgcolor: 'primary.main',
                 color: 'white',
               }}
             >
-              {!avatarUrl && (user?.name?.charAt(0).toUpperCase() || <IconifyIcon icon="ic:round-person" />)}
+              {!avatarUrl &&
+                (user?.name?.charAt(0).toUpperCase() || <IconifyIcon icon="ic:round-person" />)}
             </Avatar>
             <Stack direction="column">
               <Typography variant="body2" color="text.primary" fontWeight={600}>
@@ -175,11 +175,7 @@ const ProfileMenu = () => {
         <Box p={1}>
           {menuItems.map((item) => {
             return (
-              <MenuItem 
-                key={item.id} 
-                onClick={() => handleMenuItemClick(item)} 
-                sx={{ py: 1 }}
-              >
+              <MenuItem key={item.id} onClick={() => handleMenuItemClick(item)} sx={{ py: 1 }}>
                 <ListItemIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 'h5.fontSize' }}>
                   <IconifyIcon icon={item.icon} />
                 </ListItemIcon>

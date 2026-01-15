@@ -1,11 +1,14 @@
 // FormInput - TextField reutilizável com React Hook Form
-import { useFormContext, Controller } from 'react-hook-form'
-import { TextField } from '@mui/material'
+import { useFormContext, Controller } from 'react-hook-form';
+import { TextField } from '@mui/material';
 
 export default function FormInput({ name, label, required, ...props }) {
-  const { control, formState: { errors } } = useFormContext()
-  const isError = !!errors[name]
-  const errorMessage = errors[name]?.message || ''
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext();
+  const isError = !!errors[name];
+  const errorMessage = errors[name]?.message || '';
 
   return (
     <Controller
@@ -24,6 +27,5 @@ export default function FormInput({ name, label, required, ...props }) {
         />
       )}
     />
-  )
+  );
 }
-

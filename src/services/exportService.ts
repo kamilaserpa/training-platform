@@ -51,7 +51,8 @@ function formatProtocol(prescription: any): string {
   if (prescription.rest_seconds) {
     const restMins = Math.floor(prescription.rest_seconds / 60);
     const restSecs = prescription.rest_seconds % 60;
-    const restStr = restMins > 0 ? `${restMins}min${restSecs > 0 ? ` ${restSecs}s` : ''}` : `${restSecs}s`;
+    const restStr =
+      restMins > 0 ? `${restMins}min${restSecs > 0 ? ` ${restSecs}s` : ''}` : `${restSecs}s`;
     parts.push(`(descanso: ${restStr})`);
   }
 

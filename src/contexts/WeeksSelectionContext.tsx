@@ -13,15 +13,20 @@ const WeeksSelectionContext = createContext<WeeksSelectionContextValue | undefin
 export function WeeksSelectionProvider({ children }: { children: ReactNode }) {
   const [selectedWeekIds, setSelectedWeekIds] = useState<string[]>([]);
 
-  const value = useMemo<WeeksSelectionContextValue>(() => ({
-    selectedWeekIds,
-    isSelected: (id: string) => selectedWeekIds.includes(id),
-    toggleWeek: (id: string) => {
-      setSelectedWeekIds((prev) => (prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]));
-    },
-    setSelectedWeeks: (ids: string[]) => setSelectedWeekIds(Array.from(new Set(ids))),
-    clearSelection: () => setSelectedWeekIds([]),
-  }), [selectedWeekIds]);
+  const value = useMemo<WeeksSelectionContextValue>(
+    () => ({
+      selectedWeekIds,
+      isSelected: (id: string) => selectedWeekIds.includes(id),
+      toggleWeek: (id: string) => {
+        setSelectedWeekIds((prev) =>
+          prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id],
+        );
+      },
+      setSelectedWeeks: (ids: string[]) => setSelectedWeekIds(Array.from(new Set(ids))),
+      clearSelection: () => setSelectedWeekIds([]),
+    }),
+    [selectedWeekIds],
+  );
 
   return <WeeksSelectionContext.Provider value={value}>{children}</WeeksSelectionContext.Provider>;
 }

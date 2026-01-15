@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -17,8 +17,8 @@ import {
   useMediaQuery,
   IconButton,
   Tooltip,
-} from '@mui/material'
-import { 
+} from '@mui/material';
+import {
   FitnessCenter as FitnessCenterIcon,
   AccessTime as AccessTimeIcon,
   EventAvailable as EventAvailableIcon,
@@ -27,135 +27,135 @@ import {
   Repeat as RepeatIcon,
   Timer as TimerIcon,
   PictureAsPdf as PdfIcon,
-} from '@mui/icons-material'
-import { trainingService } from '../../services/trainingService'
-import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
-import { imageToBase64 } from '../../utils/pdf/pdfUtils'
-import logoImage from '../../assets/images/logo-main.png'
+} from '@mui/icons-material';
+import { trainingService } from '../../services/trainingService';
+import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
+import { imageToBase64 } from '../../utils/pdf/pdfUtils';
+import logoImage from '../../assets/images/logo-main.png';
 
 const TreinoPublico = () => {
-  const { token } = useParams()
-  const [treino, setTreino] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  
+  const { token } = useParams();
+  const [treino, setTreino] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   // Hooks do MUI devem estar no topo, antes de qualquer return condicional
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     const loadPublicTraining = async () => {
       try {
-        setLoading(true)
-        
+        setLoading(true);
+
         // Carregar treino público usando o service
-        const trainingData = await trainingService.getPublicTraining(token)
-        
+        const trainingData = await trainingService.getPublicTraining(token);
+
         if (!trainingData) {
-          setError('Treino não encontrado ou link expirado.')
-          return
+          setError('Treino não encontrado ou link expirado.');
+          return;
         }
 
         // Verificar se o link está ativo
         if (trainingData.link_active === false) {
-          setError('Este link de compartilhamento foi desativado.')
-          return
+          setError('Este link de compartilhamento foi desativado.');
+          return;
         }
-        
-        setTreino(trainingData)
+
+        setTreino(trainingData);
       } catch (err) {
-        console.error('Erro ao carregar treino público:', err)
-        setError('Não foi possível carregar o treino. Verifique se o link está correto.')
+        console.error('Erro ao carregar treino público:', err);
+        setError('Não foi possível carregar o treino. Verifique se o link está correto.');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (token) {
-      loadPublicTraining()
+      loadPublicTraining();
     }
-  }, [token])
+  }, [token]);
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR')
-  }
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
 
   const handleExportPDF = async () => {
     try {
-      const logoBase64 = await imageToBase64(logoImage)
-      await generateTreinoPDF(treino, logoBase64)
+      const logoBase64 = await imageToBase64(logoImage);
+      await generateTreinoPDF(treino, logoBase64);
     } catch (error) {
-      console.error('❌ Erro ao gerar PDF:', error)
-      alert('Erro ao gerar PDF: ' + error.message)
+      console.error('❌ Erro ao gerar PDF:', error);
+      alert('Erro ao gerar PDF: ' + error.message);
     }
-  }
+  };
 
   const getBlockInfo = (blockType) => {
     const blocks = {
-      'MOBILIDADE_ARTICULAR': {
-        title: 'Mobilidade Articular'
+      MOBILIDADE_ARTICULAR: {
+        title: 'Mobilidade Articular',
       },
-      'ATIVACAO_CORE': {
-        title: 'Ativação de Core'
+      ATIVACAO_CORE: {
+        title: 'Ativação de Core',
       },
-      'ATIVACAO_NEURAL': {
-        title: 'Ativação Neural'
+      ATIVACAO_NEURAL: {
+        title: 'Ativação Neural',
       },
-      'TREINO_PRINCIPAL': {
-        title: 'Treino Principal'
+      TREINO_PRINCIPAL: {
+        title: 'Treino Principal',
       },
-      'CONDICIONAMENTO_FISICO': {
-        title: 'Condicionamento Físico'
+      CONDICIONAMENTO_FISICO: {
+        title: 'Condicionamento Físico',
+      },
+    };
+    return (
+      blocks[blockType] || {
+        title: blockType.replace(/_/g, ' '),
       }
-    }
-    return blocks[blockType] || { 
-      title: blockType.replace(/_/g, ' ')
-    }
-  }
+    );
+  };
 
   const formatExerciseProtocol = (prescription) => {
-    const protocol = []
-    
+    const protocol = [];
+
     // Séries e Repetições
     if (prescription.sets && prescription.reps) {
       protocol.push({
         icon: <RepeatIcon fontSize="small" />,
         text: `${prescription.sets} × ${prescription.reps}`,
         type: 'reps',
-        color: 'primary'
-      })
+        color: 'primary',
+      });
     } else if (prescription.sets) {
       protocol.push({
         icon: <RepeatIcon fontSize="small" />,
         text: `${prescription.sets} séries`,
         type: 'reps',
-        color: 'primary'
-      })
+        color: 'primary',
+      });
     }
-    
+
     // Duração
     if (prescription.duration_seconds) {
-      const minutes = Math.floor(prescription.duration_seconds / 60)
-      const seconds = prescription.duration_seconds % 60
-      const timeText = minutes > 0 
-        ? `${minutes}min ${seconds}s` 
-        : `${seconds}s`
+      const minutes = Math.floor(prescription.duration_seconds / 60);
+      const seconds = prescription.duration_seconds % 60;
+      const timeText = minutes > 0 ? `${minutes}min ${seconds}s` : `${seconds}s`;
       protocol.push({
         icon: <TimerIcon fontSize="small" />,
         text: timeText,
         type: 'duration',
-        color: 'warning'
-      })
+        color: 'warning',
+      });
     }
-    
+
     // Descanso
     if (prescription.rest_seconds) {
       protocol.push({
         icon: <AccessTimeIcon fontSize="small" />,
         text: `${prescription.rest_seconds}s descanso`,
         type: 'rest',
-        color: 'success'
-      })
+        color: 'success',
+      });
     }
 
     // Carga
@@ -164,12 +164,12 @@ const TreinoPublico = () => {
         icon: <FitnessCenterIcon fontSize="small" />,
         text: `${prescription.weight_kg}kg`,
         type: 'weight',
-        color: 'error'
-      })
+        color: 'error',
+      });
     }
-    
-    return protocol
-  }
+
+    return protocol;
+  };
 
   if (loading) {
     return (
@@ -183,7 +183,7 @@ const TreinoPublico = () => {
           </Stack>
         </Box>
       </Container>
-    )
+    );
   }
 
   if (error) {
@@ -193,7 +193,7 @@ const TreinoPublico = () => {
           {error}
         </Alert>
       </Container>
-    )
+    );
   }
 
   if (!treino) {
@@ -203,22 +203,22 @@ const TreinoPublico = () => {
           Treino não encontrado ou link expirado.
         </Alert>
       </Container>
-    )
+    );
   }
 
   return (
     <Box sx={{ bgcolor: 'info.main', minHeight: '100vh', py: { xs: 2, sm: 3 } }}>
       <Container maxWidth="xl">
         {/* Cabeçalho do Treino */}
-        <Paper 
+        <Paper
           elevation={2}
-          sx={{ 
+          sx={{
             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
             color: 'primary.contrastText',
             p: { xs: 2.5, sm: 3 },
             mb: 3,
             borderRadius: 2,
-            position: 'relative'
+            position: 'relative',
           }}
         >
           {/* Botão de Exportar PDF */}
@@ -226,7 +226,7 @@ const TreinoPublico = () => {
             sx={{
               position: 'absolute',
               top: { xs: 12, sm: 16 },
-              right: { xs: 12, sm: 16 }
+              right: { xs: 12, sm: 16 },
             }}
           >
             <Tooltip title="Exportar treino em PDF">
@@ -246,20 +246,20 @@ const TreinoPublico = () => {
             </Tooltip>
           </Box>
 
-          <Typography 
-            variant="h4" 
+          <Typography
+            variant="h4"
             fontWeight="600"
-            sx={{ 
+            sx={{
               mb: 1.5,
               fontSize: { xs: '1.5rem', sm: '1.875rem' },
-              pr: { xs: 6, sm: 7 }
+              pr: { xs: 6, sm: 7 },
             }}
           >
             {treino.name}
           </Typography>
-          
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
+
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
             spacing={{ xs: 0.75, sm: 2.5 }}
             sx={{ opacity: 0.95 }}
           >
@@ -276,15 +276,15 @@ const TreinoPublico = () => {
               </Typography>
             </Box>
           </Stack>
-          
+
           {treino.description && (
-            <Box 
-              sx={{ 
+            <Box
+              sx={{
                 mt: 2,
                 p: 1.5,
                 bgcolor: 'rgba(255,255,255,0.15)',
                 borderRadius: 1.5,
-                border: '1px solid rgba(255,255,255,0.2)'
+                border: '1px solid rgba(255,255,255,0.2)',
               }}
             >
               <Stack direction="row" spacing={1} alignItems="flex-start">
@@ -300,26 +300,26 @@ const TreinoPublico = () => {
         {/* Grid de Blocos */}
         <Grid container spacing={2.5}>
           {treino.training_blocks?.map((block, blockIndex) => {
-            const blockInfo = getBlockInfo(block.block_type)
-            
+            const blockInfo = getBlockInfo(block.block_type);
+
             return (
               <Grid item xs={12} sm={6} md={4} key={blockIndex}>
-                <Card 
+                <Card
                   elevation={1}
-                  sx={{ 
+                  sx={{
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
                       transform: 'translateY(-2px)',
-                      boxShadow: 3
-                    }
+                      boxShadow: 3,
+                    },
                   }}
                 >
                   {/* Cabeçalho do Card - Sem Background */}
-                  <Box 
-                    sx={{ 
+                  <Box
+                    sx={{
                       p: 2,
                       pb: 1.5,
                       display: 'flex',
@@ -327,31 +327,31 @@ const TreinoPublico = () => {
                       justifyContent: 'space-between',
                       gap: 1,
                       borderBottom: '2px solid',
-                      borderColor: 'primary.main'
+                      borderColor: 'primary.main',
                     }}
                   >
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography 
-                        variant="h6" 
+                      <Typography
+                        variant="h6"
                         fontWeight="600"
                         color="primary.main"
-                        sx={{ 
+                        sx={{
                           fontSize: { xs: '0.95rem', sm: '1rem' },
-                          lineHeight: 1.3
+                          lineHeight: 1.3,
                         }}
                       >
                         {blockInfo.title}
                       </Typography>
                     </Box>
-                    <Chip 
+                    <Chip
                       label={block.exercise_prescriptions?.length || 0}
                       size="small"
                       color="primary"
-                      sx={{ 
+                      sx={{
                         fontWeight: 600,
                         minWidth: 28,
                         height: 26,
-                        fontSize: '0.813rem'
+                        fontSize: '0.813rem',
                       }}
                     />
                   </Box>
@@ -361,49 +361,49 @@ const TreinoPublico = () => {
                     {block.exercise_prescriptions?.length > 0 ? (
                       <Stack direction="column" spacing={2}>
                         {block.exercise_prescriptions.map((prescription, exerciseIndex) => {
-                          const protocol = formatExerciseProtocol(prescription)
-                          
+                          const protocol = formatExerciseProtocol(prescription);
+
                           return (
                             <Box key={exerciseIndex}>
                               {/* Nome do Exercício */}
-                              <Typography 
-                                variant="subtitle2" 
+                              <Typography
+                                variant="subtitle2"
                                 fontWeight="600"
                                 color="text.primary"
-                                sx={{ 
+                                sx={{
                                   mb: 0.5,
                                   fontSize: '0.875rem',
-                                  lineHeight: 1.4
+                                  lineHeight: 1.4,
                                 }}
                               >
                                 {exerciseIndex + 1}. {prescription.exercise?.name}
                               </Typography>
-                              
+
                               {/* Instruções do Exercício */}
                               {prescription.exercise?.instructions && (
-                                <Typography 
-                                  variant="caption" 
+                                <Typography
+                                  variant="caption"
                                   color="text.secondary"
-                                  sx={{ 
+                                  sx={{
                                     display: 'block',
                                     mb: 1,
                                     fontSize: '0.75rem',
                                     lineHeight: 1.5,
-                                    fontStyle: 'italic'
+                                    fontStyle: 'italic',
                                   }}
                                 >
                                   {prescription.exercise.instructions}
                                 </Typography>
                               )}
-                              
+
                               {/* Protocolo */}
                               {protocol.length > 0 && (
-                                <Box 
-                                  sx={{ 
+                                <Box
+                                  sx={{
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     gap: 0.5,
-                                    mb: 1
+                                    mb: 1,
                                   }}
                                 >
                                   {protocol.map((item, idx) => (
@@ -418,45 +418,45 @@ const TreinoPublico = () => {
                                         fontSize: '0.75rem',
                                         fontWeight: 600,
                                         '& .MuiChip-icon': {
-                                          fontSize: '0.9rem'
-                                        }
+                                          fontSize: '0.9rem',
+                                        },
                                       }}
                                     />
                                   ))}
                                 </Box>
                               )}
-                              
+
                               {/* Observações */}
                               {prescription.notes && (
-                                <Alert 
-                                  severity="info" 
+                                <Alert
+                                  severity="info"
                                   icon={<InfoIcon sx={{ fontSize: '0.95rem' }} />}
-                                  sx={{ 
+                                  sx={{
                                     py: 0.5,
                                     px: 1,
                                     fontSize: '0.75rem',
                                     '& .MuiAlert-message': {
                                       padding: '2px 0',
-                                      fontSize: '0.75rem'
-                                    }
+                                      fontSize: '0.75rem',
+                                    },
                                   }}
                                 >
                                   {prescription.notes}
                                 </Alert>
                               )}
-                              
+
                               {/* Divider entre exercícios (exceto último) */}
                               {exerciseIndex < block.exercise_prescriptions.length - 1 && (
                                 <Divider sx={{ mt: 2 }} />
                               )}
                             </Box>
-                          )
+                          );
                         })}
                       </Stack>
                     ) : (
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
                         fontStyle="italic"
                         textAlign="center"
                         sx={{ py: 2, fontSize: '0.875rem' }}
@@ -467,41 +467,37 @@ const TreinoPublico = () => {
                   </CardContent>
                 </Card>
               </Grid>
-            )
+            );
           })}
         </Grid>
 
         {/* Footer */}
-        <Paper 
+        <Paper
           elevation={0}
-          sx={{ 
-            mt: 3, 
-            p: 2.5, 
+          sx={{
+            mt: 3,
+            p: 2.5,
             textAlign: 'center',
             borderRadius: 2,
             border: '1px solid',
-            borderColor: 'divider'
+            borderColor: 'divider',
           }}
         >
-          <Typography 
-            variant="body2" 
+          <Typography
+            variant="body2"
             color="text.primary"
             fontWeight="500"
             sx={{ mb: 0.5, fontSize: '0.875rem' }}
           >
             Este treino foi compartilhado pelo seu personal trainer
           </Typography>
-          <Typography 
-            variant="caption" 
-            color="text.secondary"
-            sx={{ fontSize: '0.75rem' }}
-          >
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
             Para dúvidas sobre os exercícios, entre em contato com seu profissional
           </Typography>
         </Paper>
       </Container>
     </Box>
-  )
-}
+  );
+};
 
-export default TreinoPublico
+export default TreinoPublico;

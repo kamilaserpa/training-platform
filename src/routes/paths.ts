@@ -6,7 +6,7 @@ export const rootPaths = {
 
 /**
  * Rotas da aplicação seguindo padrão RESTful
- * 
+ *
  * Estrutura:
  * - Listagem: /pages/recurso
  * - Criar: /pages/recurso/novo
@@ -32,33 +32,33 @@ export default {
   treinoNovo: `/${rootPaths.pagesRoot}/treinos/novo`,
   treinoEditar: (id: string) => `/${rootPaths.pagesRoot}/treinos/${id}/editar`,
   treinoVer: (id: string) => `/${rootPaths.pagesRoot}/treinos/${id}`,
-  
+
   // ==========================================
   // Exercícios (CRUD com modal inline)
   // ==========================================
   exercicios: `/${rootPaths.pagesRoot}/exercicios`,
-  
+
   // ==========================================
   // Semanas (CRUD com modal inline)
   // ==========================================
   semanas: `/${rootPaths.pagesRoot}/semanas`,
   exportSettings: `/${rootPaths.pagesRoot}/export-settings`,
-  
+
   // ==========================================
   // Configurações (página única)
   // ==========================================
   configuracoes: `/${rootPaths.pagesRoot}/configuracoes`,
-  
+
   // ==========================================
   // Usuários (apenas Owner e Admin)
   // ==========================================
   usuarios: `/${rootPaths.pagesRoot}/usuarios`,
-  
+
   // ==========================================
   // Perfil
   // ==========================================
   perfil: `/${rootPaths.pagesRoot}/perfil`,
-  
+
   // ==========================================
   // Desenvolvimento
   // ==========================================

@@ -23,7 +23,7 @@ export const DiaCell = ({ dia, diaNome, semanaId }: DiaCellProps) => {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start'
+        justifyContent: 'flex-start',
       }}
     >
       {dia.treino ? (
@@ -41,8 +41,8 @@ export const DiaCell = ({ dia, diaNome, semanaId }: DiaCellProps) => {
             borderColor: 'divider',
             '&:hover': {
               borderColor: 'primary.main',
-              bgcolor: 'action.hover'
-            }
+              bgcolor: 'action.hover',
+            },
           }}
         >
           Adicionar treino

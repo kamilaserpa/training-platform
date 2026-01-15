@@ -12,12 +12,7 @@ interface PageWrapperProps {
  * Componente wrapper para padronizar o layout das páginas internas
  * Fornece título, subtítulo, ações e espaçamento consistente
  */
-export default function PageWrapper({
-  title,
-  subtitle,
-  actions,
-  children,
-}: PageWrapperProps) {
+export default function PageWrapper({ title, subtitle, actions, children }: PageWrapperProps) {
   return (
     <Box>
       {/* Header da página */}

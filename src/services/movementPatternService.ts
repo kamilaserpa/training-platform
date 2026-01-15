@@ -127,10 +127,10 @@ class MovementPatternService {
         updated_at: new Date().toISOString(),
       };
       mockMovementPatterns.push(newPattern);
-      
+
       // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       return newPattern;
     }
 
@@ -150,7 +150,11 @@ class MovementPatternService {
     }
   }
 
-  async updateMovementPattern(id: string, name: string, description?: string): Promise<MovementPattern> {
+  async updateMovementPattern(
+    id: string,
+    name: string,
+    description?: string,
+  ): Promise<MovementPattern> {
     if (useMock) {
       const index = mockMovementPatterns.findIndex((mp) => mp.id === id);
       if (index !== -1) {
@@ -160,10 +164,10 @@ class MovementPatternService {
           description: description || undefined,
           updated_at: new Date().toISOString(),
         };
-        
+
         // Simular delay de rede
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
         return mockMovementPatterns[index];
       }
       throw new Error('Padrão não encontrado');
@@ -191,9 +195,9 @@ class MovementPatternService {
       const index = mockMovementPatterns.findIndex((mp) => mp.id === id);
       if (index !== -1) {
         mockMovementPatterns.splice(index, 1);
-        
+
         // Simular delay de rede
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
       return;
     }

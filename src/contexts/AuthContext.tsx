@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updated_at: new Date().toISOString(),
           };
         }
-        
+
         return null;
       }
 
@@ -130,7 +130,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Função de cadastro
-  const signUp = async (email: string, password: string, name: string): Promise<{ error?: string }> => {
+  const signUp = async (
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<{ error?: string }> => {
     if (useMock) {
       const newUser = { ...mockUser, email, name };
       setUser(newUser);
@@ -255,8 +259,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (!mounted) return;
 
         if (error) {

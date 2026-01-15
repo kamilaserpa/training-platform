@@ -52,19 +52,16 @@ export const mockSemanas: MockSemana[] = [
               exercicios: [
                 { nome: 'Agachamento Livre' },
                 { nome: 'Leg Press 45°' },
-                { nome: 'Cadeira Extensora' }
-              ]
+                { nome: 'Cadeira Extensora' },
+              ],
             },
             {
               nome: 'Bloco 02',
               protocolo: '3×15',
-              exercicios: [
-                { nome: 'Stiff' },
-                { nome: 'Cadeira Flexora' }
-              ]
-            }
-          ]
-        }
+              exercicios: [{ nome: 'Stiff' }, { nome: 'Cadeira Flexora' }],
+            },
+          ],
+        },
       },
       terca: {},
       quarta: {
@@ -78,19 +75,16 @@ export const mockSemanas: MockSemana[] = [
               exercicios: [
                 { nome: 'Supino Reto' },
                 { nome: 'Supino Inclinado' },
-                { nome: 'Crucifixo' }
-              ]
+                { nome: 'Crucifixo' },
+              ],
             },
             {
               nome: 'Bloco 02',
-              protocolo: 'EMOM 12\'',
-              exercicios: [
-                { nome: 'Flexão de Braço' },
-                { nome: 'Push Press' }
-              ]
-            }
-          ]
-        }
+              protocolo: "EMOM 12'",
+              exercicios: [{ nome: 'Flexão de Braço' }, { nome: 'Push Press' }],
+            },
+          ],
+        },
       },
       quinta: {},
       sexta: {
@@ -101,23 +95,17 @@ export const mockSemanas: MockSemana[] = [
             {
               nome: 'Bloco 01',
               protocolo: '3×12',
-              exercicios: [
-                { nome: 'Agachamento Búlgaro' },
-                { nome: 'Afundo' }
-              ]
+              exercicios: [{ nome: 'Agachamento Búlgaro' }, { nome: 'Afundo' }],
             },
             {
               nome: 'Bloco 02',
-              protocolo: '20\'',
-              exercicios: [
-                { nome: 'Corrida' },
-                { nome: 'Bike' }
-              ]
-            }
-          ]
-        }
-      }
-    }
+              protocolo: "20'",
+              exercicios: [{ nome: 'Corrida' }, { nome: 'Bike' }],
+            },
+          ],
+        },
+      },
+    },
   },
   {
     id: '2',
@@ -133,13 +121,10 @@ export const mockSemanas: MockSemana[] = [
             {
               nome: 'Bloco 01',
               protocolo: '5×5',
-              exercicios: [
-                { nome: 'Supino Reto' },
-                { nome: 'Desenvolvimento' }
-              ]
-            }
-          ]
-        }
+              exercicios: [{ nome: 'Supino Reto' }, { nome: 'Desenvolvimento' }],
+            },
+          ],
+        },
       },
       terca: {},
       quarta: {
@@ -150,25 +135,19 @@ export const mockSemanas: MockSemana[] = [
             {
               nome: 'Bloco 01',
               protocolo: '4×8',
-              exercicios: [
-                { nome: 'Barra Fixa' },
-                { nome: 'Remada Curvada' }
-              ]
+              exercicios: [{ nome: 'Barra Fixa' }, { nome: 'Remada Curvada' }],
             },
             {
               nome: 'Bloco 02',
               protocolo: '3×12',
-              exercicios: [
-                { nome: 'Rosca Direta' },
-                { nome: 'Tríceps Testa' }
-              ]
-            }
-          ]
-        }
+              exercicios: [{ nome: 'Rosca Direta' }, { nome: 'Tríceps Testa' }],
+            },
+          ],
+        },
       },
       quinta: {},
-      sexta: {}
-    }
+      sexta: {},
+    },
   },
   {
     id: '3',
@@ -184,21 +163,15 @@ export const mockSemanas: MockSemana[] = [
             {
               nome: 'Bloco 01',
               protocolo: '8×30"×15"',
-              exercicios: [
-                { nome: 'Levantamento Terra' },
-                { nome: 'Cadeira Flexora' }
-              ]
+              exercicios: [{ nome: 'Levantamento Terra' }, { nome: 'Cadeira Flexora' }],
             },
             {
               nome: 'Bloco 02',
-              protocolo: 'EMOM 12\'',
-              exercicios: [
-                { nome: 'Push Press' },
-                { nome: 'Wall Ball' }
-              ]
-            }
-          ]
-        }
+              protocolo: "EMOM 12'",
+              exercicios: [{ nome: 'Push Press' }, { nome: 'Wall Ball' }],
+            },
+          ],
+        },
       },
       terca: {},
       quarta: {
@@ -208,15 +181,11 @@ export const mockSemanas: MockSemana[] = [
           blocos: [
             {
               nome: 'Bloco 01',
-              protocolo: 'AMRAP 15\'',
-              exercicios: [
-                { nome: 'Burpee' },
-                { nome: 'Pull-up' },
-                { nome: 'Box Jump' }
-              ]
-            }
-          ]
-        }
+              protocolo: "AMRAP 15'",
+              exercicios: [{ nome: 'Burpee' }, { nome: 'Pull-up' }, { nome: 'Box Jump' }],
+            },
+          ],
+        },
       },
       quinta: {},
       sexta: {
@@ -227,14 +196,11 @@ export const mockSemanas: MockSemana[] = [
             {
               nome: 'Bloco 01',
               protocolo: '4 rounds',
-              exercicios: [
-                { nome: 'Snatch' },
-                { nome: 'Clean & Jerk' }
-              ]
-            }
-          ]
-        }
-      }
-    }
-  }
+              exercicios: [{ nome: 'Snatch' }, { nome: 'Clean & Jerk' }],
+            },
+          ],
+        },
+      },
+    },
+  },
 ];

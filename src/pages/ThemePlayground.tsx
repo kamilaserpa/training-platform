@@ -44,10 +44,18 @@ const ThemePlayground: React.FC = () => {
   const buttonVariants = ['contained', 'outlined', 'text'] as const;
   const buttonSizes = ['small', 'medium', 'large'] as const;
   const typographyVariants = [
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'subtitle1', 'subtitle2',
-    'body1', 'body2',
-    'caption', 'overline'
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'subtitle1',
+    'subtitle2',
+    'body1',
+    'body2',
+    'caption',
+    'overline',
   ] as const;
 
   return (
@@ -83,10 +91,12 @@ const ThemePlayground: React.FC = () => {
                         textAlign: 'center',
                       }}
                     >
-                      <Typography variant="body2" fontWeight="bold">main</Typography>
+                      <Typography variant="body2" fontWeight="bold">
+                        main
+                      </Typography>
                       <Typography variant="caption">{theme.palette[color].main}</Typography>
                     </Box>
-                    
+
                     {/* Light Color */}
                     <Box
                       sx={{
@@ -97,9 +107,11 @@ const ThemePlayground: React.FC = () => {
                         textAlign: 'center',
                       }}
                     >
-                      <Typography variant="caption">light - {theme.palette[color].light}</Typography>
+                      <Typography variant="caption">
+                        light - {theme.palette[color].light}
+                      </Typography>
                     </Box>
-                    
+
                     {/* Dark Color */}
                     <Box
                       sx={{
@@ -130,13 +142,20 @@ const ThemePlayground: React.FC = () => {
         <Grid container spacing={2}>
           {typographyVariants.map((variant) => (
             <Grid item xs={12} sm={6} key={variant}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  p: 2,
+                  bgcolor: 'background.paper',
+                  borderRadius: 1,
+                }}
+              >
                 <Typography variant="caption" sx={{ minWidth: 80, color: 'text.secondary' }}>
                   {variant}:
                 </Typography>
-                <Typography variant={variant as any}>
-                  The quick brown fox jumps
-                </Typography>
+                <Typography variant={variant as any}>The quick brown fox jumps</Typography>
               </Box>
             </Grid>
           ))}
@@ -150,13 +169,13 @@ const ThemePlayground: React.FC = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
           🔘 Botões
         </Typography>
-        
+
         {buttonVariants.map((variant) => (
           <Box key={variant} sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom sx={{ textTransform: 'capitalize', mb: 2 }}>
               {variant}
             </Typography>
-            
+
             {/* Por cor */}
             <Grid container spacing={2} sx={{ mb: 2 }}>
               {colorVariants.map((color) => (
@@ -192,11 +211,13 @@ const ThemePlayground: React.FC = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
           📝 Inputs
         </Typography>
-        
+
         <Grid container spacing={4}>
           {/* TextFields */}
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>TextFields</Typography>
+            <Typography variant="h6" gutterBottom>
+              TextFields
+            </Typography>
             <Stack spacing={3}>
               {(['outlined', 'filled', 'standard'] as const).map((variant) => (
                 <Box key={variant}>
@@ -205,7 +226,12 @@ const ThemePlayground: React.FC = () => {
                   </Typography>
                   <Stack direction="row" spacing={2}>
                     <TextField variant={variant} label="Normal" placeholder="Digite algo..." />
-                    <TextField variant={variant} label="Error" error helperText="Campo obrigatório" />
+                    <TextField
+                      variant={variant}
+                      label="Error"
+                      error
+                      helperText="Campo obrigatório"
+                    />
                     <TextField variant={variant} label="Disabled" disabled />
                   </Stack>
                 </Box>
@@ -215,7 +241,9 @@ const ThemePlayground: React.FC = () => {
 
           {/* Select */}
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>Select</Typography>
+            <Typography variant="h6" gutterBottom>
+              Select
+            </Typography>
             <Stack spacing={2}>
               <FormControl fullWidth>
                 <InputLabel>Escolha uma opção</InputLabel>
@@ -236,36 +264,54 @@ const ThemePlayground: React.FC = () => {
 
           {/* Checkboxes, Radios, Switch */}
           <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>Controles</Typography>
+            <Typography variant="h6" gutterBottom>
+              Controles
+            </Typography>
             <Grid container spacing={4}>
               <Grid item xs={12} sm={4}>
-                <Typography variant="subtitle2" gutterBottom>Checkboxes</Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  Checkboxes
+                </Typography>
                 <Stack>
                   <FormControlLabel control={<Checkbox />} label="Normal" />
                   <FormControlLabel control={<Checkbox defaultChecked />} label="Marcado" />
                   <FormControlLabel control={<Checkbox disabled />} label="Desabilitado" />
-                  <FormControlLabel control={<Checkbox icon={<FavoriteBorder />} checkedIcon={<Favorite />} />} label="Com ícone" />
+                  <FormControlLabel
+                    control={<Checkbox icon={<FavoriteBorder />} checkedIcon={<Favorite />} />}
+                    label="Com ícone"
+                  />
                 </Stack>
               </Grid>
 
               <Grid item xs={12} sm={4}>
-                <Typography variant="subtitle2" gutterBottom>Radio Buttons</Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  Radio Buttons
+                </Typography>
                 <FormControl>
                   <RadioGroup defaultValue="opcao1">
                     <FormControlLabel value="opcao1" control={<Radio />} label="Opção 1" />
                     <FormControlLabel value="opcao2" control={<Radio />} label="Opção 2" />
-                    <FormControlLabel value="opcao3" control={<Radio disabled />} label="Desabilitado" />
+                    <FormControlLabel
+                      value="opcao3"
+                      control={<Radio disabled />}
+                      label="Desabilitado"
+                    />
                   </RadioGroup>
                 </FormControl>
               </Grid>
 
               <Grid item xs={12} sm={4}>
-                <Typography variant="subtitle2" gutterBottom>Switches</Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  Switches
+                </Typography>
                 <Stack>
                   <FormControlLabel control={<Switch />} label="Normal" />
                   <FormControlLabel control={<Switch defaultChecked />} label="Ligado" />
                   <FormControlLabel control={<Switch disabled />} label="Desabilitado" />
-                  <FormControlLabel control={<Switch color="secondary" defaultChecked />} label="Secondary" />
+                  <FormControlLabel
+                    control={<Switch color="secondary" defaultChecked />}
+                    label="Secondary"
+                  />
                 </Stack>
               </Grid>
             </Grid>
@@ -280,7 +326,7 @@ const ThemePlayground: React.FC = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
           🏷️ Chips
         </Typography>
-        
+
         {(['filled', 'outlined'] as const).map((variant) => (
           <Box key={variant} sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ textTransform: 'capitalize' }}>
@@ -288,12 +334,7 @@ const ThemePlayground: React.FC = () => {
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {colorVariants.map((color) => (
-                <Chip
-                  key={color}
-                  label={color}
-                  variant={variant}
-                  color={color}
-                />
+                <Chip key={color} label={color} variant={variant} color={color} />
               ))}
               <Chip label="Deletable" variant={variant} onDelete={() => {}} />
               <Chip label="Clickable" variant={variant} onClick={() => {}} />
@@ -310,7 +351,7 @@ const ThemePlayground: React.FC = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
           🃏 Cards
         </Typography>
-        
+
         <Grid container spacing={3}>
           {/* Card Simples */}
           <Grid item xs={12} md={4}>
@@ -320,7 +361,8 @@ const ThemePlayground: React.FC = () => {
                   Card Simples
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Um card básico com apenas conteúdo. Ideal para exibir informações simples de forma organizada.
+                  Um card básico com apenas conteúdo. Ideal para exibir informações simples de forma
+                  organizada.
                 </Typography>
               </CardContent>
             </Card>
@@ -373,10 +415,12 @@ const ThemePlayground: React.FC = () => {
         <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
           🎯 Ícones
         </Typography>
-        
+
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>Ícones Isolados</Typography>
+            <Typography variant="h6" gutterBottom>
+              Ícones Isolados
+            </Typography>
             <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
               {[
                 { Icon: Home, name: 'Home' },
@@ -385,7 +429,7 @@ const ThemePlayground: React.FC = () => {
                 { Icon: Search, name: 'Search' },
                 { Icon: Notifications, name: 'Notifications' },
                 { Icon: Email, name: 'Email' },
-                { Icon: Favorite, name: 'Favorite' }
+                { Icon: Favorite, name: 'Favorite' },
               ].map(({ Icon, name }, index) => (
                 <Box
                   key={index}
@@ -408,7 +452,9 @@ const ThemePlayground: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>Ícones em Botões</Typography>
+            <Typography variant="h6" gutterBottom>
+              Ícones em Botões
+            </Typography>
             <Stack spacing={2}>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 <Button variant="contained" startIcon={<Home />}>

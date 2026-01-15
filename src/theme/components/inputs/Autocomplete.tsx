@@ -26,8 +26,8 @@ const Autocomplete: Components<Omit<Theme, 'components'>>['MuiAutocomplete'] = {
       borderRadius: theme.shape.borderRadius * 1.5,
       margin: theme.spacing(0.25, 0.5),
       transition: 'all 0.3s ease-in-out',
-      '&:hover': { 
-        backgroundColor: theme.palette.info.dark 
+      '&:hover': {
+        backgroundColor: theme.palette.info.dark,
       },
       '&[aria-selected="true"]': {
         backgroundColor: theme.palette.primary.main,

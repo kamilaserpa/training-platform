@@ -23,7 +23,7 @@ export function useExportData() {
     try {
       // Buscar todas as semanas com relacionamentos básicos
       const allWeeks = await weekService.getAllTrainingWeeks();
-      
+
       // Buscar detalhes completos de cada treino (blocos e exercícios)
       const weeksWithDetails = await Promise.all(
         allWeeks.map(async (week) => {
@@ -41,14 +41,14 @@ export function useExportData() {
                 console.error(`Erro ao buscar detalhes do treino ${training.id}:`, err);
                 return training;
               }
-            })
+            }),
           );
 
           return {
             ...week,
             trainings: trainingsWithDetails,
           };
-        })
+        }),
       );
 
       setWeeks(weeksWithDetails);

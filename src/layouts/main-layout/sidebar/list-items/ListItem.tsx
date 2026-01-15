@@ -18,11 +18,11 @@ const ListItem = ({ subheader, icon, path, isLogout, onItemClick }: ListItemProp
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  
+
   // Determinar se o item está ativo baseado na rota atual
-  const isActive = location.pathname === path || 
-    (path !== '/' && path && location.pathname.startsWith(path));
-  
+  const isActive =
+    location.pathname === path || (path !== '/' && path && location.pathname.startsWith(path));
+
   // Handler para logout e navegação
   const handleClick = async (e: React.MouseEvent) => {
     if (isLogout) {

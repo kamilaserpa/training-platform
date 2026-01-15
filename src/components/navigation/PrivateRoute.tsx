@@ -18,12 +18,7 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
   // Enquanto está carregando, mostra um spinner
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress />
       </Box>
     );

@@ -27,7 +27,7 @@ if (!useMock) {
   // Teste de conexão mais rápido
   Promise.race([
     supabase.auth.getSession(),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000)),
   ])
     .then((result: any) => {
       if (result?.error) {

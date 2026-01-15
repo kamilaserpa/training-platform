@@ -7,11 +7,13 @@ Este projeto segue o **padrão RESTful** para URLs, garantindo uma estrutura int
 ## 🎯 Convenções
 
 ### Nomenclatura de URLs
+
 - **Recursos**: Substantivos no plural (`/treinos`, `/exercicios`)
 - **Ações**: Verbos explícitos (`/novo`, `/editar`)
 - **Hierarquia**: Clara e lógica (`/treinos/:id/editar`)
 
 ### Estrutura Padrão
+
 ```
 /pages/recurso              → Listagem de recursos
 /pages/recurso/novo         → Criar novo recurso
@@ -22,17 +24,20 @@ Este projeto segue o **padrão RESTful** para URLs, garantindo uma estrutura int
 ## 🗂️ Rotas da Aplicação
 
 ### 🏠 Autenticação
+
 ```typescript
 /authentication/sign-in     → Login
 /authentication/sign-up     → Cadastro
 ```
 
 ### 📊 Dashboard
+
 ```typescript
 /pages                      → Dashboard principal
 ```
 
 ### 🏋️ Treinos (CRUD Completo)
+
 ```typescript
 /pages/treinos                    → Listar todos os treinos
 /pages/treinos/novo               → Criar novo treino
@@ -41,45 +46,54 @@ Este projeto segue o **padrão RESTful** para URLs, garantindo uma estrutura int
 ```
 
 **Características:**
+
 - ✅ Rotas separadas para criar/editar
 - ✅ Formulários em páginas dedicadas
 - ✅ URLs bookmarkable e compartilháveis
 
 ### 💪 Exercícios (CRUD com Modal)
+
 ```typescript
 /pages/exercicios           → Listar todos os exercícios
 ```
 
 **Características:**
+
 - ✅ Listagem principal
 - ✅ Criar/Editar via Dialog (modal inline)
 - ✅ Não necessita rotas separadas
 
 ### 📅 Semanas (CRUD com Modal)
+
 ```typescript
 /pages/semanas              → Listar todas as semanas
 ```
 
 **Características:**
+
 - ✅ Listagem principal
 - ✅ Criar/Editar via Dialog (modal inline)
 - ✅ Não necessita rotas separadas
 
 ### ⚙️ Configurações
+
 ```typescript
 /pages/configuracoes        → Página de configurações
 ```
 
 **Características:**
+
 - ✅ Página única (singular)
 - ✅ Não é um recurso CRUD
 
 ### 🌐 Rotas Públicas
+
 ```typescript
 /treino-publico/:token      → Visualização pública de treino
 ```
 
 **Características:**
+
 - ✅ Sem prefixo `/pages` (rota pública)
 - ✅ Acessível sem autenticação
 
@@ -110,6 +124,7 @@ navigate(paths.treinoVer(treinoId));
 ### Definir Novas Rotas
 
 1. **Adicione em `paths.ts`:**
+
 ```typescript
 export default {
   // ...
@@ -120,6 +135,7 @@ export default {
 ```
 
 2. **Adicione em `router.tsx`:**
+
 ```typescript
 {
   path: paths.alunos,
@@ -136,6 +152,7 @@ export default {
 ```
 
 3. **Use no componente:**
+
 ```typescript
 const { id } = useParams(); // Pegar ID da URL
 const isEditMode = !!id;
@@ -144,12 +161,14 @@ const isEditMode = !!id;
 ## 🎨 Padrões de Design
 
 ### Quando usar Modal (Dialog)?
+
 - ✅ CRUD simples e rápido
 - ✅ Formulários pequenos (2-5 campos)
 - ✅ Não precisa compartilhar link direto
 - **Exemplos:** Exercícios, Semanas
 
 ### Quando usar Páginas Separadas?
+
 - ✅ CRUD complexo
 - ✅ Formulários grandes (múltiplas seções)
 - ✅ Precisa compartilhar link direto
@@ -176,6 +195,7 @@ const isEditMode = !!id;
 ## 🚀 Roadmap
 
 ### Próximas Implementações
+
 - [ ] `/pages/alunos` - Gestão de alunos
 - [ ] `/pages/avaliacao` - Avaliações físicas
 - [ ] `/pages/historico/:alunoId` - Histórico do aluno

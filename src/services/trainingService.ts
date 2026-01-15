@@ -96,8 +96,10 @@ class TrainingService {
 
     try {
       // Obter usuário autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
@@ -140,8 +142,10 @@ class TrainingService {
 
     try {
       // Obter usuário autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
@@ -238,12 +242,14 @@ class TrainingService {
 
     try {
       // Obter usuário atual
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const trainingWithUser = {
         ...trainingData,
-        created_by: user?.id
-      }
+        created_by: user?.id,
+      };
 
       const { data, error } = await supabase
         .from('trainings')
@@ -431,8 +437,8 @@ class TrainingService {
       if (blocksError) throw blocksError;
 
       if (blocks && blocks.length > 0) {
-        const blockIds = blocks.map(block => block.id);
-        
+        const blockIds = blocks.map((block) => block.id);
+
         // Deletar todas as prescrições de exercícios dos blocos
         const { error: prescriptionsError } = await supabase
           .from('exercise_prescriptions')
@@ -460,10 +466,7 @@ class TrainingService {
   // Buscar padrões de movimento disponíveis
   async getMovementPatterns(): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from('movement_patterns')
-        .select('*')
-        .order('name');
+      const { data, error } = await supabase.from('movement_patterns').select('*').order('name');
 
       if (error) throw error;
 
@@ -510,12 +513,12 @@ class TrainingService {
                 sets: 2,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '1',
                   name: 'Rotação de ombros',
                   created_at: '2024-01-01T00:00:00Z',
-                  updated_at: '2024-01-01T00:00:00Z'
-                }
+                  updated_at: '2024-01-01T00:00:00Z',
+                },
               },
               {
                 id: '2',
@@ -525,14 +528,14 @@ class TrainingService {
                 sets: 2,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '2',
                   name: 'Flexão de quadril',
                   created_at: '2024-01-01T00:00:00Z',
-                  updated_at: '2024-01-01T00:00:00Z'
-                }
-              }
-            ]
+                  updated_at: '2024-01-01T00:00:00Z',
+                },
+              },
+            ],
           },
           {
             id: '2',
@@ -554,14 +557,14 @@ class TrainingService {
                 rest_seconds: 60,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '3',
                   name: 'Prancha',
                   created_at: '2024-01-01T00:00:00Z',
-                  updated_at: '2024-01-01T00:00:00Z'
-                }
-              }
-            ]
+                  updated_at: '2024-01-01T00:00:00Z',
+                },
+              },
+            ],
           },
           {
             id: '3',
@@ -584,12 +587,12 @@ class TrainingService {
                 rest_seconds: 120,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '4',
                   name: 'Agachamento',
                   created_at: '2024-01-01T00:00:00Z',
-                  updated_at: '2024-01-01T00:00:00Z'
-                }
+                  updated_at: '2024-01-01T00:00:00Z',
+                },
               },
               {
                 id: '5',
@@ -602,25 +605,26 @@ class TrainingService {
                 rest_seconds: 120,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '5',
                   name: 'Supino',
                   created_at: '2024-01-01T00:00:00Z',
-                  updated_at: '2024-01-01T00:00:00Z'
-                }
-              }
-            ]
-          }
-        ]
+                  updated_at: '2024-01-01T00:00:00Z',
+                },
+              },
+            ],
+          },
+        ],
       };
-      
+
       return mockPublicTraining;
     }
 
     try {
       const { data, error } = await supabase
         .from('trainings')
-        .select(`
+        .select(
+          `
           *,
           training_blocks (
             *,
@@ -633,7 +637,8 @@ class TrainingService {
               )
             )
           )
-        `)
+        `,
+        )
         .eq('share_token', token)
         .eq('share_status', 'public')
         .maybeSingle();
@@ -655,10 +660,12 @@ class TrainingService {
       // Buscar todas as semanas com seus focos
       const { data: weeks, error: weeksError } = await supabase
         .from('training_weeks')
-        .select(`
+        .select(
+          `
           *,
           week_focus:week_focuses(*)
-        `)
+        `,
+        )
         .order('start_date', { ascending: false });
 
       if (weeksError) throw weeksError;
@@ -672,7 +679,8 @@ class TrainingService {
         weeks.map(async (week) => {
           const { data: trainings, error: trainingsError } = await supabase
             .from('trainings')
-            .select(`
+            .select(
+              `
               *,
               training_blocks(
                 *,
@@ -681,7 +689,8 @@ class TrainingService {
                   exercise:exercises(*)
                 )
               )
-            `)
+            `,
+            )
             .eq('training_week_id', week.id)
             .order('scheduled_date');
 
@@ -691,9 +700,9 @@ class TrainingService {
 
           return {
             ...week,
-            trainings: trainings || []
+            trainings: trainings || [],
           };
-        })
+        }),
       );
 
       return weeksWithTrainings;

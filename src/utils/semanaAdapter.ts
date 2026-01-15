@@ -37,14 +37,20 @@ function calcularNumeroSemana(startDate: string): number {
  */
 function getDiaDaSemana(date: Date): 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | null {
   const dayOfWeek = date.getDay();
-  
+
   switch (dayOfWeek) {
-    case 1: return 'segunda'; // Segunda-feira
-    case 2: return 'terca';   // Terça-feira
-    case 3: return 'quarta';  // Quarta-feira
-    case 4: return 'quinta';  // Quinta-feira
-    case 5: return 'sexta';   // Sexta-feira
-    default: return null;     // Fim de semana
+    case 1:
+      return 'segunda'; // Segunda-feira
+    case 2:
+      return 'terca'; // Terça-feira
+    case 3:
+      return 'quarta'; // Quarta-feira
+    case 4:
+      return 'quinta'; // Quinta-feira
+    case 5:
+      return 'sexta'; // Sexta-feira
+    default:
+      return null; // Fim de semana
   }
 }
 
@@ -52,7 +58,7 @@ function getDiaDaSemana(date: Date): 'segunda' | 'terca' | 'quarta' | 'quinta' |
  * Converte dados do banco para o formato esperado pelos componentes
  */
 export function adaptarSemanasParaVisualizacao(
-  weeksWithTrainings: Array<TrainingWeek & { trainings: Training[] }>
+  weeksWithTrainings: Array<TrainingWeek & { trainings: Training[] }>,
 ): SemanaComTreinos[] {
   return weeksWithTrainings.map((week) => {
     // Inicializar estrutura de dias
@@ -61,7 +67,7 @@ export function adaptarSemanasParaVisualizacao(
       terca: {},
       quarta: {},
       quinta: {},
-      sexta: {}
+      sexta: {},
     };
 
     // Organizar treinos por dia da semana
@@ -69,7 +75,7 @@ export function adaptarSemanasParaVisualizacao(
       if (treino.scheduled_date) {
         const date = new Date(treino.scheduled_date);
         const dia = getDiaDaSemana(date);
-        
+
         if (dia) {
           dias[dia] = { treino };
         }
@@ -91,7 +97,7 @@ export function adaptarSemanasParaVisualizacao(
       start_date: week.start_date,
       end_date: week.end_date,
       notes: week.notes || undefined,
-      dias
+      dias,
     };
   });
 }

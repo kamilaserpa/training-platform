@@ -4,17 +4,17 @@ import type { Exercise } from 'types/database.types';
 
 /**
  * Hook to fetch all exercises with cache-first strategy
- * 
+ *
  * Returns cached data immediately if available, then fetches fresh data
  * in the background and updates the UI when ready.
- * 
+ *
  * @example
  * ```tsx
  * function ExercisesPage() {
  *   const { data: exercises, isLoading, isRevalidating, refetch } = useFetchExercises();
- *   
+ *
  *   if (isLoading) return <Skeleton />;
- *   
+ *
  *   return (
  *     <div>
  *       {isRevalidating && <Badge>Updating...</Badge>}
@@ -37,7 +37,7 @@ export function useFetchExercises(): UseCachedQueryResult<Exercise[]> {
 
 /**
  * Hook to fetch a single exercise by ID with cache-first strategy
- * 
+ *
  * @param id Exercise ID
  */
 export function useFetchExercise(id: string | null): UseCachedQueryResult<Exercise> {
@@ -61,7 +61,7 @@ export function useFetchExercise(id: string | null): UseCachedQueryResult<Exerci
  */
 export function useInvalidateExercisesCache() {
   const { clearCache: clearAll } = useFetchExercises();
-  
+
   return {
     invalidateAll: clearAll,
     invalidateOne: async (id: string) => {

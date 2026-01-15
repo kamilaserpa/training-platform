@@ -1,6 +1,12 @@
 // Serviço para gerenciar semanas de treino
 import { supabase, useMock } from '../lib/supabase';
-import type { TrainingWeek, CreateTrainingWeekDTO, WeekFocus, CreateWeekFocusDTO, UpdateWeekFocusDTO } from '../types/database.types';
+import type {
+  TrainingWeek,
+  CreateTrainingWeekDTO,
+  WeekFocus,
+  CreateWeekFocusDTO,
+  UpdateWeekFocusDTO,
+} from '../types/database.types';
 
 // Mock data para desenvolvimento
 const mockWeekFocuses: WeekFocus[] = [

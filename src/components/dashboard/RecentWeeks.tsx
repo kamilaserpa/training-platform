@@ -31,7 +31,7 @@ import paths from '../../routes/paths';
 
 const RecentWeeks = () => {
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weeks, setWeeks] = useState<any[]>([]);
@@ -47,12 +47,12 @@ const RecentWeeks = () => {
 
       // Buscar todas as semanas
       const allWeeks = await trainingService.getWeeksWithTrainings();
-      
+
       // Ordenar por data de início (mais recente primeiro) e pegar as 5 primeiras
       const sortedWeeks = allWeeks
         .sort((a, b) => dayjs(b.start_date).diff(dayjs(a.start_date)))
         .slice(0, 5);
-      
+
       setWeeks(sortedWeeks);
     } catch (err) {
       console.error('Erro ao carregar semanas recentes:', err);
@@ -149,9 +149,9 @@ const RecentWeeks = () => {
 
         {/* Table */}
         {weeks.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
+          <Box
+            sx={{
+              textAlign: 'center',
               py: 6,
               bgcolor: 'action.hover',
               borderRadius: 2,
@@ -164,11 +164,7 @@ const RecentWeeks = () => {
             <Typography variant="body2" color="text.secondary" mb={3}>
               Crie sua primeira semana de treinos
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreateWeek}
-            >
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateWeek}>
               Criar Semana
             </Button>
           </Box>
@@ -227,7 +223,8 @@ const RecentWeeks = () => {
                     {/* Período */}
                     <TableCell>
                       <Typography variant="body2">
-                        {dayjs(week.start_date).format('DD/MM')} - {dayjs(week.end_date).format('DD/MM/YY')}
+                        {dayjs(week.start_date).format('DD/MM')} -{' '}
+                        {dayjs(week.end_date).format('DD/MM/YY')}
                       </Typography>
                     </TableCell>
 

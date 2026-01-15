@@ -126,7 +126,10 @@ class ExerciseService {
 
     try {
       // Buscar o usuário atual
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('Usuário não autenticado');
       }
@@ -134,7 +137,7 @@ class ExerciseService {
       // Incluir o created_by no exercício
       const exerciseWithOwner = {
         ...exerciseData,
-        created_by: user.id
+        created_by: user.id,
       };
 
       const { data, error } = await supabase
@@ -224,7 +227,7 @@ class ExerciseService {
       return mockExercises.filter(
         (ex) =>
           ex.name.toLowerCase().includes(query.toLowerCase()) ||
-          ex.muscle_groups?.some(mg => mg.toLowerCase().includes(query.toLowerCase())),
+          ex.muscle_groups?.some((mg) => mg.toLowerCase().includes(query.toLowerCase())),
       );
     }
 

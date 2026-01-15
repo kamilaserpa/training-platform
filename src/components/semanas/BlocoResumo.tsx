@@ -12,15 +12,14 @@ export const BlocoResumo = ({ bloco }: BlocoResumoProps) => {
   const prescriptionsOrdenadas = [...prescriptions].sort((a, b) => a.order_index - b.order_index);
 
   // Pegar o protocolo do primeiro exercício (geralmente todos seguem o mesmo)
-  const protocolo = prescriptionsOrdenadas.length > 0 
-    ? formatarProtocolo(prescriptionsOrdenadas[0])
-    : 'N/A';
+  const protocolo =
+    prescriptionsOrdenadas.length > 0 ? formatarProtocolo(prescriptionsOrdenadas[0]) : 'N/A';
 
   return (
     <Box sx={{ mb: 1.5 }}>
-      <Typography 
-        variant="caption" 
-        fontWeight="600" 
+      <Typography
+        variant="caption"
+        fontWeight="600"
         color="text.primary"
         sx={{ fontSize: '0.75rem' }}
       >
@@ -33,12 +32,12 @@ export const BlocoResumo = ({ bloco }: BlocoResumoProps) => {
               key={prescription.id}
               variant="caption"
               color="text.secondary"
-              sx={{ 
+              sx={{
                 fontSize: '0.7rem',
                 '&::before': {
                   content: '"• "',
-                  marginRight: 0.5
-                }
+                  marginRight: 0.5,
+                },
               }}
             >
               {prescription.exercise?.name || 'Exercício sem nome'}

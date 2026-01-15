@@ -64,7 +64,7 @@ interface TrainingBlock {
     reps?: string;
     duration_seconds?: number;
     rest_seconds?: number;
-    protocol?: string;  // Campo calculado para exibição
+    protocol?: string; // Campo calculado para exibição
   }[];
 }
 
@@ -89,16 +89,16 @@ interface Treino {
 // Dados mockados dos treinos
 const treinosMock: Treino[] = [
   {
-    id: "10",
+    id: '10',
     name: 'Treino S01-05 Empurrar',
     scheduled_date: '2024-01-15',
     intensity_level: 8,
     description: 'Foco em exercícios compostos para desenvolvimento da musculatura do peitoral',
     movement_pattern: {
-      name: 'Empurrar'
+      name: 'Empurrar',
     },
     training_week: {
-      name: '01-05'
+      name: '01-05',
     },
     training_blocks: [
       {
@@ -108,15 +108,15 @@ const treinosMock: Treino[] = [
             exercise: { name: 'Polichinelos', muscle_groups: ['Cardio'] },
             sets: 2,
             duration_seconds: 30,
-            rest_seconds: 15
+            rest_seconds: 15,
           },
           {
             exercise: { name: 'Rotação de Braços', muscle_groups: ['Ombros'] },
             sets: 2,
             reps: '15',
-            rest_seconds: 30
-          }
-        ]
+            rest_seconds: 30,
+          },
+        ],
       },
       {
         name: 'Ativação de Core',
@@ -125,9 +125,9 @@ const treinosMock: Treino[] = [
             exercise: { name: 'Prancha', muscle_groups: ['Core'] },
             sets: 2,
             duration_seconds: 30,
-            rest_seconds: 60
-          }
-        ]
+            rest_seconds: 60,
+          },
+        ],
       },
       {
         name: 'Ativação Neural',
@@ -136,9 +136,9 @@ const treinosMock: Treino[] = [
             exercise: { name: 'Flexão Facilitada', muscle_groups: ['Peito'] },
             sets: 2,
             duration_seconds: 30,
-            rest_seconds: 60
-          }
-        ]
+            rest_seconds: 60,
+          },
+        ],
       },
       {
         name: 'Bloco Principal 1',
@@ -147,15 +147,15 @@ const treinosMock: Treino[] = [
             exercise: { name: 'Supino Reto', muscle_groups: ['Peito'] },
             sets: 4,
             reps: '8-10',
-            rest_seconds: 120
+            rest_seconds: 120,
           },
           {
             exercise: { name: 'Supino Inclinado', muscle_groups: ['Peito'] },
             sets: 3,
             reps: '10-12',
-            rest_seconds: 90
-          }
-        ]
+            rest_seconds: 90,
+          },
+        ],
       },
       {
         name: 'Bloco Principal 2',
@@ -164,15 +164,15 @@ const treinosMock: Treino[] = [
             exercise: { name: 'Tríceps Testa', muscle_groups: ['Tríceps'] },
             sets: 3,
             reps: '12-15',
-            rest_seconds: 60
+            rest_seconds: 60,
           },
           {
             exercise: { name: 'Mergulho', muscle_groups: ['Tríceps'] },
             sets: 3,
             reps: '10-12',
-            rest_seconds: 60
-          }
-        ]
+            rest_seconds: 60,
+          },
+        ],
       },
       {
         name: 'Condicionamento Físico',
@@ -181,12 +181,12 @@ const treinosMock: Treino[] = [
             exercise: { name: 'Burpee', muscle_groups: ['Cardio'] },
             sets: 3,
             reps: '12-15',
-            rest_seconds: 30
-          }
-        ]
-      }
-    ]
-  }
+            rest_seconds: 30,
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 const Treinos = () => {
@@ -204,60 +204,61 @@ const Treinos = () => {
 
     const loadTreinos = async () => {
       try {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
-        const treinosData = await trainingService.getAllTrainings()
+        const treinosData = await trainingService.getAllTrainings();
 
         if (!isMounted) return;
 
         // Mapear blocos e exercícios com estrutura do banco
-        const treinosFormatted = treinosData.map(treino => ({
+        const treinosFormatted = treinosData.map((treino) => ({
           ...treino,
-          training_blocks: treino.training_blocks?.map(block => ({
-            ...block,
-            exercise_prescriptions: block.exercise_prescriptions?.map(prescription => {
-              // Construir protocolo completo considerando tempo e intervalo
-              let protocolo = ''
-              if (prescription.sets) {
-                protocolo += `${prescription.sets}x`
-              }
-              if (prescription.duration_seconds && prescription.duration_seconds > 0) {
-                protocolo += `${prescription.duration_seconds}"`
-              } else if (prescription.reps) {
-                protocolo += prescription.reps
-              }
-              if (prescription.rest_seconds && prescription.rest_seconds > 0) {
-                protocolo += `x${prescription.rest_seconds}"`
-              }
+          training_blocks:
+            treino.training_blocks?.map((block) => ({
+              ...block,
+              exercise_prescriptions:
+                block.exercise_prescriptions?.map((prescription) => {
+                  // Construir protocolo completo considerando tempo e intervalo
+                  let protocolo = '';
+                  if (prescription.sets) {
+                    protocolo += `${prescription.sets}x`;
+                  }
+                  if (prescription.duration_seconds && prescription.duration_seconds > 0) {
+                    protocolo += `${prescription.duration_seconds}"`;
+                  } else if (prescription.reps) {
+                    protocolo += prescription.reps;
+                  }
+                  if (prescription.rest_seconds && prescription.rest_seconds > 0) {
+                    protocolo += `x${prescription.rest_seconds}"`;
+                  }
 
-              return {
-                ...prescription,
-                protocol: protocolo || ''
-              }
-            }) || []
-          })) || []
-        }))
+                  return {
+                    ...prescription,
+                    protocol: protocolo || '',
+                  };
+                }) || [],
+            })) || [],
+        }));
 
-        setTreinos(treinosFormatted)
-
+        setTreinos(treinosFormatted);
       } catch (err: any) {
         if (!isMounted) return;
-        console.error('Erro ao carregar treinos:', err)
-        setError(err.message || 'Erro ao carregar treinos')
+        console.error('Erro ao carregar treinos:', err);
+        setError(err.message || 'Erro ao carregar treinos');
       } finally {
         if (isMounted) {
-          setLoading(false)
+          setLoading(false);
         }
       }
-    }
+    };
 
-    loadTreinos()
+    loadTreinos();
 
     return () => {
       isMounted = false;
     };
-  }, [])
+  }, []);
 
   // Filtros aplicados
   const treinosFiltrados = useMemo(() => {
@@ -285,10 +286,14 @@ const Treinos = () => {
 
   // Handlers
   const [deleteDialog, setDeleteDialog] = useState({ open: false, treinoId: '', treinoNome: '' });
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
 
   const handleDelete = (id: string) => {
-    const treino = treinos.find(t => t.id === id);
+    const treino = treinos.find((t) => t.id === id);
     setDeleteDialog({ open: true, treinoId: id, treinoNome: treino?.name || 'este treino' });
   };
 
@@ -297,11 +302,15 @@ const Treinos = () => {
     setDeleteDialog({ open: false, treinoId: '', treinoNome: '' });
     try {
       await trainingService.deleteTraining(treinoId);
-      setTreinos(prev => prev.filter(t => t.id !== treinoId));
+      setTreinos((prev) => prev.filter((t) => t.id !== treinoId));
       setSnackbar({ open: true, message: 'Treino excluído com sucesso!', severity: 'success' });
     } catch (error: any) {
       console.error('❌ Erro ao excluir treino:', error);
-      setSnackbar({ open: true, message: error?.message || 'Erro ao excluir treino. Tente novamente.', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: error?.message || 'Erro ao excluir treino. Tente novamente.',
+        severity: 'error',
+      });
     }
   };
 
@@ -321,7 +330,7 @@ const Treinos = () => {
   };
 
   const toggleSelected = (id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -336,7 +345,7 @@ const Treinos = () => {
 
   const handleExportSelected = async () => {
     try {
-      const selected = treinos.filter(t => selectedIds.has(t.id));
+      const selected = treinos.filter((t) => selectedIds.has(t.id));
       if (selected.length === 0) return;
       const semanaName = selected[0]?.training_week?.name
         ? `Semana ${selected[0].training_week.name}`
@@ -392,12 +401,11 @@ const Treinos = () => {
       {error && !loading && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <Stack spacing={2} alignItems="center">
-            <Typography variant="h6" color="error">Erro ao carregar treinos</Typography>
+            <Typography variant="h6" color="error">
+              Erro ao carregar treinos
+            </Typography>
             <Typography color="text.secondary">{error}</Typography>
-            <Button
-              variant="outlined"
-              onClick={() => window.location.reload()}
-            >
+            <Button variant="outlined" onClick={() => window.location.reload()}>
               Tentar Novamente
             </Button>
           </Stack>
@@ -409,49 +417,50 @@ const Treinos = () => {
         <>
           {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+            {/* Dialog de confirmação de exclusão do treino */}
+            <Dialog
+              open={deleteDialog.open}
+              onClose={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
+              maxWidth="xs"
+              fullWidth
+            >
+              <DialogTitle>Confirmar Exclusão</DialogTitle>
+              <DialogContent>
+                <Typography>
+                  Tem certeza que deseja excluir <strong>{deleteDialog.treinoNome}</strong>?
+                </Typography>
+                <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+                  ⚠️ Esta ação não pode ser desfeita.
+                </Typography>
+              </DialogContent>
+              <DialogActions>
+                <Button
+                  onClick={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={confirmDeleteTraining} variant="contained" color="error">
+                  Excluir
+                </Button>
+              </DialogActions>
+            </Dialog>
 
-    {/* Dialog de confirmação de exclusão do treino */}
-    <Dialog
-      open={deleteDialog.open}
-      onClose={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
-      maxWidth="xs"
-      fullWidth
-    >
-      <DialogTitle>Confirmar Exclusão</DialogTitle>
-      <DialogContent>
-        <Typography>
-          Tem certeza que deseja excluir <strong>{deleteDialog.treinoNome}</strong>?
-        </Typography>
-        <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-          ⚠️ Esta ação não pode ser desfeita.
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}>
-          Cancelar
-        </Button>
-        <Button onClick={confirmDeleteTraining} variant="contained" color="error">
-          Excluir
-        </Button>
-      </DialogActions>
-    </Dialog>
-
-    {/* Snackbar para feedback */}
-    <Snackbar
-      open={snackbar.open}
-      autoHideDuration={6000}
-      onClose={() => setSnackbar({ ...snackbar, open: false })}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-    >
-      <Alert
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        severity={snackbar.severity}
-        variant="filled"
-        sx={{ width: '100%' }}
-      >
-        {snackbar.message}
-      </Alert>
-    </Snackbar>
+            {/* Snackbar para feedback */}
+            <Snackbar
+              open={snackbar.open}
+              autoHideDuration={6000}
+              onClose={() => setSnackbar({ ...snackbar, open: false })}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+              <Alert
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                severity={snackbar.severity}
+                variant="filled"
+                sx={{ width: '100%' }}
+              >
+                {snackbar.message}
+              </Alert>
+            </Snackbar>
             <Typography variant="h4" fontWeight="700">
               Treinos
             </Typography>
@@ -555,9 +564,7 @@ const Treinos = () => {
                 <Box textAlign="center" py={8}>
                   <FitnessCenterIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary" gutterBottom>
-                    {searchTerm
-                      ? 'Nenhum treino encontrado'
-                      : 'Nenhum treino cadastrado'}
+                    {searchTerm ? 'Nenhum treino encontrado' : 'Nenhum treino cadastrado'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" mb={3}>
                     {searchTerm
@@ -623,14 +630,20 @@ const Treinos = () => {
                           )}
 
                           {/* Data completa */}
-                          <Chip label={formatDate(treino.scheduled_date)}
+                          <Chip
+                            label={formatDate(treino.scheduled_date)}
                             size="small"
                             variant="filled"
-                            color="primary" />
+                            color="primary"
+                          />
 
                           {/* Semana */}
                           <Chip
-                            label={treino.training_week?.name ? `S. ${treino.training_week.name}` : 'S. --'}
+                            label={
+                              treino.training_week?.name
+                                ? `S. ${treino.training_week.name}`
+                                : 'S. --'
+                            }
                             color={getIntensityColor(treino.intensity_level || 5)}
                             size="small"
                             sx={{
@@ -650,7 +663,7 @@ const Treinos = () => {
                               position: 'absolute',
                               top: 40,
                               right: 8,
-                              color: 'white'
+                              color: 'white',
                             }}
                           />
                         </Box>
@@ -738,7 +751,7 @@ const Treinos = () => {
                                   fontStyle: 'italic',
                                   display: 'block',
                                   textAlign: 'center',
-                                  py: 2
+                                  py: 2,
                                 }}
                               >
                                 Treino criado - blocos e exercícios serão definidos posteriormente

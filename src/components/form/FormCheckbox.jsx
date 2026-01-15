@@ -1,9 +1,9 @@
 // FormCheckbox - Checkbox reutilizável com React Hook Form
-import { useFormContext, Controller } from 'react-hook-form'
-import { FormControlLabel, Checkbox } from '@mui/material'
+import { useFormContext, Controller } from 'react-hook-form';
+import { FormControlLabel, Checkbox } from '@mui/material';
 
 export default function FormCheckbox({ name, label, fullWidth, ...props }) {
-  const { control } = useFormContext()
+  const { control } = useFormContext();
 
   return (
     <Controller
@@ -12,18 +12,11 @@ export default function FormCheckbox({ name, label, fullWidth, ...props }) {
       defaultValue={false}
       render={({ field }) => (
         <FormControlLabel
-          control={
-            <Checkbox
-              {...field}
-              checked={field.value}
-              {...props}
-            />
-          }
+          control={<Checkbox {...field} checked={field.value} {...props} />}
           label={label}
           sx={fullWidth ? { width: '100%' } : {}}
         />
       )}
     />
-  )
+  );
 }
-

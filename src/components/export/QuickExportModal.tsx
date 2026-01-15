@@ -27,14 +27,18 @@ interface QuickExportModalProps {
   semanasSelecionadas: SemanaComTreinos[];
 }
 
-export default function QuickExportModal({ open, onClose, semanasSelecionadas }: QuickExportModalProps) {
+export default function QuickExportModal({
+  open,
+  onClose,
+  semanasSelecionadas,
+}: QuickExportModalProps) {
   const navigate = useNavigate();
 
   const [format, setFormat] = useState<'pdf' | 'csv'>('pdf');
   const [pdfType, setPdfType] = useState<'resumo' | 'detalhado'>('resumo');
   const count = semanasSelecionadas.length;
 
-  const title = useMemo(() => `Exportar ${count} semana${count > 1 ? 's' : ''}`,[count]);
+  const title = useMemo(() => `Exportar ${count} semana${count > 1 ? 's' : ''}`, [count]);
 
   const handleExport = async () => {
     try {
@@ -167,7 +171,11 @@ export default function QuickExportModal({ open, onClose, semanasSelecionadas }:
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
         <Button variant="contained" startIcon={<FileDownloadIcon />} onClick={handleExport}>
-          {format === 'csv' ? 'Exportar CSV' : pdfType === 'resumo' ? 'Exportar PDF' : 'Exportar detalhado'}
+          {format === 'csv'
+            ? 'Exportar CSV'
+            : pdfType === 'resumo'
+              ? 'Exportar PDF'
+              : 'Exportar detalhado'}
         </Button>
       </DialogActions>
     </Dialog>

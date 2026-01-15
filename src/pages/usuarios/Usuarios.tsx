@@ -236,10 +236,7 @@ const Usuarios = () => {
         return;
       }
 
-      const { error } = await supabase
-        .from('users')
-        .update({ active: newStatus })
-        .eq('id', userId);
+      const { error } = await supabase.from('users').update({ active: newStatus }).eq('id', userId);
 
       if (error) throw error;
 
@@ -328,12 +325,14 @@ const Usuarios = () => {
         <Typography variant="body2">
           {isOwner ? (
             <>
-              <strong>Owner:</strong> Você visualiza apenas usuários do <strong>seu workspace</strong>
-              {' '}(você + admins e viewers que você criou). Outros owners não são visíveis.
+              <strong>Owner:</strong> Você visualiza apenas usuários do{' '}
+              <strong>seu workspace</strong> (você + admins e viewers que você criou). Outros owners
+              não são visíveis.
             </>
           ) : (
             <>
-              <strong>Admin:</strong> Você pode criar e gerenciar apenas usuários Viewers do seu workspace.
+              <strong>Admin:</strong> Você pode criar e gerenciar apenas usuários Viewers do seu
+              workspace.
             </>
           )}
         </Typography>
@@ -421,9 +420,7 @@ const Usuarios = () => {
                           >
                             <IconifyIcon
                               icon={
-                                usuario.active
-                                  ? 'ic:round-block'
-                                  : 'ic:round-check-circle-outline'
+                                usuario.active ? 'ic:round-block' : 'ic:round-check-circle-outline'
                               }
                             />
                           </IconButton>

@@ -1,9 +1,9 @@
 // FormRadio - RadioGroup reutilizável com React Hook Form
-import { useFormContext, Controller } from 'react-hook-form'
-import { FormControl, FormLabel, RadioGroup, FormControlLabel, Radio } from '@mui/material'
+import { useFormContext, Controller } from 'react-hook-form';
+import { FormControl, FormLabel, RadioGroup, FormControlLabel, Radio } from '@mui/material';
 
 export default function FormRadio({ name, label, options, fullWidth, ...props }) {
-  const { control } = useFormContext()
+  const { control } = useFormContext();
 
   return (
     <FormControl fullWidth component="fieldset">
@@ -27,6 +27,5 @@ export default function FormRadio({ name, label, options, fullWidth, ...props })
         )}
       />
     </FormControl>
-  )
+  );
 }
-

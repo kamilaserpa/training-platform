@@ -103,7 +103,9 @@ function FocoSemanaDialog({ open, onClose, onSave, editingData }: FocoSemanaDial
     const novoFoco: CreateFocoSemana & { id?: string } = {
       ...(editingData?.id && { id: editingData.id }),
       name: formData.name.trim(),
-      intensity_percentage: formData.intensity_percentage ? parseInt(String(formData.intensity_percentage)) : undefined,
+      intensity_percentage: formData.intensity_percentage
+        ? parseInt(String(formData.intensity_percentage))
+        : undefined,
       description: formData.description.trim() || undefined,
     };
 
@@ -262,8 +264,16 @@ const Configuracoes = () => {
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Diálogos de confirmação de exclusão
-  const [deleteFocoDialog, setDeleteFocoDialog] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
-  const [deletePadraoDialog, setDeletePadraoDialog] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: '', name: '' });
+  const [deleteFocoDialog, setDeleteFocoDialog] = useState<{
+    open: boolean;
+    id: string;
+    name: string;
+  }>({ open: false, id: '', name: '' });
+  const [deletePadraoDialog, setDeletePadraoDialog] = useState<{
+    open: boolean;
+    id: string;
+    name: string;
+  }>({ open: false, id: '', name: '' });
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -287,7 +297,10 @@ const Configuracoes = () => {
       console.error('Erro ao carregar dados:', err);
 
       // Verificar se é erro de autenticação
-      if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
+      if (
+        err?.message?.includes('Invalid Refresh Token') ||
+        err?.message?.includes('refresh_token_not_found')
+      ) {
         console.log('🔄 [Auth] Token inválido detectado na inicialização, limpando sessão...');
         await auth.clearSession();
         setError('Sessão expirada. Por favor, faça login novamente.');
@@ -336,15 +349,18 @@ const Configuracoes = () => {
       await loadInitialData();
 
       // Mostrar mensagem de sucesso
-      setSuccessMessage(editingFoco
-        ? `Foco da semana "${novoFoco.name}" atualizado com sucesso!`
-        : `Foco da semana "${novoFoco.name}" criado com sucesso!`
+      setSuccessMessage(
+        editingFoco
+          ? `Foco da semana "${novoFoco.name}" atualizado com sucesso!`
+          : `Foco da semana "${novoFoco.name}" criado com sucesso!`,
       );
       setShowSuccess(true);
     } catch (err: any) {
-
       // Verificar se é erro de autenticação
-      if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
+      if (
+        err?.message?.includes('Invalid Refresh Token') ||
+        err?.message?.includes('refresh_token_not_found')
+      ) {
         console.log('🔄 [Auth] Token inválido detectado, limpando sessão...');
         await auth.clearSession();
         setError('Sessão expirada. Por favor, faça login novamente.');
@@ -361,7 +377,7 @@ const Configuracoes = () => {
   };
 
   const handleDeleteFoco = (id: string) => {
-    const foco = focosSemana.find(f => f.id === id);
+    const foco = focosSemana.find((f) => f.id === id);
     setDeleteFocoDialog({ open: true, id, name: foco?.name || 'este foco' });
   };
 
@@ -403,7 +419,7 @@ const Configuracoes = () => {
         await movementPatternService.updateMovementPattern(
           editingPadrao.id,
           novoPadrao.name,
-          novoPadrao.description
+          novoPadrao.description,
         );
         setPadroes((padroes) => padroes.map((p) => (p.id === novoPadrao.id ? novoPadrao : p)));
 
@@ -413,7 +429,7 @@ const Configuracoes = () => {
         console.log('✨ [Configuracoes] Criando novo padrão');
         const createdPattern = await movementPatternService.createMovementPattern(
           novoPadrao.name,
-          novoPadrao.description
+          novoPadrao.description,
         );
         // Usar o padrão retornado diretamente
         setPadroes((padroes) => [...padroes, createdPattern]);
@@ -432,7 +448,7 @@ const Configuracoes = () => {
   };
 
   const handleDeletePadrao = (id: string) => {
-    const padrao = padroes.find(p => p.id === id);
+    const padrao = padroes.find((p) => p.id === id);
     setDeletePadraoDialog({ open: true, id, name: padrao?.name || 'este padrão' });
   };
 
@@ -723,8 +739,12 @@ const Configuracoes = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteFocoDialog({ open: false, id: '', name: '' })}>Cancelar</Button>
-          <Button onClick={confirmDeleteFoco} variant="contained" color="error">Excluir</Button>
+          <Button onClick={() => setDeleteFocoDialog({ open: false, id: '', name: '' })}>
+            Cancelar
+          </Button>
+          <Button onClick={confirmDeleteFoco} variant="contained" color="error">
+            Excluir
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -752,8 +772,12 @@ const Configuracoes = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeletePadraoDialog({ open: false, id: '', name: '' })}>Cancelar</Button>
-          <Button onClick={confirmDeletePadrao} variant="contained" color="error">Excluir</Button>
+          <Button onClick={() => setDeletePadraoDialog({ open: false, id: '', name: '' })}>
+            Cancelar
+          </Button>
+          <Button onClick={confirmDeletePadrao} variant="contained" color="error">
+            Excluir
+          </Button>
         </DialogActions>
       </Dialog>
 
