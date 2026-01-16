@@ -1,14 +1,14 @@
+import { CssBaseline, ThemeProvider } from '@mui/material';
+import BreakpointsProvider from 'providers/BreakpointsProvider';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
-import { CssBaseline, ThemeProvider } from '@mui/material';
-import BreakpointsProvider from 'providers/BreakpointsProvider';
 import router from 'routes/router';
 import { theme } from 'theme/theme';
 
 // Suprimir erros relacionados a extensões do browser
 window.addEventListener('error', (e) => {
-  if (e.message?.includes('message channel closed before a response was received') || 
+  if (e.message?.includes('message channel closed before a response was received') ||
       e.message?.includes('listener indicated an asynchronous response')) {
     e.preventDefault();
     return false;
@@ -37,6 +37,35 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 // Register Service Worker (respects Vite base)
 if ('serviceWorker' in navigator) {
-  const swUrl = `${import.meta.env.BASE_URL}sw.js`;
-  navigator.serviceWorker.register(swUrl).catch(console.error);
+  window.addEventListener('load', () => {
+    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+
+    navigator.serviceWorker
+      .register(swUrl)
+      .then((registration) => {
+        console.log('✅ SW registered:', registration);
+
+        // Force update check on iOS
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('🔄 SW update found');
+
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated') {
+                console.log('✅ SW activated');
+              }
+            });
+          }
+        });
+      })
+      .catch((error) => {
+        console.error('❌ SW registration failed:', error);
+        // App should still work without SW
+      });
+  });
 }
