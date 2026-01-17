@@ -1,54 +1,54 @@
-import { useState, useEffect } from 'react';
 import {
-  Container,
-  Typography,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Stack,
-  useMediaQuery,
-  useTheme,
-  TextField,
-  InputAdornment,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  SelectChangeEvent,
-  CircularProgress,
-  Alert,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid,
-  Snackbar,
-  Checkbox
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  Add as AddIcon
+    Add as AddIcon,
+    Search as SearchIcon
 } from '@mui/icons-material';
+import {
+    Alert,
+    Box,
+    Button,
+    Checkbox,
+    CircularProgress,
+    Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    FormControl,
+    Grid,
+    InputAdornment,
+    InputLabel,
+    MenuItem,
+    Paper,
+    Select,
+    SelectChangeEvent,
+    Snackbar,
+    Stack,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    TextField,
+    Typography,
+    useMediaQuery,
+    useTheme
+} from '@mui/material';
+import { useEffect, useState } from 'react';
 
 // Componentes, dados e serviços
-import { weekService } from '../../services/weekService';
-import { adaptarSemanasParaVisualizacao, type SemanaComTreinos } from '../../utils/semanaAdapter';
+import QuickExportModal from 'components/export/QuickExportModal';
 import { useFetchWeeks } from 'hooks/useFetchWeeks';
-import { SemanaRow } from '../../components/semanas/SemanaRow';
+import logoImage from '../../assets/images/logo-main.png';
 import { SemanaCard } from '../../components/semanas/SemanaCard';
-import type { WeekFocus, CreateTrainingWeekDTO } from '../../types/database.types';
+import { SemanaRow } from '../../components/semanas/SemanaRow';
+import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
+import { trainingService } from '../../services/trainingService';
+import { weekService } from '../../services/weekService';
+import type { CreateTrainingWeekDTO, WeekFocus } from '../../types/database.types';
 import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { imageToBase64 } from '../../utils/pdf/pdfUtils';
-import logoImage from '../../assets/images/logo-main.png';
-import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
-import QuickExportModal from 'components/export/QuickExportModal';
-import { trainingService } from '../../services/trainingService';
+import { adaptarSemanasParaVisualizacao, type SemanaComTreinos } from '../../utils/semanaAdapter';
 
 const SemanasRefactored = () => {
   const theme = useTheme();
@@ -65,9 +65,9 @@ const SemanasRefactored = () => {
   const [loadingFocuses, setLoadingFocuses] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Adaptar semanas do cache (garantir que trainings existe)
-  const semanas = weeksFromCache 
+  const semanas = weeksFromCache
     ? adaptarSemanasParaVisualizacao(weeksFromCache.map(w => ({
         ...w,
         trainings: w.trainings || []

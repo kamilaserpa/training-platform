@@ -1,10 +1,11 @@
 {
   "name": "Training Platform",
-  "short_name": "Treinos",
+  "short_name": "Training Platform",
   "description": "Plataforma de treinos",
-  "start_url": "/training-platform/",
+  "start_url": "./",
   "scope": "/training-platform/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#FFFFFF",
   "theme_color": "#4318FF",
