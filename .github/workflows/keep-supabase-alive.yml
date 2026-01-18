@@ -1,0 +1,39 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Executa a cada 6 horas (00:00, 06:00, 12:00, 18:00 UTC)
+    # Isso previne o pausamento automático após 7 dias de inatividade
+    - cron: '0 */6 * * *'
+
+  # Permite execução manual no GitHub UI (Actions > Keep Supabase Alive > Run workflow)
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          echo "🔔 Pingando Supabase para manter projeto ativo..."
+          echo "⏰ Horário: $(date)"
+
+          response=$(curl -s -o /dev/null -w "%{http_code}" -I \
+            https://isgupiyafzfnkrlyvaqr.supabase.co/rest/v1/ \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}")
+
+          echo "📡 Status HTTP: $response"
+
+          if [ $response -ge 200 ] && [ $response -lt 500 ]; then
+            echo "✅ Supabase está ativo!"
+          else
+            echo "⚠️ Resposta inesperada: $response"
+            exit 1
+          fi
+
+      - name: Summary
+        run: |
+          echo "### ✨ Supabase Keep-Alive" >> $GITHUB_STEP_SUMMARY
+          echo "Projeto mantido ativo com sucesso!" >> $GITHUB_STEP_SUMMARY
+          echo "Próxima execução: em 6 horas" >> $GITHUB_STEP_SUMMARY
