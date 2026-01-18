@@ -47,7 +47,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
   return (
     <Card
       elevation={2}
-      sx={{ width: '100%' }}
+      sx={{ width: '100%', py: 1, px: 0 }}
     >
       <CardContent sx={{ py: 0, px: 2 }}>
         {/* Header do Card */}
