@@ -36,17 +36,17 @@ const Dashboard = () => {
   const { weeks, loading: loadingExportData } = useExportData();
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
+    <Container maxWidth="xl" sx={{ py: 3, px: { xs: 0, sm: 3 } }}>
       {/* Alertas e Notificações */}
       <DevModeAlert />
-      
+
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
           Dashboard
         </Typography>
       </Box>
-      
+
       <Grid container spacing={3}>
         {/* Hero Section - Semana Atual */}
         <Grid item xs={12}>
