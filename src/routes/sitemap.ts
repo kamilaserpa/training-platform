@@ -59,6 +59,13 @@ const sitemap: MenuItem[] = [
     requireAuth: true,
   },
   {
+    id: 4.5,
+    subheader: 'Biblioteca de Vídeos',
+    path: paths.videos,
+    icon: 'ic:round-video-library',
+    requireAuth: true,
+  },
+  {
     id: 5,
     subheader: 'Parâmetros da Semana',
     path: paths.configuracoes,

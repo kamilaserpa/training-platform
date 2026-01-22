@@ -3,7 +3,7 @@
 // versioned caches, stale-while-revalidate, exclude Supabase, avoid non-GET.
 
 const CACHE_PREFIX = 'tp-pwa';
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v5'; // iOS Safari compatibility improvements
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`; // images, fonts, manifest
 const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${CACHE_VERSION}`; // hashed build assets
 const NAV_CACHE = `${CACHE_PREFIX}-nav-${CACHE_VERSION}`; // index.html fallback for SPA
@@ -47,6 +47,14 @@ const isStaticAsset = (url) => {
   );
 };
 
+// Listener para mensagens (permite skip waiting)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING message');
+    self.skipWaiting();
+  }
+});
+
 // Install: pre-cache core assets and activate immediately
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
@@ -71,25 +79,35 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       try {
-        const expectedPrefixes = new Set([
+        // Lista de caches esperados na versão atual
+        const currentCaches = new Set([
           STATIC_CACHE,
           IMMUTABLE_CACHE,
           NAV_CACHE,
+          CORE_CACHE,
         ]);
+
         const keys = await caches.keys();
         await Promise.all(
           keys.map((key) => {
-            if (!expectedPrefixes.has(key) && key.startsWith(CACHE_PREFIX)) {
+            // Deleta qualquer cache que não esteja na lista atual
+            // Isso garante que caches v3 (e anteriores) sejam removidos
+            if (!currentCaches.has(key)) {
               console.log('[SW] Deleting old cache:', key);
               return caches.delete(key);
             }
           })
         );
-        console.log('[SW] Activated');
+        console.log('[SW] Activated and old caches cleared');
       } catch (err) {
         console.error('[SW] Activate failed:', err);
       }
-      await self.clients.claim();
+
+      // iOS Safari: claim clients explicitamente
+      if (self.clients && self.clients.claim) {
+        await self.clients.claim();
+        console.log('[SW] Clients claimed (iOS compatible)');
+      }
     })()
   );
 });
@@ -110,9 +128,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Immutable build assets: cache-first
+  // Immutable build assets: cache-first BUT with revalidation for JS files
   if (isImmutableAsset(url)) {
-    event.respondWith(cacheFirst(IMMUTABLE_CACHE, request));
+    // Para arquivos JS, usa network-first para garantir updates
+    if (url.pathname.endsWith('.js')) {
+      event.respondWith(networkFirstWithCache(IMMUTABLE_CACHE, request));
+    } else {
+      event.respondWith(cacheFirst(IMMUTABLE_CACHE, request));
+    }
     return;
   }
 
@@ -130,8 +153,8 @@ self.addEventListener('fetch', (event) => {
   // Cross-origin GETs: bypass (avoid caching APIs/CDNs unless immutable pattern)
 });
 
-// Fetch with timeout to avoid hanging
-function fetchWithTimeout(request, timeout = 3000) {
+// Fetch with timeout to avoid hanging (iOS Safari needs shorter timeouts)
+function fetchWithTimeout(request, timeout = 2000) {
   return Promise.race([
     fetch(request),
     new Promise((_, reject) =>
@@ -144,9 +167,9 @@ function fetchWithTimeout(request, timeout = 3000) {
 async function handleNavigateWithFallback(request) {
   console.log('[SW] Navigate:', request.url);
 
-  // First attempt: quick network request (1 second timeout)
+  // First attempt: quick network request (800ms for iOS)
   try {
-    const networkResp = await fetchWithTimeout(request, 1000);
+    const networkResp = await fetchWithTimeout(request, 800);
     console.log('[SW] Network response OK (fast)');
 
     // Cache for future use
@@ -290,6 +313,22 @@ async function cacheFirst(cacheName, request) {
   const resp = await fetch(request);
   if (shouldCacheResponse(resp)) await cache.put(request, resp.clone());
   return resp;
+}
+
+async function networkFirstWithCache(cacheName, request) {
+  try {
+    const resp = await fetch(request);
+    if (shouldCacheResponse(resp)) {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, resp.clone());
+    }
+    return resp;
+  } catch (err) {
+    const cache = await caches.open(cacheName);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw err;
+  }
 }
 
 async function staleWhileRevalidate(cacheName, request) {

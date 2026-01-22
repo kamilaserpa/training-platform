@@ -1,12 +1,12 @@
 // Serviço para gerenciar treinos
 import { supabase, useMock } from '../lib/supabase';
 import type {
-  Training,
-  CreateTrainingDTO,
-  TrainingBlock,
-  CreateTrainingBlockDTO,
-  ExercisePrescription,
-  CreateExercisePrescriptionDTO,
+    CreateExercisePrescriptionDTO,
+    CreateTrainingBlockDTO,
+    CreateTrainingDTO,
+    ExercisePrescription,
+    Training,
+    TrainingBlock,
 } from '../types/database.types';
 
 // Mock data para desenvolvimento
@@ -97,7 +97,7 @@ class TrainingService {
     try {
       // Obter usuário autenticado
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
@@ -141,7 +141,7 @@ class TrainingService {
     try {
       // Obter usuário autenticado
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
@@ -239,7 +239,7 @@ class TrainingService {
     try {
       // Obter usuário atual
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       const trainingWithUser = {
         ...trainingData,
         created_by: user?.id
@@ -432,7 +432,7 @@ class TrainingService {
 
       if (blocks && blocks.length > 0) {
         const blockIds = blocks.map(block => block.id);
-        
+
         // Deletar todas as prescrições de exercícios dos blocos
         const { error: prescriptionsError } = await supabase
           .from('exercise_prescriptions')
@@ -510,7 +510,7 @@ class TrainingService {
                 sets: 2,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '1',
                   name: 'Rotação de ombros',
                   created_at: '2024-01-01T00:00:00Z',
@@ -525,7 +525,7 @@ class TrainingService {
                 sets: 2,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '2',
                   name: 'Flexão de quadril',
                   created_at: '2024-01-01T00:00:00Z',
@@ -554,7 +554,7 @@ class TrainingService {
                 rest_seconds: 60,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '3',
                   name: 'Prancha',
                   created_at: '2024-01-01T00:00:00Z',
@@ -584,7 +584,7 @@ class TrainingService {
                 rest_seconds: 120,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '4',
                   name: 'Agachamento',
                   created_at: '2024-01-01T00:00:00Z',
@@ -602,7 +602,7 @@ class TrainingService {
                 rest_seconds: 120,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
-                exercise: { 
+                exercise: {
                   id: '5',
                   name: 'Supino',
                   created_at: '2024-01-01T00:00:00Z',
@@ -613,11 +613,13 @@ class TrainingService {
           }
         ]
       };
-      
+
       return mockPublicTraining;
     }
 
     try {
+      console.log('🔍 Buscando treino público com token:', token);
+
       const { data, error } = await supabase
         .from('trainings')
         .select(`
@@ -630,6 +632,11 @@ class TrainingService {
                 id,
                 name,
                 instructions
+              ),
+              video:videos (
+                id,
+                title,
+                storage_path
               )
             )
           )
@@ -638,11 +645,20 @@ class TrainingService {
         .eq('share_status', 'public')
         .maybeSingle();
 
-      if (error) throw error;
+      console.log('📊 Resultado da query:', { data, error });
+
+      if (error) {
+        console.error('❌ Erro no Supabase:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.warn('⚠️ Nenhum treino encontrado com token:', token);
+      }
 
       return data || null;
     } catch (error) {
-      console.error('Erro ao buscar treino público:', error);
+      console.error('💥 Erro ao buscar treino público:', error);
       throw error;
     }
   }

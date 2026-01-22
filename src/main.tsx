@@ -40,12 +40,18 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     const swUrl = `${import.meta.env.BASE_URL}sw.js`;
 
+    // Flag para prevenir loop de reload (iOS Safari)
+    let refreshing = false;
+
     navigator.serviceWorker
       .register(swUrl)
       .then((registration) => {
         console.log('✅ SW registered:', registration);
 
-        // Force update check on iOS
+        // Force update check (timeout para iOS)
+        setTimeout(() => registration.update(), 1000);
+
+        // Force update on waiting worker
         if (registration.waiting) {
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
@@ -56,11 +62,21 @@ if ('serviceWorker' in navigator) {
 
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'activated') {
-                console.log('✅ SW activated');
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // Novo SW instalado, força ativação
+                console.log('🔄 Novo SW instalado, ativando...');
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
               }
             });
           }
+        });
+
+        // Detecta quando o controller muda (novo SW ativou)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          console.log('🔄 Controller changed, reloading...');
+          window.location.reload();
         });
       })
       .catch((error) => {
