@@ -50,7 +50,6 @@ const isStaticAsset = (url) => {
 
 // Install: pre-cache core assets and activate immediately
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing...');
   event.waitUntil(
     (async () => {
       try {
@@ -68,7 +67,6 @@ self.addEventListener('install', (event) => {
 
 // Activate: clean up old caches and take control
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
   event.waitUntil(
     (async () => {
       try {
@@ -139,7 +137,7 @@ async function handleNavigateNetworkFirst(request) {
     const networkResp = await Promise.race([
       fetch(request),
       new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Network timeout')), 3000)
+        setTimeout(() => reject(new Error('Network timeout')), 3000)
       )
     ]);
 
