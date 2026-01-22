@@ -1,9 +1,10 @@
 import { Suspense, lazy } from 'react';
 import { Outlet, createHashRouter } from 'react-router-dom';
-import paths, { rootPaths } from './paths';
 import PrivateRoute from '../components/navigation/PrivateRoute';
+import paths, { rootPaths } from './paths';
 
-const basename = import.meta.env.PROD ? '/training-platform' : '';
+// HashRouter não precisa de basename - o base path é controlado pelo Vite
+// e afeta apenas os assets (JS, CSS, imagens)
 
 const App = lazy(() => import('../App'));
 const MainLayout = lazy(() => import('../layouts/main-layout'));

@@ -50,7 +50,6 @@ const isStaticAsset = (url) => {
 
 // Install: pre-cache core assets and activate immediately
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing...');
   event.waitUntil(
     (async () => {
       try {
@@ -68,7 +67,6 @@ self.addEventListener('install', (event) => {
 
 // Activate: clean up old caches and take control
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
   event.waitUntil(
     (async () => {
       try {
@@ -142,13 +140,13 @@ async function handleNavigateNetworkFirst(request) {
         setTimeout(() => reject(new Error('Network timeout')), 3000)
       )
     ]);
-    
+
     // Cache successful response for offline use
     if (networkResp.ok) {
       const coreCache = await caches.open(CORE_CACHE);
       coreCache.put(APP_BASE + 'index.html', networkResp.clone()).catch(() => {});
     }
-    
+
     return networkResp;
   } catch (error) {
     // Network failed, try cache
@@ -156,7 +154,7 @@ async function handleNavigateNetworkFirst(request) {
     if (cached) {
       return cached;
     }
-    
+
     // Last resort: return offline page
     return new Response(
       '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Offline</title></head><body><h1>No connection</h1><p>Please check your internet connection and try again.</p></body></html>',

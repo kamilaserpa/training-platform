@@ -379,7 +379,7 @@ function ExerciciosPage() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, px: { xs: 1, sm: 3 } }}>
+    <Container maxWidth="xl" sx={{ py: 4, px: { xs: 0, sm: 3 } }}>
       {error && (
         <Alert 
           severity="error" 

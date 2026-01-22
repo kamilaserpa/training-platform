@@ -275,7 +275,7 @@ const Perfil = () => {
     }
 
     return (
-        <Container maxWidth="lg">
+        <Container maxWidth="lg" sx={{ py: 4, px: { xs: 0, sm: 3 } }}>
             <PageHeader
                 title="Meu Perfil"
                 subtitle="Gerencie suas informações pessoais"
