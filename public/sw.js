@@ -43,8 +43,8 @@ const isStaticAsset = (url) => {
   if (!isSameOrigin(url)) return false;
   if (isImmutableAsset(url)) return false;
   return (
-    /\.(png|jpg|jpeg|gif|webp|svg|ico|bmp|ttf|otf|woff2?|mp3|mp4)$/i.test(url.pathname) ||
-    url.pathname.endsWith('/manifest.webmanifest')
+  /\.(png|jpg|jpeg|gif|webp|svg|ico|bmp|ttf|otf|woff2?|mp3|mp4)$/i.test(url.pathname) ||
+  url.pathname.endsWith('/manifest.webmanifest')
   );
 };
 
@@ -212,9 +212,9 @@ async function staleWhileRevalidate(cacheName, request) {
   const cachedPromise = cache.match(request);
   const networkPromise = fetch(request)
     .then(async (resp) => {
-      if (shouldCacheResponse(resp)) await cache.put(request, resp.clone());
-      return resp;
-    })
+    if (shouldCacheResponse(resp)) await cache.put(request, resp.clone());
+    return resp;
+  })
     .catch(() => undefined);
 
   const cached = await cachedPromise;
