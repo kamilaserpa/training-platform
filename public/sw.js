@@ -1,22 +1,23 @@
 // Training Platform PWA Service Worker (Vite + React)
 // Goals: aggressive immutable caches, offline navigation, SW auto-update,
 // versioned caches, stale-while-revalidate, exclude Supabase, avoid non-GET.
-// iOS Fix: Network-first navigation to prevent loading hang
+// iOS Fix: Network-ONLY for navigation (no HTML cache) to prevent PWA hang
 
 const CACHE_PREFIX = 'tp-pwa';
-const CACHE_VERSION = 'v4'; // Bumped for iOS fix
-const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`; // images, fonts, manifest
-const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${CACHE_VERSION}`; // hashed build assets
-const NAV_CACHE = `${CACHE_PREFIX}-nav-${CACHE_VERSION}`; // index.html fallback for SPA
-const CORE_CACHE = `${CACHE_PREFIX}-core-${CACHE_VERSION}`; // core assets
+// Versão do SW: Siga versionamento semântico (major.minor.patch)
+// - Patch (x.x.1): Bug fixes, ajustes menores
+// - Minor (x.1.x): Novas features, mudanças compatíveis
+// - Major (1.x.x): Breaking changes, refatorações grandes
+const SW_VERSION = '1.0.0'; // iOS PWA hang fix - network-only navigation
+const STATIC_CACHE = `${CACHE_PREFIX}-static-${SW_VERSION}`; // images, fonts, manifest
+const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${SW_VERSION}`; // hashed build assets
+const CORE_CACHE = `${CACHE_PREFIX}-core-${SW_VERSION}`; // core assets (NO HTML)
 
 // Respect Vite base and GitHub Pages scope, e.g. /training-platform/
 const APP_BASE = self.registration.scope;
 
-// Core assets to pre-cache for offline navigation
+// Core assets to pre-cache (NO HTML - causes iOS PWA issues)
 const CORE_ASSETS = [
-  APP_BASE,
-  APP_BASE + 'index.html',
   APP_BASE + 'manifest.webmanifest',
   // App icons (static, safe to pre-cache)
   APP_BASE + 'icons/icon-192.png',
@@ -70,21 +71,21 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       try {
-        const expectedPrefixes = new Set([
+        const expectedCaches = new Set([
           STATIC_CACHE,
           IMMUTABLE_CACHE,
-          NAV_CACHE,
+          CORE_CACHE,
         ]);
         const keys = await caches.keys();
         await Promise.all(
           keys.map((key) => {
-            if (!expectedPrefixes.has(key) && key.startsWith(CACHE_PREFIX)) {
+            if (!expectedCaches.has(key) && key.startsWith(CACHE_PREFIX)) {
               console.log('[SW] Deleting old cache:', key);
               return caches.delete(key);
             }
           })
         );
-        console.log('[SW] Activated');
+        console.log(`[SW v${SW_VERSION}] Activated - HTML caching disabled for iOS PWA fix`);
       } catch (err) {
         console.error('[SW] Activate failed:', err);
       }
@@ -103,10 +104,10 @@ self.addEventListener('fetch', (event) => {
   // Never interfere with Supabase requests
   if (isSupabase(url)) return;
 
-  // CRITICAL iOS FIX: For navigation, use network-only strategy
-  // Only use cache if network fails
+  // CRITICAL iOS FIX v5: Network-ONLY for navigation (no cache)
+  // Caching HTML causes iOS PWA to hang on subsequent visits
   if (isNavigate(request) || (isSameOrigin(url) && isHTMLRequest(request))) {
-    event.respondWith(handleNavigateNetworkFirst(request));
+    event.respondWith(handleNavigateNetworkOnly(request));
     return;
   }
 
@@ -130,68 +131,83 @@ self.addEventListener('fetch', (event) => {
   // Cross-origin GETs: bypass (avoid caching APIs/CDNs unless immutable pattern)
 });
 
-// Simple network-first for navigation (iOS compatible)
-async function handleNavigateNetworkFirst(request) {
+// Network-ONLY for navigation (iOS PWA fix v5)
+// Do NOT cache HTML - causes iOS standalone mode to hang
+async function handleNavigateNetworkOnly(request) {
+  console.log('[SW] Navigation request:', request.url);
+  
   try {
-    // Try network with reasonable timeout (3 seconds)
+    // Direct network fetch with generous timeout for iOS
     const networkResp = await Promise.race([
-      fetch(request),
+      fetch(request, {
+        cache: 'no-cache', // Force fresh fetch
+        credentials: 'same-origin'
+      }),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Network timeout')), 3000)
+        setTimeout(() => reject(new Error('Network timeout')), 5000)
       )
     ]);
 
-    // Cache successful response for offline use
-    if (networkResp.ok) {
-      const coreCache = await caches.open(CORE_CACHE);
-      coreCache.put(APP_BASE + 'index.html', networkResp.clone()).catch(() => {});
-    }
-
+    console.log('[SW] Navigation response:', networkResp.status);
+    
+    // Return response WITHOUT caching
+    // This prevents iOS PWA hang on subsequent visits
     return networkResp;
+    
   } catch (error) {
-    // Network failed, try cache
-    const cached = await findCachedHTML();
-    if (cached) {
-      return cached;
-    }
-
-    // Last resort: return offline page
+    console.error('[SW] Navigation failed:', error);
+    
+    // Only show offline page on complete network failure
     return new Response(
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Offline</title></head><body><h1>No connection</h1><p>Please check your internet connection and try again.</p></body></html>',
+      `<!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Sem Conexão</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+          }
+          h1 { font-size: 2rem; margin: 0 0 1rem; }
+          p { font-size: 1.1rem; opacity: 0.9; margin: 0 0 2rem; }
+          button {
+            padding: 12px 32px;
+            font-size: 1rem;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>📡 Sem Conexão</h1>
+        <p>Verifique sua conexão com a internet e tente novamente.</p>
+        <button onclick="window.location.reload()">Tentar Novamente</button>
+      </body>
+      </html>`,
       {
-        headers: { 'Content-Type': 'text/html' },
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
         status: 503,
       }
     );
   }
 }
 
-// Helper to find cached HTML from any cache
-async function findCachedHTML() {
-  // Try multiple possible paths
-  let cached = await caches.match(APP_BASE + 'index.html');
-  if (cached) return cached;
-
-  cached = await caches.match('/index.html');
-  if (cached) return cached;
-
-  cached = await caches.match(new URL('index.html', self.location.origin).href);
-  if (cached) return cached;
-
-  // Search all caches
-  const cacheNames = await caches.keys();
-  for (const cacheName of cacheNames) {
-    const cache = await caches.open(cacheName);
-    const keys = await cache.keys();
-    for (const key of keys) {
-      if (key.url.includes('index.html')) {
-        return cache.match(key);
-      }
-    }
-  }
-
-  return null;
-}
+// Note: Removed findCachedHTML - we don't cache HTML anymore (iOS fix)
 
 function shouldCacheResponse(response) {
   // Cache only successful or opaque responses
