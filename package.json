@@ -26,6 +26,7 @@
     "@mui/x-data-grid": "^7.14.0",
     "@mui/x-date-pickers": "^7.15.0",
     "@supabase/supabase-js": "^2.89.0",
+    "date-fns": "^3.6.0",
     "dayjs": "^1.11.13",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",

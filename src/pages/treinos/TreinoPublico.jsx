@@ -1,56 +1,70 @@
-import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
 import {
-  Container,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  Divider,
-  Stack,
-  Chip,
-  Alert,
-  CircularProgress,
-  Paper,
-  Grid,
-  useTheme,
-  useMediaQuery,
-  IconButton,
-  Tooltip,
-} from '@mui/material'
-import { 
-  FitnessCenter as FitnessCenterIcon,
   AccessTime as AccessTimeIcon,
   EventAvailable as EventAvailableIcon,
+  ExpandMore as ExpandMoreIcon,
+  FitnessCenter as FitnessCenterIcon,
   Info as InfoIcon,
-  CheckCircleOutline as CheckCircleIcon,
-  Repeat as RepeatIcon,
-  Timer as TimerIcon,
   PictureAsPdf as PdfIcon,
+  PlayCircleOutline as PlayCircleOutlineIcon,
+  Repeat as RepeatIcon,
+  Timer as TimerIcon
 } from '@mui/icons-material'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Collapse,
+  Container,
+  Divider,
+  Grid,
+  IconButton,
+  Paper,
+  Stack,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material'
+import { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import logoImage from '../../assets/images/logo-main.png'
+import { ExerciseVideo } from '../../components/ExerciseVideo'
+import { signedUrlCache } from '../../services/privateVideoStorage'
 import { trainingService } from '../../services/trainingService'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
-import logoImage from '../../assets/images/logo-main.png'
 
 const TreinoPublico = () => {
   const { token } = useParams()
   const [treino, setTreino] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  
+  const [videoUrls, setVideoUrls] = useState({})
+  const [expandedVideos, setExpandedVideos] = useState({})
+
   // Hooks do MUI devem estar no topo, antes de qualquer return condicional
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
+  const toggleVideoExpanded = (exerciseId) => {
+    setExpandedVideos(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }))
+  }
 
   useEffect(() => {
     const loadPublicTraining = async () => {
       try {
         setLoading(true)
-        
+
         // Carregar treino público usando o service
         const trainingData = await trainingService.getPublicTraining(token)
-        
+
         if (!trainingData) {
           setError('Treino não encontrado ou link expirado.')
           return
@@ -61,8 +75,28 @@ const TreinoPublico = () => {
           setError('Este link de compartilhamento foi desativado.')
           return
         }
-        
+
         setTreino(trainingData)
+
+        // Carregar vídeos dos exercícios (agora vem de prescription.video)
+        const urls = {}
+        for (const block of trainingData.training_blocks || []) {
+          for (const prescription of block.exercise_prescriptions || []) {
+            const video = prescription.video
+            if (video?.storage_path) {
+              try {
+                console.log(`🎥 Carregando vídeo: ${video.title || video.id} - ${video.storage_path}`)
+                const url = await signedUrlCache.getOrCreate(video.storage_path)
+                // Usar exercise_id como chave para manter compatibilidade com o resto do código
+                urls[prescription.exercise_id] = url
+                console.log(`✅ Vídeo carregado: ${video.title}`)
+              } catch (error) {
+                console.error(`❌ Erro ao carregar vídeo ${video.title || video.id}:`, error)
+              }
+            }
+          }
+        }
+        setVideoUrls(urls)
       } catch (err) {
         console.error('Erro ao carregar treino público:', err)
         setError('Não foi possível carregar o treino. Verifique se o link está correto.')
@@ -108,14 +142,14 @@ const TreinoPublico = () => {
         title: 'Condicionamento Físico'
       }
     }
-    return blocks[blockType] || { 
+    return blocks[blockType] || {
       title: blockType.replace(/_/g, ' ')
     }
   }
 
   const formatExerciseProtocol = (prescription) => {
     const protocol = []
-    
+
     // Séries e Repetições
     if (prescription.sets && prescription.reps) {
       protocol.push({
@@ -132,13 +166,13 @@ const TreinoPublico = () => {
         color: 'primary'
       })
     }
-    
+
     // Duração
     if (prescription.duration_seconds) {
       const minutes = Math.floor(prescription.duration_seconds / 60)
       const seconds = prescription.duration_seconds % 60
-      const timeText = minutes > 0 
-        ? `${minutes}min ${seconds}s` 
+      const timeText = minutes > 0
+        ? `${minutes}min ${seconds}s`
         : `${seconds}s`
       protocol.push({
         icon: <TimerIcon fontSize="small" />,
@@ -147,7 +181,7 @@ const TreinoPublico = () => {
         color: 'warning'
       })
     }
-    
+
     // Descanso
     if (prescription.rest_seconds) {
       protocol.push({
@@ -167,7 +201,7 @@ const TreinoPublico = () => {
         color: 'error'
       })
     }
-    
+
     return protocol
   }
 
@@ -210,9 +244,9 @@ const TreinoPublico = () => {
     <Box sx={{ bgcolor: 'info.main', minHeight: '100vh', py: { xs: 2, sm: 3 } }}>
       <Container maxWidth="xl">
         {/* Cabeçalho do Treino */}
-        <Paper 
+        <Paper
           elevation={2}
-          sx={{ 
+          sx={{
             background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
             color: 'primary.contrastText',
             p: { xs: 2.5, sm: 3 },
@@ -246,10 +280,10 @@ const TreinoPublico = () => {
             </Tooltip>
           </Box>
 
-          <Typography 
-            variant="h4" 
+          <Typography
+            variant="h4"
             fontWeight="600"
-            sx={{ 
+            sx={{
               mb: 1.5,
               fontSize: { xs: '1.5rem', sm: '1.875rem' },
               pr: { xs: 6, sm: 7 }
@@ -257,9 +291,9 @@ const TreinoPublico = () => {
           >
             {treino.name}
           </Typography>
-          
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
+
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
             spacing={{ xs: 0.75, sm: 2.5 }}
             sx={{ opacity: 0.95 }}
           >
@@ -276,10 +310,10 @@ const TreinoPublico = () => {
               </Typography>
             </Box>
           </Stack>
-          
+
           {treino.description && (
-            <Box 
-              sx={{ 
+            <Box
+              sx={{
                 mt: 2,
                 p: 1.5,
                 bgcolor: 'rgba(255,255,255,0.15)',
@@ -301,12 +335,12 @@ const TreinoPublico = () => {
         <Grid container spacing={2.5}>
           {treino.training_blocks?.map((block, blockIndex) => {
             const blockInfo = getBlockInfo(block.block_type)
-            
+
             return (
               <Grid item xs={12} sm={6} md={4} key={blockIndex}>
-                <Card 
+                <Card
                   elevation={1}
-                  sx={{ 
+                  sx={{
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
@@ -318,8 +352,8 @@ const TreinoPublico = () => {
                   }}
                 >
                   {/* Cabeçalho do Card - Sem Background */}
-                  <Box 
-                    sx={{ 
+                  <Box
+                    sx={{
                       p: 2,
                       pb: 1.5,
                       display: 'flex',
@@ -331,11 +365,11 @@ const TreinoPublico = () => {
                     }}
                   >
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography 
-                        variant="h6" 
+                      <Typography
+                        variant="h6"
                         fontWeight="600"
                         color="primary.main"
-                        sx={{ 
+                        sx={{
                           fontSize: { xs: '0.95rem', sm: '1rem' },
                           lineHeight: 1.3
                         }}
@@ -343,11 +377,11 @@ const TreinoPublico = () => {
                         {blockInfo.title}
                       </Typography>
                     </Box>
-                    <Chip 
+                    <Chip
                       label={block.exercise_prescriptions?.length || 0}
                       size="small"
                       color="primary"
-                      sx={{ 
+                      sx={{
                         fontWeight: 600,
                         minWidth: 28,
                         height: 26,
@@ -362,15 +396,15 @@ const TreinoPublico = () => {
                       <Stack direction="column" spacing={2}>
                         {block.exercise_prescriptions.map((prescription, exerciseIndex) => {
                           const protocol = formatExerciseProtocol(prescription)
-                          
+
                           return (
                             <Box key={exerciseIndex}>
                               {/* Nome do Exercício */}
-                              <Typography 
-                                variant="subtitle2" 
+                              <Typography
+                                variant="subtitle2"
                                 fontWeight="600"
                                 color="text.primary"
-                                sx={{ 
+                                sx={{
                                   mb: 0.5,
                                   fontSize: '0.875rem',
                                   lineHeight: 1.4
@@ -378,13 +412,49 @@ const TreinoPublico = () => {
                               >
                                 {exerciseIndex + 1}. {prescription.exercise?.name}
                               </Typography>
-                              
+
+                              {/* Vídeo demonstrativo com Collapse */}
+                              {videoUrls[prescription.exercise?.id] && (
+                                <Box sx={{ mb: 1, mt: 1 }}>
+                                  <Button
+                                    onClick={() => toggleVideoExpanded(prescription.exercise.id)}
+                                    size="small"
+                                    startIcon={<PlayCircleOutlineIcon />}
+                                    endIcon={
+                                      <ExpandMoreIcon
+                                        sx={{
+                                          transform: expandedVideos[prescription.exercise.id] ? 'rotate(180deg)' : 'rotate(0deg)',
+                                          transition: 'transform 0.3s'
+                                        }}
+                                      />
+                                    }
+                                    sx={{
+                                      textTransform: 'none',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 500,
+                                      color: 'primary.main',
+                                      mb: 0.5
+                                    }}
+                                  >
+                                    {expandedVideos[prescription.exercise.id] ? 'Ocultar vídeo' : 'Ver demonstração em vídeo'}
+                                  </Button>
+                                  <Collapse in={expandedVideos[prescription.exercise.id]}>
+                                    <Box sx={{ mt: 1 }}>
+                                      <ExerciseVideo
+                                        videoUrl={videoUrls[prescription.exercise.id]}
+                                        alt={`Demonstração: ${prescription.exercise.name}`}
+                                      />
+                                    </Box>
+                                  </Collapse>
+                                </Box>
+                              )}
+
                               {/* Instruções do Exercício */}
                               {prescription.exercise?.instructions && (
-                                <Typography 
-                                  variant="caption" 
+                                <Typography
+                                  variant="caption"
                                   color="text.secondary"
-                                  sx={{ 
+                                  sx={{
                                     display: 'block',
                                     mb: 1,
                                     fontSize: '0.75rem',
@@ -395,11 +465,11 @@ const TreinoPublico = () => {
                                   {prescription.exercise.instructions}
                                 </Typography>
                               )}
-                              
+
                               {/* Protocolo */}
                               {protocol.length > 0 && (
-                                <Box 
-                                  sx={{ 
+                                <Box
+                                  sx={{
                                     display: 'flex',
                                     flexWrap: 'wrap',
                                     gap: 0.5,
@@ -425,13 +495,13 @@ const TreinoPublico = () => {
                                   ))}
                                 </Box>
                               )}
-                              
+
                               {/* Observações */}
                               {prescription.notes && (
-                                <Alert 
-                                  severity="info" 
+                                <Alert
+                                  severity="info"
                                   icon={<InfoIcon sx={{ fontSize: '0.95rem' }} />}
-                                  sx={{ 
+                                  sx={{
                                     py: 0.5,
                                     px: 1,
                                     fontSize: '0.75rem',
@@ -444,7 +514,7 @@ const TreinoPublico = () => {
                                   {prescription.notes}
                                 </Alert>
                               )}
-                              
+
                               {/* Divider entre exercícios (exceto último) */}
                               {exerciseIndex < block.exercise_prescriptions.length - 1 && (
                                 <Divider sx={{ mt: 2 }} />
@@ -454,9 +524,9 @@ const TreinoPublico = () => {
                         })}
                       </Stack>
                     ) : (
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
                         fontStyle="italic"
                         textAlign="center"
                         sx={{ py: 2, fontSize: '0.875rem' }}
@@ -472,27 +542,27 @@ const TreinoPublico = () => {
         </Grid>
 
         {/* Footer */}
-        <Paper 
+        <Paper
           elevation={0}
-          sx={{ 
-            mt: 3, 
-            p: 2.5, 
+          sx={{
+            mt: 3,
+            p: 2.5,
             textAlign: 'center',
             borderRadius: 2,
             border: '1px solid',
             borderColor: 'divider'
           }}
         >
-          <Typography 
-            variant="body2" 
+          <Typography
+            variant="body2"
             color="text.primary"
             fontWeight="500"
             sx={{ mb: 0.5, fontSize: '0.875rem' }}
           >
             Este treino foi compartilhado pelo seu personal trainer
           </Typography>
-          <Typography 
-            variant="caption" 
+          <Typography
+            variant="caption"
             color="text.secondary"
             sx={{ fontSize: '0.75rem' }}
           >

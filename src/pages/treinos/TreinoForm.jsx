@@ -1,67 +1,72 @@
 // Formulário de Treino - Criar/Editar
-import { useState, useEffect } from 'react'
-import { useForm, FormProvider } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import dayjs from 'dayjs'
+import { useEffect, useState } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import * as yup from 'yup'
+
+// Imports dos componentes
+import { AddExerciseModal } from '../../components/treinos/AddExerciseModal'
 
 // Imports dos serviços
-import { weekService } from '../../services/weekService'
-import { movementPatternService } from '../../services/movementPatternService'
+import logoImage from '../../assets/images/logo-main.png'
 import { exerciseService } from '../../services/exerciseService'
+import { movementPatternService } from '../../services/movementPatternService'
 import { trainingService } from '../../services/trainingService'
+import { videoService } from '../../services/videoService'
+import { weekService } from '../../services/weekService'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
-import logoImage from '../../assets/images/logo-main.png'
 
 import {
-  Container,
-  Grid,
-  Button,
-  Typography,
+  Alert,
+  Autocomplete,
   Box,
+  Button,
   Card,
   CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
-  Stack,
-  Paper,
+  Grid,
+  IconButton,
   List,
   ListItem,
   ListItemText,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Chip,
-  Autocomplete,
+  Paper,
   Snackbar,
-  Alert,
-  CircularProgress,
-  Tooltip
+  Stack,
+  TextField,
+  Tooltip,
+  Typography
 } from '@mui/material'
 
 import {
-  Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
   Add as AddIcon,
+  ArrowBack as ArrowBackIcon,
+  CheckCircle as CheckCircleIcon,
+  ContentCopy as CopyIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
-  Timer as TimerIcon,
-  Share as ShareIcon,
-  ContentCopy as CopyIcon,
   Link as LinkIcon,
-  CheckCircle as CheckCircleIcon,
   PictureAsPdf as PdfIcon,
+  Save as SaveIcon,
+  Share as ShareIcon,
+  Timer as TimerIcon,
+  VideoLibrary as VideoIcon
 } from '@mui/icons-material'
 
 import {
+  FormCheckbox,
+  FormDatePicker,
   FormInput,
   FormSelect,
-  FormDatePicker,
-  FormCheckbox,
 } from '../../components/form'
 
 // Schema de validação (Yup)
@@ -95,6 +100,13 @@ function TreinoForm() {
   const [editingItem, setEditingItem] = useState(null)
   const [formData, setFormData] = useState({})
 
+  // Estados para novo modal de exercício com vídeo
+  const [addExerciseModalOpen, setAddExerciseModalOpen] = useState(false)
+  const [addExerciseModalSection, setAddExerciseModalSection] = useState('')
+  const [trainingBlocks, setTrainingBlocks] = useState([])
+  const [editingModalIndex, setEditingModalIndex] = useState(null)
+  const [editingModalData, setEditingModalData] = useState(null)
+
   // Configuração do React Hook Form
   const methods = useForm({
     resolver: yupResolver(validationSchema),
@@ -121,6 +133,8 @@ function TreinoForm() {
 
   // Responsividade tratada via props responsivas (sx/breakpoints)
   const [weekEndDate, setWeekEndDate] = useState(null)
+
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Função helper para formatar protocolo do exercício
   const formatProtocol = (item) => {
@@ -265,6 +279,17 @@ function TreinoForm() {
         setSemanasCompletas(semanas) // Armazenar semanas completas com datas
         setPadroesMovimentoOptions(padroesFormatted)
         setExerciciosOptions(exerciciosFormatted)
+
+        // Criar opções de training blocks baseadas nas seções disponíveis
+        const blocks = [
+          { id: 'mobilidade', label: 'Mobilidade Articular', type: 'MOBILIDADE_ARTICULAR' },
+          { id: 'core', label: 'Ativação de Core', type: 'ATIVACAO_CORE' },
+          { id: 'neural', label: 'Ativação Neural', type: 'ATIVACAO_NEURAL' },
+          { id: 'treino1', label: 'Bloco Principal 1', type: 'TREINO_PRINCIPAL' },
+          { id: 'treino2', label: 'Bloco Principal 2', type: 'TREINO_PRINCIPAL' },
+          { id: 'condicionamento', label: 'Condicionamento Físico', type: 'CONDICIONAMENTO_FISICO' }
+        ]
+        setTrainingBlocks(blocks)
 
         console.log('🔍 Debug - Opções de semanas:', semanasFormatted)
         console.log('🔍 Debug - Opções de padrões:', padroesFormatted)
@@ -435,11 +460,27 @@ function TreinoForm() {
     blocks.forEach(block => {
       switch (block.block_type) {
         case 'MOBILIDADE_ARTICULAR':
-          // Para mobilidade, preservar ID do exercício
-          const mobilityItems = block.exercise_prescriptions?.map(prescription => ({
-            nome: prescription.exercise?.name || 'Exercício não encontrado',
-            exercicioId: prescription.exercise?.id
-          })) || []
+          // Para mobilidade, preservar todos os campos como nas outras seções
+          const mobilityItems = block.exercise_prescriptions?.map(prescription => {
+            const series = prescription.sets || 0
+            const tempoSegundos = prescription.duration_seconds || 0
+            const intervaloSegundos = prescription.rest_seconds || 0
+            const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0
+
+            return {
+              nome: prescription.exercise?.name || 'Exercício não encontrado',
+              exercicioId: prescription.exercise?.id,
+              videoId: prescription.video_id || null,
+              videoName: prescription.video?.title || null,
+              series: prescription.sets || '',
+              repeticoes: prescription.reps || '',
+              carga: prescription.weight_kg || '',
+              tempoSegundos: prescription.duration_seconds || '',
+              intervaloSegundos: prescription.rest_seconds || '',
+              tempoTotal: tempoTotal,
+              observacoes: prescription.notes || ''
+            }
+          }) || []
           setMobilidadeItems(mobilityItems)
           break
         case 'ATIVACAO_CORE':
@@ -570,15 +611,75 @@ function TreinoForm() {
           break
       }
 
-      setEditingItem(index)
-      setFormData(item || {})
+      // Usar o novo modal para editar exercícios com mais campos
+      if (item && (item.exercicioId || item.series || item.videoId)) {
+        handleOpenEditExerciseModal(section, index, item)
+      } else {
+        // Dialog simples para mobilidade básica
+        setEditingItem(index)
+        setFormData(item || {})
+        setDialogOpen(true)
+      }
     } else {
       // Novo item ou item direto
       setEditingItem(null)
       setFormData(itemOrIndex || {})
+      setDialogOpen(true)
     }
+  }
 
-    setDialogOpen(true)
+  // Handler para abrir modal de edição
+  const handleOpenEditExerciseModal = async (section, index, item) => {
+    try {
+      setEditingModalIndex(index)
+      setAddExerciseModalSection(section)
+
+      // Buscar exercício completo se temos o ID
+      let exerciseData = null
+      if (item.exercicioId) {
+        const exercises = await exerciseService.getAllExercises()
+        exerciseData = exercises.find(ex => ex.id === item.exercicioId)
+      }
+
+      // Buscar vídeo completo se temos o ID
+      let videoData = null
+      if (item.videoId) {
+        const videos = await videoService.getVideos()
+        videoData = videos.find(v => v.id === item.videoId)
+      }
+
+      // Preparar dados de configuração
+      const configData = {
+        series: item.series || 3,
+        repetitions: item.repeticoes || '12',
+        weight_kg: item.carga ? item.carga.toString().replace('kg', '').trim() : '',
+        duration_seconds: item.tempoSegundos || null,
+        rest_seconds: item.intervaloSegundos || 60,
+        notes: item.observacoes || ''
+      }
+
+      const modalData = {
+        exercise: exerciseData,
+        video: videoData,
+        config: configData
+      }
+
+      // Definir dados primeiro
+      setEditingModalData(modalData)
+
+      // Aguardar próximo ciclo de renderização antes de abrir o modal
+      // Isso garante que editingModalData está atualizado quando o modal abre
+      setTimeout(() => {
+        setAddExerciseModalOpen(true)
+      }, 0)
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados para edição:', error)
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar dados do exercício',
+        severity: 'error'
+      })
+    }
   }
 
   const handleCloseDialog = () => {
@@ -699,6 +800,123 @@ function TreinoForm() {
         setCondicionamentoItems(condicionamentoItems.filter((_, i) => i !== index))
         break
     }
+  }
+
+  // Handlers para o novo modal de exercício com vídeo
+  const handleOpenAddExerciseModal = (section) => {
+    setAddExerciseModalSection(section)
+    setAddExerciseModalOpen(true)
+  }
+
+  const handleCloseAddExerciseModal = () => {
+    setAddExerciseModalOpen(false)
+    setAddExerciseModalSection('')
+    setEditingModalIndex(null)
+    setEditingModalData(null)
+  }
+
+  const handleSaveExerciseWithVideo = (data) => {
+    console.log('💾 Salvando exercício com vídeo:', data)
+
+    const { exercise, video, config } = data
+
+    // Criar objeto do exercício com todos os dados
+    const exerciseItem = {
+      exercicioId: exercise.id,
+      nome: exercise.name,
+      videoId: video?.id || null,
+      videoName: video?.name || null,
+      series: config.series || 3,
+      repeticoes: config.repetitions || '12',
+      carga: config.weight_kg || '',
+      tempoSegundos: config.duration_seconds || null,
+      intervaloSegundos: config.rest_seconds || 60,
+      observacoes: config.notes || ''
+    }
+
+    // Se está editando, atualizar item existente
+    if (editingModalIndex !== null) {
+      switch (addExerciseModalSection) {
+        case 'mobilidade':
+          const newMobItems = [...mobilidadeItems]
+          newMobItems[editingModalIndex] = exerciseItem
+          setMobilidadeItems(newMobItems)
+          console.log('✏️ Exercício atualizado na Mobilidade')
+          break
+        case 'core':
+          const newCoreItems = [...coreItems]
+          newCoreItems[editingModalIndex] = exerciseItem
+          setCoreItems(newCoreItems)
+          console.log('✏️ Exercício atualizado no Core')
+          break
+        case 'neural':
+          const newNeuralItems = [...neuralItems]
+          newNeuralItems[editingModalIndex] = exerciseItem
+          setNeuralItems(newNeuralItems)
+          console.log('✏️ Exercício atualizado no Neural')
+          break
+        case 'treino1':
+          const newTreino1 = [...treinoBloco1]
+          newTreino1[editingModalIndex] = exerciseItem
+          setTreinoBloco1(newTreino1)
+          console.log('✏️ Exercício atualizado no Bloco 1')
+          break
+        case 'treino2':
+          const newTreino2 = [...treinoBloco2]
+          newTreino2[editingModalIndex] = exerciseItem
+          setTreinoBloco2(newTreino2)
+          console.log('✏️ Exercício atualizado no Bloco 2')
+          break
+        case 'condicionamento':
+          const newCondItems = [...condicionamentoItems]
+          newCondItems[editingModalIndex] = exerciseItem
+          setCondicionamentoItems(newCondItems)
+          console.log('✏️ Exercício atualizado no Condicionamento')
+          break
+      }
+
+      setSnackbar({
+        open: true,
+        message: `Exercício "${exercise.name}" atualizado com sucesso!`,
+        severity: 'success'
+      })
+    } else {
+      // Adicionar novo item ao array da seção correspondente
+      switch (addExerciseModalSection) {
+        case 'mobilidade':
+          setMobilidadeItems([...mobilidadeItems, exerciseItem])
+          console.log('➕ Exercício adicionado à Mobilidade')
+          break
+        case 'core':
+          setCoreItems([...coreItems, exerciseItem])
+          console.log('➕ Exercício adicionado ao Core')
+          break
+        case 'neural':
+          setNeuralItems([...neuralItems, exerciseItem])
+          console.log('➕ Exercício adicionado ao Neural')
+          break
+        case 'treino1':
+          setTreinoBloco1([...treinoBloco1, exerciseItem])
+          console.log('➕ Exercício adicionado ao Bloco 1')
+          break
+        case 'treino2':
+          setTreinoBloco2([...treinoBloco2, exerciseItem])
+          console.log('➕ Exercício adicionado ao Bloco 2')
+          break
+        case 'condicionamento':
+          setCondicionamentoItems([...condicionamentoItems, exerciseItem])
+          console.log('➕ Exercício adicionado ao Condicionamento')
+          break
+      }
+
+      setSnackbar({
+        open: true,
+        message: `Exercício "${exercise.name}" adicionado com sucesso!`,
+        severity: 'success'
+      })
+    }
+
+    handleCloseAddExerciseModal()
   }
 
   // Calcular tempo total do treino bloco
@@ -960,6 +1178,12 @@ function TreinoForm() {
               parseInt(exerciseObj.intervalo) :
               (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null ?
                 parseInt(exerciseObj.rest_seconds) : 60))
+        }
+
+        // Adicionar video_id se disponível
+        if (exerciseObj.videoId) {
+          prescriptionData.video_id = exerciseObj.videoId
+          console.log('🎥 Adicionando vídeo ao exercício:', exerciseObj.videoName || exerciseObj.videoId)
         }
 
         // Se tem tempo definido, usar duration_seconds
@@ -1502,7 +1726,7 @@ function TreinoForm() {
                     </Typography>
                     <Divider sx={{ mb: 3 }} />
 
-                    <Grid container spacing={4}>
+                    <Grid container spacing={4.5}>
                       {/* Primeira linha: 3 campos lado a lado (responsivo) */}
                       <Grid item xs={12} md={4}>
                         <FormSelect
@@ -1599,14 +1823,47 @@ function TreinoForm() {
                           <Typography variant="subtitle1" fontWeight="600">
                             Mobilidade Articular
                           </Typography>
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog('mobilidade')}
-                            disabled={submitting}
+                          <Stack
+                            direction={{ xs: "row", sm: "row" }}
+                            spacing={1}
+                            sx={{ flexWrap: "nowrap" }}
                           >
-                            Adicionar
-                          </Button>
+                            <Tooltip title="Adicionar Exercício" arrow>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenAddExerciseModal('mobilidade')}
+                                disabled={submitting}
+                                variant="contained"
+                                color="primary"
+                                sx={{
+                                  minWidth: 'auto',
+                                  width: '40px',
+                                  height: '40px',
+                                  p: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <AddIcon fontSize="small" />
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={() => handleOpenDialog('mobilidade')}
+                              disabled={submitting}
+                              variant="outlined"
+                              sx={{
+                                minWidth: { xs: "auto", sm: "auto" },
+                                px: { xs: 1, sm: 2 }
+                              }}
+                            >
+                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                                Simples
+                              </Box>
+                            </Button>
+                          </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
                           {mobilidadeItems.length === 0 ? (
@@ -1621,19 +1878,36 @@ function TreinoForm() {
                               <ListItem
                                 key={index}
                                 secondaryAction={
-                                  <IconButton
-                                    edge="end"
-                                    size="small"
-                                    onClick={() => handleRemoveItem('mobilidade', index)}
-                                    disabled={submitting}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
+                                  <Stack direction="row" spacing={0.5}>
+                                    <IconButton
+                                      edge="end"
+                                      size="small"
+                                      onClick={() => handleOpenDialog('mobilidade', index)}
+                                      disabled={submitting}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      edge="end"
+                                      size="small"
+                                      onClick={() => handleRemoveItem('mobilidade', index)}
+                                      disabled={submitting}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Stack>
                                 }
                               >
+                                {typeof item === 'object' && item.videoId && (
+                                  <VideoIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+                                )}
                                 <ListItemText
                                   primary={typeof item === 'string' ? item : item.nome}
-                                  secondary={typeof item === 'object' && item.exercicioId ? 'Exercício do banco' : undefined}
+                                  secondary={
+                                    typeof item === 'object'
+                                      ? `${item.series || 1}x${item.repeticoes || item.tempoSegundos + 's' || ''} • ${item.intervaloSegundos || 0}s rest${item.videoId ? ' • ' + (item.videoName || 'Com vídeo') : ''}`
+                                      : undefined
+                                  }
                                 />
                               </ListItem>
                             ))
@@ -1647,14 +1921,47 @@ function TreinoForm() {
                           <Typography variant="subtitle1" fontWeight="600">
                             Ativação de Core
                           </Typography>
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog('core')}
-                            disabled={submitting}
+                          <Stack
+                            direction={{ xs: "row", sm: "row" }}
+                            spacing={1}
+                            sx={{ flexWrap: "nowrap" }}
                           >
-                            Adicionar
-                          </Button>
+                            <Tooltip title="Adicionar Exercício" arrow>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenAddExerciseModal('core')}
+                                disabled={submitting}
+                                variant="contained"
+                                color="primary"
+                                sx={{
+                                  minWidth: 'auto',
+                                  width: '40px',
+                                  height: '40px',
+                                  p: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <AddIcon fontSize="small" />
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={() => handleOpenDialog('core')}
+                              disabled={submitting}
+                              variant="outlined"
+                              sx={{
+                                minWidth: { xs: "auto", sm: "auto" },
+                                px: { xs: 1, sm: 2 }
+                              }}
+                            >
+                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                                Simples
+                              </Box>
+                            </Button>
+                          </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
                           {coreItems.length === 0 ? (
@@ -1705,14 +2012,47 @@ function TreinoForm() {
                           <Typography variant="subtitle1" fontWeight="600">
                             Ativação Neural
                           </Typography>
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog('neural')}
-                            disabled={submitting}
+                          <Stack
+                            direction={{ xs: "row", sm: "row" }}
+                            spacing={1}
+                            sx={{ flexWrap: "nowrap" }}
                           >
-                            Adicionar
-                          </Button>
+                            <Tooltip title="Adicionar Exercício" arrow>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenAddExerciseModal('neural')}
+                                disabled={submitting}
+                                variant="contained"
+                                color="primary"
+                                sx={{
+                                  minWidth: 'auto',
+                                  width: '40px',
+                                  height: '40px',
+                                  p: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <AddIcon fontSize="small" />
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={() => handleOpenDialog('neural')}
+                              disabled={submitting}
+                              variant="outlined"
+                              sx={{
+                                minWidth: { xs: "auto", sm: "auto" },
+                                px: { xs: 1, sm: 2 }
+                              }}
+                            >
+                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                                Simples
+                              </Box>
+                            </Button>
+                          </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
                           {neuralItems.length === 0 ? (
@@ -1772,13 +2112,45 @@ function TreinoForm() {
                               />
                             )}
                           </Box>
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog('treino1')}
+                          <Stack
+                            direction={{ xs: "row", sm: "row" }}
+                            spacing={1}
+                            sx={{ flexWrap: "nowrap" }}
                           >
-                            Adicionar
-                          </Button>
+                            <Tooltip title="Adicionar Exercício" arrow>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenAddExerciseModal('treino1')}
+                                variant="contained"
+                                color="primary"
+                                sx={{
+                                  minWidth: 'auto',
+                                  width: '40px',
+                                  height: '40px',
+                                  p: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <AddIcon fontSize="small" />
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={() => handleOpenDialog('treino1')}
+                              variant="outlined"
+                              sx={{
+                                minWidth: { xs: "auto", sm: "auto" },
+                                px: { xs: 1, sm: 2 }
+                              }}
+                            >
+                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                                Simples
+                              </Box>
+                            </Button>
+                          </Stack>
                         </Box>
                         <List sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
                           {treinoBloco1.length === 0 ? (
@@ -1838,13 +2210,45 @@ function TreinoForm() {
                               />
                             )}
                           </Box>
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog('treino2')}
+                          <Stack
+                            direction={{ xs: "row", sm: "row" }}
+                            spacing={1}
+                            sx={{ flexWrap: "nowrap" }}
                           >
-                            Adicionar
-                          </Button>
+                            <Tooltip title="Adicionar Exercício" arrow>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenAddExerciseModal('treino2')}
+                                variant="contained"
+                                color="primary"
+                                sx={{
+                                  minWidth: 'auto',
+                                  width: '40px',
+                                  height: '40px',
+                                  p: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <AddIcon fontSize="small" />
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={() => handleOpenDialog('treino2')}
+                              variant="outlined"
+                              sx={{
+                                minWidth: { xs: "auto", sm: "auto" },
+                                px: { xs: 1, sm: 2 }
+                              }}
+                            >
+                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                                Simples
+                              </Box>
+                            </Button>
+                          </Stack>
                         </Box>
                         <List sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
                           {treinoBloco2.length === 0 ? (
@@ -1891,13 +2295,45 @@ function TreinoForm() {
                           <Typography variant="subtitle1" fontWeight="600">
                             Condicionamento Físico <Chip label="Opcional" size="small" />
                           </Typography>
-                          <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog('condicionamento')}
+                          <Stack
+                            direction={{ xs: "row", sm: "row" }}
+                            spacing={1}
+                            sx={{ flexWrap: "nowrap" }}
                           >
-                            Adicionar
-                          </Button>
+                            <Tooltip title="Adicionar Exercício" arrow>
+                              <Button
+                                size="small"
+                                onClick={() => handleOpenAddExerciseModal('condicionamento')}
+                                variant="contained"
+                                color="primary"
+                                sx={{
+                                  minWidth: 'auto',
+                                  width: '40px',
+                                  height: '40px',
+                                  p: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                <AddIcon fontSize="small" />
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={() => handleOpenDialog('condicionamento')}
+                              variant="outlined"
+                              sx={{
+                                minWidth: { xs: "auto", sm: "auto" },
+                                px: { xs: 1, sm: 2 }
+                              }}
+                            >
+                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                                Simples
+                              </Box>
+                            </Button>
+                          </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
                           {condicionamentoItems.length === 0 ? (
@@ -2137,6 +2573,17 @@ function TreinoForm() {
         </>
       )
       }
+
+      {/* Modal para adicionar exercícios com vídeo */}
+      <AddExerciseModal
+        open={addExerciseModalOpen}
+        onClose={handleCloseAddExerciseModal}
+        onSave={handleSaveExerciseWithVideo}
+        editMode={editingModalIndex !== null}
+        initialExercise={editingModalData?.exercise || null}
+        initialVideo={editingModalData?.video || null}
+        initialConfig={editingModalData?.config || null}
+      />
 
       {/* Dialog para Adicionar/Editar Itens */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
