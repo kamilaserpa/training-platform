@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Worker Debug - Training Platform</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: white;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    h1 { font-size: 1.75rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; opacity: 0.9; }
+    .status { 
+      padding: 12px; 
+      border-radius: 8px; 
+      margin: 8px 0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .status.success { background: rgba(76, 175, 80, 0.3); }
+    .status.error { background: rgba(244, 67, 54, 0.3); }
+    .status.warning { background: rgba(255, 152, 0, 0.3); }
+    .status.info { background: rgba(33, 150, 243, 0.3); }
+    button {
+      padding: 12px 24px;
+      margin: 8px 8px 8px 0;
+      border: none;
+      border-radius: 8px;
+      background: white;
+      color: #667eea;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    button:active { transform: translateY(0); }
+    button.danger { background: #f44336; color: white; }
+    pre {
+      background: rgba(0,0,0,0.3);
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      margin: 8px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    code { font-family: 'Monaco', 'Courier New', monospace; }
+    .loading { opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Service Worker Debug</h1>
+    <p>Diagnóstico do PWA - Training Platform</p>
+
+    <h2>📊 Status Atual</h2>
+    <div id="status">Carregando...</div>
+
+    <h2>🗂️ Caches Ativos</h2>
+    <div id="caches">Carregando...</div>
+
+    <h2>🔧 Ações</h2>
+    <button onclick="checkStatus()">🔄 Atualizar Status</button>
+    <button onclick="clearAllCaches()" class="danger">🗑️ Limpar Todos os Caches</button>
+    <button onclick="unregisterSW()" class="danger">❌ Desregistrar SW</button>
+    <button onclick="fullReset()" class="danger">💣 Reset Completo</button>
+
+    <h2>📝 Logs</h2>
+    <pre id="logs"><code>Aguardando ações...</code></pre>
+
+    <h2>ℹ️ Informações do Sistema</h2>
+    <div id="sysinfo">Carregando...</div>
+  </div>
+
+  <script>
+    const log = (msg, type = 'info') => {
+      const logsEl = document.getElementById('logs').querySelector('code');
+      const timestamp = new Date().toLocaleTimeString('pt-BR');
+      const icon = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' }[type] || 'ℹ️';
+      logsEl.textContent = `[${timestamp}] ${icon} ${msg}\n${logsEl.textContent}`;
+    };
+
+    const showStatus = (msg, type = 'info') => {
+      const statusEl = document.getElementById('status');
+      statusEl.innerHTML = `<div class="status ${type}">${msg}</div>`;
+    };
+
+    async function checkStatus() {
+      log('Verificando status do Service Worker...');
+      
+      if (!('serviceWorker' in navigator)) {
+        showStatus('❌ Service Worker não suportado neste navegador', 'error');
+        log('Service Worker não disponível', 'error');
+        return;
+      }
+
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        
+        if (registrations.length === 0) {
+          showStatus('⚠️ Nenhum Service Worker registrado', 'warning');
+          log('Nenhum SW encontrado', 'warning');
+        } else {
+          const reg = registrations[0];
+          const sw = reg.active || reg.installing || reg.waiting;
+          const scope = reg.scope;
+          const version = sw?.scriptURL?.includes('v5') ? 'v5 ✅' : 
+                         sw?.scriptURL?.includes('v4') ? 'v4 ⚠️ (ATUALIZAR!)' : 
+                         'Desconhecida ⚠️';
+          
+          showStatus(`
+            ✅ Service Worker Ativo<br>
+            <strong>Versão:</strong> ${version}<br>
+            <strong>Escopo:</strong> ${scope}<br>
+            <strong>URL:</strong> ${sw?.scriptURL || 'N/A'}<br>
+            <strong>Estado:</strong> ${sw?.state || 'N/A'}
+          `, version.includes('v5') ? 'success' : 'warning');
+          
+          log(`SW ativo: ${sw?.scriptURL} (${sw?.state})`, 'success');
+        }
+
+        // Verificar caches
+        await checkCaches();
+
+      } catch (err) {
+        showStatus(`❌ Erro ao verificar SW: ${err.message}`, 'error');
+        log(`Erro: ${err.message}`, 'error');
+      }
+    }
+
+    async function checkCaches() {
+      try {
+        const cacheNames = await caches.keys();
+        const cachesEl = document.getElementById('caches');
+        
+        if (cacheNames.length === 0) {
+          cachesEl.innerHTML = '<div class="status info">Nenhum cache encontrado</div>';
+          log('Nenhum cache ativo');
+          return;
+        }
+
+        const cacheDetails = await Promise.all(
+          cacheNames.map(async name => {
+            const cache = await caches.open(name);
+            const keys = await cache.keys();
+            return { name, count: keys.length };
+          })
+        );
+
+        let html = '';
+        let hasOldCache = false;
+
+        cacheDetails.forEach(({ name, count }) => {
+          const isOld = name.includes('v3') || name.includes('v4');
+          if (isOld) hasOldCache = true;
+          const type = isOld ? 'warning' : 'success';
+          const badge = isOld ? '⚠️ ANTIGO!' : '✅';
+          html += `<div class="status ${type}">${badge} <strong>${name}</strong>: ${count} itens</div>`;
+          log(`Cache: ${name} (${count} itens)`, isOld ? 'warning' : 'info');
+        });
+
+        if (hasOldCache) {
+          html += '<div class="status error">⚠️ <strong>Caches antigos detectados!</strong> Recomenda-se limpar para garantir funcionamento correto no iOS PWA.</div>';
+        }
+
+        cachesEl.innerHTML = html;
+      } catch (err) {
+        log(`Erro ao verificar caches: ${err.message}`, 'error');
+      }
+    }
+
+    async function clearAllCaches() {
+      if (!confirm('Tem certeza que deseja limpar TODOS os caches? A página será recarregada.')) {
+        return;
+      }
+
+      log('Limpando todos os caches...', 'warning');
+      
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        
+        log(`✅ ${cacheNames.length} caches limpos com sucesso`, 'success');
+        showStatus('✅ Caches limpos! Recarregando...', 'success');
+        
+        setTimeout(() => window.location.reload(), 1500);
+      } catch (err) {
+        log(`Erro ao limpar caches: ${err.message}`, 'error');
+        showStatus(`❌ Erro ao limpar caches: ${err.message}`, 'error');
+      }
+    }
+
+    async function unregisterSW() {
+      if (!confirm('Desregistrar Service Worker? A página será recarregada.')) {
+        return;
+      }
+
+      log('Desregistrando Service Worker...', 'warning');
+      
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+        
+        log(`✅ ${registrations.length} SW desregistrados`, 'success');
+        showStatus('✅ Service Worker removido! Recarregando...', 'success');
+        
+        setTimeout(() => window.location.reload(), 1500);
+      } catch (err) {
+        log(`Erro ao desregistrar SW: ${err.message}`, 'error');
+        showStatus(`❌ Erro: ${err.message}`, 'error');
+      }
+    }
+
+    async function fullReset() {
+      if (!confirm('⚠️ RESET COMPLETO: Isso vai limpar TUDO (SW, caches, IndexedDB, storage). Confirma?')) {
+        return;
+      }
+
+      log('🚨 Iniciando reset completo...', 'warning');
+      showStatus('🚨 Reset completo em andamento...', 'warning');
+
+      try {
+        // 1. Service Workers
+        log('1/5: Desregistrando Service Workers...');
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+        log(`✅ ${registrations.length} SW removidos`, 'success');
+
+        // 2. Caches
+        log('2/5: Limpando caches...');
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        log(`✅ ${cacheNames.length} caches removidos`, 'success');
+
+        // 3. IndexedDB
+        log('3/5: Limpando IndexedDB...');
+        if ('databases' in indexedDB) {
+          const dbs = await indexedDB.databases();
+          dbs.forEach(db => {
+            if (db.name) indexedDB.deleteDatabase(db.name);
+          });
+          log(`✅ ${dbs.length} databases removidos`, 'success');
+        } else {
+          // Fallback para navegadores que não suportam databases()
+          indexedDB.deleteDatabase('TrainingPlatformCache');
+          log('✅ IndexedDB limpo (fallback)', 'success');
+        }
+
+        // 4. LocalStorage
+        log('4/5: Limpando localStorage...');
+        localStorage.clear();
+        log('✅ localStorage limpo', 'success');
+
+        // 5. SessionStorage
+        log('5/5: Limpando sessionStorage...');
+        sessionStorage.clear();
+        log('✅ sessionStorage limpo', 'success');
+
+        log('🎉 Reset completo finalizado! Recarregando em 2s...', 'success');
+        showStatus('✅ Reset completo! Recarregando...', 'success');
+
+        setTimeout(() => window.location.reload(), 2000);
+
+      } catch (err) {
+        log(`❌ Erro durante reset: ${err.message}`, 'error');
+        showStatus(`❌ Erro durante reset: ${err.message}`, 'error');
+      }
+    }
+
+    function showSystemInfo() {
+      const info = {
+        'User Agent': navigator.userAgent,
+        'Plataforma': navigator.platform,
+        'Idioma': navigator.language,
+        'Online': navigator.onLine ? '✅ Sim' : '❌ Não',
+        'Service Worker': 'serviceWorker' in navigator ? '✅ Suportado' : '❌ Não suportado',
+        'Cache API': 'caches' in window ? '✅ Suportado' : '❌ Não suportado',
+        'IndexedDB': 'indexedDB' in window ? '✅ Suportado' : '❌ Não suportado',
+        'PWA Mode': window.matchMedia('(display-mode: standalone)').matches ? '✅ Standalone' : '⚠️ Browser',
+        'iOS': /iPhone|iPad|iPod/.test(navigator.userAgent) ? '✅ Sim' : '❌ Não',
+        'URL Atual': window.location.href,
+      };
+
+      const html = Object.entries(info)
+        .map(([key, value]) => `<div class="status info"><strong>${key}:</strong> ${value}</div>`)
+        .join('');
+
+      document.getElementById('sysinfo').innerHTML = html;
+    }
+
+    // Inicialização
+    window.addEventListener('load', () => {
+      checkStatus();
+      showSystemInfo();
+      log('Debug page carregada', 'success');
+    });
+
+    // Auto-refresh a cada 30s
+    setInterval(checkStatus, 30000);
+  </script>
+</body>
+</html>
