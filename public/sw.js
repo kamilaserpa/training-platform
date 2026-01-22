@@ -1,9 +1,10 @@
 // Training Platform PWA Service Worker (Vite + React)
 // Goals: aggressive immutable caches, offline navigation, SW auto-update,
 // versioned caches, stale-while-revalidate, exclude Supabase, avoid non-GET.
+// iOS Fix: Network-first navigation to prevent loading hang
 
 const CACHE_PREFIX = 'tp-pwa';
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4'; // Bumped for iOS fix
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${CACHE_VERSION}`; // images, fonts, manifest
 const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${CACHE_VERSION}`; // hashed build assets
 const NAV_CACHE = `${CACHE_PREFIX}-nav-${CACHE_VERSION}`; // index.html fallback for SPA
@@ -42,8 +43,8 @@ const isStaticAsset = (url) => {
   if (!isSameOrigin(url)) return false;
   if (isImmutableAsset(url)) return false;
   return (
-    /\.(png|jpg|jpeg|gif|webp|svg|ico|bmp|ttf|otf|woff2?|mp3|mp4)$/i.test(url.pathname) ||
-    url.pathname.endsWith('/manifest.webmanifest')
+  /\.(png|jpg|jpeg|gif|webp|svg|ico|bmp|ttf|otf|woff2?|mp3|mp4)$/i.test(url.pathname) ||
+  url.pathname.endsWith('/manifest.webmanifest')
   );
 };
 
@@ -104,9 +105,10 @@ self.addEventListener('fetch', (event) => {
   // Never interfere with Supabase requests
   if (isSupabase(url)) return;
 
-  // Navigation requests: network-first with SHORT timeout, fallback to cached index.html
+  // CRITICAL iOS FIX: For navigation, use network-only strategy
+  // Only use cache if network fails
   if (isNavigate(request) || (isSameOrigin(url) && isHTMLRequest(request))) {
-    event.respondWith(handleNavigateWithFallback(request));
+    event.respondWith(handleNavigateNetworkFirst(request));
     return;
   }
 
@@ -130,62 +132,39 @@ self.addEventListener('fetch', (event) => {
   // Cross-origin GETs: bypass (avoid caching APIs/CDNs unless immutable pattern)
 });
 
-// Fetch with timeout to avoid hanging
-function fetchWithTimeout(request, timeout = 3000) {
-  return Promise.race([
-    fetch(request),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Network timeout')), timeout)
-    )
-  ]);
-}
-
-// New strategy: Try network FIRST with short timeout, then cache, then longer network
-async function handleNavigateWithFallback(request) {
-  console.log('[SW] Navigate:', request.url);
-
-  // First attempt: quick network request (1 second timeout)
+// Simple network-first for navigation (iOS compatible)
+async function handleNavigateNetworkFirst(request) {
   try {
-    const networkResp = await fetchWithTimeout(request, 1000);
-    console.log('[SW] Network response OK (fast)');
+    // Try network with reasonable timeout (3 seconds)
+    const networkResp = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Network timeout')), 3000)
+      )
+    ]);
 
-    // Cache for future use
+    // Cache successful response for offline use
     if (networkResp.ok) {
-      const clone = networkResp.clone();
       const coreCache = await caches.open(CORE_CACHE);
-      await coreCache.put(APP_BASE + 'index.html', clone).catch(() => {});
+      coreCache.put(APP_BASE + 'index.html', networkResp.clone()).catch(() => {});
     }
-    return networkResp;
-  } catch (quickErr) {
-    console.log('[SW] Quick network failed:', quickErr.message);
-  }
 
-  // Second attempt: try cache immediately
-  const cached = await findCachedHTML();
-  if (cached) {
-    console.log('[SW] Returning cached HTML');
-    // Try to update cache in background
-    fetch(request).then(async (resp) => {
-      if (resp.ok) {
-        const coreCache = await caches.open(CORE_CACHE);
-        await coreCache.put(APP_BASE + 'index.html', resp.clone()).catch(() => {});
+    return networkResp;
+  } catch (error) {
+    // Network failed, try cache
+    const cached = await findCachedHTML();
+    if (cached) {
+      return cached;
+    }
+
+    // Last resort: return offline page
+    return new Response(
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Offline</title></head><body><h1>No connection</h1><p>Please check your internet connection and try again.</p></body></html>',
+      {
+        headers: { 'Content-Type': 'text/html' },
+        status: 503,
       }
-    }).catch(() => {});
-    return cached;
-  }
-
-  // Third attempt: wait longer for network (5 seconds)
-  try {
-    console.log('[SW] Trying longer network request...');
-    const networkResp = await fetchWithTimeout(request, 5000);
-    console.log('[SW] Network response OK (slow)');
-    return networkResp;
-  } catch (err) {
-    console.error('[SW] All attempts failed:', err.message);
-    return new Response('<h1>Cannot connect</h1><p>Please check your internet connection</p>', {
-      headers: { 'Content-Type': 'text/html' },
-      status: 503,
-    });
+    );
   }
 }
 
@@ -216,68 +195,6 @@ async function findCachedHTML() {
   return null;
 }
 
-// OLD function kept for reference but not used
-async function handleNavigate(request) {
-  console.log('[SW] Navigate:', request.url);
-
-  try {
-    const networkResp = await fetchWithTimeout(request, 3000);
-    console.log('[SW] Network response OK');
-    // Optionally refresh NAV_CACHE copy of index.html for future offline
-    const clone = networkResp.clone();
-    if (clone.ok) {
-      const navCache = await caches.open(NAV_CACHE);
-      await navCache.put(APP_BASE + 'index.html', clone);
-    }
-    return networkResp;
-  } catch (err) {
-    console.log('[SW] Network failed, trying cache:', err.message);
-    // Offline fallback to cached index.html
-    // Try multiple possible paths
-    let cached = await caches.match(APP_BASE + 'index.html');
-    if (cached) {
-      console.log('[SW] Returning cached index.html (with base)');
-      return cached;
-    }
-
-    cached = await caches.match('/index.html');
-    if (cached) {
-      console.log('[SW] Returning cached /index.html');
-      return cached;
-    }
-
-    cached = await caches.match(new URL('index.html', self.location.origin).href);
-    if (cached) {
-      console.log('[SW] Returning cached index.html (origin)');
-      return cached;
-    }
-
-    // As a last resort, try any cached navigation response
-    console.log('[SW] Searching any cached HTML...');
-    const navCache = await caches.open(NAV_CACHE);
-    const keys = await navCache.keys();
-    if (keys.length) {
-      console.log('[SW] Found cached nav, using first:', keys[0].url);
-      return navCache.match(keys[0]);
-    }
-
-    // Try CORE_CACHE as well
-    const coreCache = await caches.open(CORE_CACHE);
-    const coreKeys = await coreCache.keys();
-    const htmlKey = coreKeys.find(k => k.url.includes('index.html'));
-    if (htmlKey) {
-      console.log('[SW] Found in core cache:', htmlKey.url);
-      return coreCache.match(htmlKey);
-    }
-
-    console.error('[SW] No cached content available, returning offline page');
-    return new Response('<h1>Offline</h1><p>Please check your connection</p>', {
-      headers: { 'Content-Type': 'text/html' },
-      status: 503,
-    });
-  }
-}
-
 function shouldCacheResponse(response) {
   // Cache only successful or opaque responses
   return response && (response.status === 200 || response.type === 'opaqueredirect' || response.type === 'opaque');
@@ -297,9 +214,9 @@ async function staleWhileRevalidate(cacheName, request) {
   const cachedPromise = cache.match(request);
   const networkPromise = fetch(request)
     .then(async (resp) => {
-      if (shouldCacheResponse(resp)) await cache.put(request, resp.clone());
-      return resp;
-    })
+    if (shouldCacheResponse(resp)) await cache.put(request, resp.clone());
+    return resp;
+  })
     .catch(() => undefined);
 
   const cached = await cachedPromise;
