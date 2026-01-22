@@ -32,6 +32,7 @@ import { trainingService } from '../../services/trainingService'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
 import logoImage from '../../assets/images/logo-main.png'
+import { AppLoadingTimeout } from '../../components/loading/AppLoadingTimeout'
 
 const TreinoPublico = () => {
   const { token } = useParams()
@@ -173,16 +174,16 @@ const TreinoPublico = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-          <Stack alignItems="center" spacing={2}>
-            <CircularProgress size={60} />
-            <Typography variant="h6" color="text.secondary">
-              Carregando treino...
-            </Typography>
-          </Stack>
-        </Box>
-      </Container>
+      <AppLoadingTimeout 
+        timeout={10000}
+        onRetry={() => {
+          console.log('Tentando recarregar a página...')
+          setLoading(true)
+          setError('')
+          // Recarregar a página é a forma mais simples de retry aqui
+          window.location.reload()
+        }}
+      />
     )
   }
 
