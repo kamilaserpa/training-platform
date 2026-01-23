@@ -628,7 +628,7 @@ const SemanasRefactored = () => {
         fullWidth
       >
         <DialogTitle>{editingSemanaId ? 'Editar Semana' : 'Nova Semana'}</DialogTitle>
-        <DialogContent sx={{ p: 0 }}>
+        <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField

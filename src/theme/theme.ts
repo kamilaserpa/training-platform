@@ -25,6 +25,8 @@ import InputAdornment from './components/inputs/InputAdornment';
 import InputBase from './components/inputs/InputBase';
 import InputLabel from './components/inputs/InputLabel';
 import OutlinedInput from './components/inputs/OutlinedInput';
+import Select from './components/inputs/Select';
+import TextField from './components/inputs/TextField';
 import Stack from './components/layout/Stack';
 import Collapse from './components/list/Collapse';
 import List from './components/list/List';
@@ -75,6 +77,8 @@ export const theme = createTheme({
     MuiInputAdornment: InputAdornment,
     MuiInputBase: InputBase,
     MuiOutlinedInput: OutlinedInput,
+    MuiTextField: TextField,
+    MuiSelect: Select,
     MuiAutocomplete: Autocomplete,
     MuiCollapse: Collapse,
     MuiList: List,

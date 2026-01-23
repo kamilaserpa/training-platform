@@ -217,9 +217,9 @@ export const AddExerciseModal = ({
         {step === 'video' && selectedExercise && (
           <Box>
             {editMode && (
-              <Box mb={2} pb={2} bgcolor="info.lighter" borderRadius={1}>
+              <Box mb={2} pb={{xs: 0, sm: 2}} bgcolor="info.lighter" borderRadius={1}>
                 <Typography variant="body2">
-                  💡 Você pode alterar o vídeo associado a este exercício ou pular para continuar sem vídeo.
+                  Você pode selecionar ou pular para continuar sem vídeo.
                 </Typography>
               </Box>
             )}
@@ -254,14 +254,14 @@ export const AddExerciseModal = ({
         }}
       >
         {step === 'video' && (
-          <Button onClick={handleSkipVideo} color="inherit" fullWidth>
+          <Button onClick={handleSkipVideo} variant="outlined" color="inherit" fullWidth>
             Pular Vídeo
           </Button>
         )}
 
         {step === 'config' && (
           <>
-            <Button onClick={handleClose} color="inherit">
+            <Button onClick={handleClose} variant="outlined" color="inherit">
               Cancelar
             </Button>
             <Button

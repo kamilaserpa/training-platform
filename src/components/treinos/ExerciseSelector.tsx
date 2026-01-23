@@ -79,6 +79,7 @@ export const ExerciseSelector = ({ onSelect }: ExerciseSelectorProps) => {
       <TextField
         fullWidth
         size="small"
+        label="Buscar"
         placeholder="Buscar exercício..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}

@@ -253,6 +253,7 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId }: VideoSe
                     <TextField
                         fullWidth
                         size="small"
+                        label="Buscar"
                         placeholder="Buscar por título ou descrição..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}

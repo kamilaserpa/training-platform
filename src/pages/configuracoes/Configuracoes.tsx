@@ -115,7 +115,7 @@ function FocoSemanaDialog({ open, onClose, onSave, editingData }: FocoSemanaDial
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{editingData ? 'Editar Foco da Semana' : 'Novo Foco da Semana'}</DialogTitle>
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent>
         <Grid container spacing={4} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6}>
             <TextField
@@ -208,7 +208,7 @@ function PadraoMovimentoDialog({ open, onClose, onSave, editingData }: PadraoMov
       <DialogTitle>
         {editingData ? 'Editar Padrão de Movimento' : 'Novo Padrão de Movimento'}
       </DialogTitle>
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent>
         <Grid container spacing={4} sx={{ mt: 2 }}>
           <Grid item xs={12}>
             <TextField
@@ -233,7 +233,7 @@ function PadraoMovimentoDialog({ open, onClose, onSave, editingData }: PadraoMov
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined" color="inherit">Cancelar</Button>
         <Button onClick={handleSave} variant="contained">
           Salvar
         </Button>

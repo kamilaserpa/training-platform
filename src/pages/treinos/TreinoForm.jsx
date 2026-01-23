@@ -1818,7 +1818,7 @@ function TreinoForm() {
 
                     <Grid container spacing={3}>
                       {/* Mobilidade Articular */}
-                      <Grid item md={6} lg={4} xs={12}>
+                      <Grid item md={6} xs={12}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                           <Typography variant="subtitle1" fontWeight="600">
                             Mobilidade Articular
@@ -1916,7 +1916,7 @@ function TreinoForm() {
                       </Grid>
 
                       {/* Ativação de Core */}
-                      <Grid item md={6} lg={4} xs={12}>
+                      <Grid item md={6} xs={12}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                           <Typography variant="subtitle1" fontWeight="600">
                             Ativação de Core
@@ -2007,7 +2007,7 @@ function TreinoForm() {
                       </Grid>
 
                       {/* Ativação Neural */}
-                      <Grid item md={6} lg={4} xs={12}>
+                      <Grid item md={6} xs={12}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                           <Typography variant="subtitle1" fontWeight="600">
                             Ativação Neural
@@ -2096,7 +2096,7 @@ function TreinoForm() {
                       </Grid>
 
                       {/* Treino Bloco 01 */}
-                      <Grid item md={6} lg={4} xs={12}>
+                      <Grid item md={6} xs={12}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="subtitle1" fontWeight="600">
@@ -2194,7 +2194,7 @@ function TreinoForm() {
                       </Grid>
 
                       {/* Treino Bloco 02 (Opcional) */}
-                      <Grid item md={6} lg={4} xs={12}>
+                      <Grid item md={6} xs={12}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="subtitle1" fontWeight="600">
@@ -2290,7 +2290,7 @@ function TreinoForm() {
                       </Grid>
 
                       {/* Condicionamento Físico */}
-                      <Grid item md={6} lg={4} xs={12}>
+                      <Grid item md={6} xs={12}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                           <Typography variant="subtitle1" fontWeight="600">
                             Condicionamento Físico <Chip label="Opcional" size="small" />
@@ -2389,10 +2389,10 @@ function TreinoForm() {
                       <Typography variant="caption" color="text.secondary" display="block" mb={2}>
                         Gere um link para compartilhar este treino com seus alunos
                       </Typography>
-                      <Divider sx={{ mb: 3 }} />
+                      <Divider sx={{ mb: 1 }} />
 
                       {shareLink ? (
-                        <Grid container spacing={2}>
+                        <Grid container spacing={5}>
 
                           {/* Checkbox ativar compartilhamento */}
                           <Grid item xs={12}>
@@ -2417,7 +2417,7 @@ function TreinoForm() {
                           </Grid> */}
 
                           {/* Campo do Link */}
-                          <Grid item xs={12} mt={2}>
+                          <Grid item xs={12}>
                             <TextField
                               label="Link de Compartilhamento"
                               value={shareLink}
@@ -2669,7 +2669,7 @@ function TreinoForm() {
                         {...params}
                         label="Nome do Exercício"
                         fullWidth
-                        helperText="Selecione um exercício do banco de dados"
+                        helperText="Selecione um exercício"
                       />
                     )}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -2733,7 +2733,7 @@ function TreinoForm() {
                         {...params}
                         label="Nome do Exercício"
                         fullWidth
-                        helperText="Selecione um exercício do banco de dados"
+                        helperText="Selecione um exercício"
                       />
                     )}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -2920,7 +2920,7 @@ function TreinoForm() {
                         {...params}
                         label="Nome do Exercício"
                         fullWidth
-                        helperText="Selecione um exercício do banco de dados"
+                        helperText="Selecione um exercício"
                       />
                     )}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
