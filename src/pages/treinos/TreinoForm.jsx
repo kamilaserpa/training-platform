@@ -1,67 +1,67 @@
 // Formulário de Treino - Criar/Editar
-import { useState, useEffect } from 'react'
-import { useForm, FormProvider } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import dayjs from 'dayjs'
+import { useEffect, useState } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import * as yup from 'yup'
 
 // Imports dos serviços
-import { weekService } from '../../services/weekService'
-import { movementPatternService } from '../../services/movementPatternService'
+import logoImage from '../../assets/images/logo-main.png'
 import { exerciseService } from '../../services/exerciseService'
+import { movementPatternService } from '../../services/movementPatternService'
 import { trainingService } from '../../services/trainingService'
+import { weekService } from '../../services/weekService'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
-import logoImage from '../../assets/images/logo-main.png'
 
 import {
-  Container,
-  Grid,
-  Button,
-  Typography,
+  Alert,
+  Autocomplete,
   Box,
+  Button,
   Card,
   CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
-  Stack,
-  Paper,
+  Grid,
+  IconButton,
   List,
   ListItem,
   ListItemText,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Chip,
-  Autocomplete,
+  Paper,
   Snackbar,
-  Alert,
-  CircularProgress,
-  Tooltip
+  Stack,
+  TextField,
+  Tooltip,
+  Typography
 } from '@mui/material'
 
 import {
-  Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
   Add as AddIcon,
+  ArrowBack as ArrowBackIcon,
+  CheckCircle as CheckCircleIcon,
+  ContentCopy as CopyIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
-  Timer as TimerIcon,
-  Share as ShareIcon,
-  ContentCopy as CopyIcon,
   Link as LinkIcon,
-  CheckCircle as CheckCircleIcon,
   PictureAsPdf as PdfIcon,
+  Save as SaveIcon,
+  Share as ShareIcon,
+  Timer as TimerIcon,
 } from '@mui/icons-material'
 
 import {
+  FormCheckbox,
+  FormDatePicker,
   FormInput,
   FormSelect,
-  FormDatePicker,
-  FormCheckbox,
 } from '../../components/form'
 
 // Schema de validação (Yup)
@@ -258,7 +258,8 @@ function TreinoForm() {
         const exerciciosFormatted = exercicios.map(exercicio => ({
           id: exercicio.id,
           label: exercicio.name,
-          movement_pattern: exercicio.movement_pattern?.name || 'Sem padrão'
+          movement_pattern: exercicio.movement_pattern?.name || 'Sem padrão',
+          tags: exercicio.tags || [] // Incluir tags
         }))
 
         setSemanasOptions(semanasFormatted)
@@ -268,6 +269,7 @@ function TreinoForm() {
 
         console.log('🔍 Debug - Opções de semanas:', semanasFormatted)
         console.log('🔍 Debug - Opções de padrões:', padroesFormatted)
+        console.log('🔍 Debug - Exercícios com tags:', exerciciosFormatted.slice(0, 3)) // Log dos primeiros 3 para verificar tags
 
       } catch (error) {
         console.error('❌ Erro ao carregar dados dos selects:', error)
@@ -2155,11 +2157,26 @@ function TreinoForm() {
             {/* Mobilidade: select de exercícios com padrão mobilidade */}
             {currentSection === 'mobilidade' && (
               <Autocomplete
-                options={exerciciosOptions.filter(ex =>
-                  ex.movement_pattern?.toLowerCase().includes('mobilidade') ||
-                  ex.label.toLowerCase().includes('mobilidade') ||
-                  ex.label.toLowerCase().includes('alongamento')
-                )}
+                options={(() => {
+                  // Separar exercícios por relevância: com tags relacionadas primeiro
+                  const taggedExercises = exerciciosOptions.filter(ex =>
+                    ex.tags?.includes('mobilidade') ||
+                    ex.tags?.includes('alongamento') ||
+                    ex.tags?.includes('articulacao')
+                  )
+
+                  const otherExercises = exerciciosOptions.filter(ex =>
+                    !ex.tags?.includes('mobilidade') &&
+                    !ex.tags?.includes('alongamento') &&
+                    !ex.tags?.includes('articulacao')
+                  )
+
+                  console.log('🏃‍♂️ Debug Mobilidade - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                  console.log('🏃‍♂️ Debug Mobilidade - Outros exercícios depois:', otherExercises.length)
+
+                  // Retornar todos: primeiro os relevantes, depois os outros
+                  return [...taggedExercises, ...otherExercises]
+                })()}
                 value={exerciciosOptions.find(opt => opt.label === formData.nome) || null}
                 onChange={(_, newValue) => {
                   console.log('🔄 Autocomplete onChange mobilidade:', newValue)
@@ -2183,7 +2200,7 @@ function TreinoForm() {
                   />
                 )}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
-                noOptionsText="Nenhum exercício de mobilidade encontrado"
+                noOptionsText="Nenhum exercício encontrado"
                 loading={loading}
                 renderOption={(props, option) => {
                   const { key, ...otherProps } = props;
@@ -2193,9 +2210,9 @@ function TreinoForm() {
                         <Typography variant="body2" fontWeight={500}>
                           {option.label}
                         </Typography>
-                        {option.movement_pattern && (
+                        {option.tags && option.tags.length > 0 && (
                           <Typography variant="caption" color="text.secondary">
-                            {option.movement_pattern}
+                            Tags: {option.tags.join(', ')}
                           </Typography>
                         )}
                       </Box>
@@ -2210,7 +2227,21 @@ function TreinoForm() {
               <Grid container spacing={4}>
                 <Grid item xs={12} sm={12}>
                   <Autocomplete
-                    options={exerciciosOptions}
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('core') ||
+                        ex.tags?.includes('estabilizacao')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('core') &&
+                        !ex.tags?.includes('estabilizacao')
+                      )
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
                     value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
                     onChange={(_, newValue) => setFormData({
                       ...formData,
@@ -2222,7 +2253,7 @@ function TreinoForm() {
                         {...params}
                         label="Nome do Exercício"
                         fullWidth
-                        helperText="Selecione um exercício do banco de dados"
+                        helperText="Selecione um exercício de ativação de core"
                       />
                     )}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -2274,7 +2305,25 @@ function TreinoForm() {
               <Grid container spacing={4}>
                 <Grid item xs={12} sm={6}>
                   <Autocomplete
-                    options={exerciciosOptions}
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('ativacao') ||
+                        ex.tags?.includes('neural') ||
+                        ex.tags?.includes('pliometrico') ||
+                        ex.tags?.includes('potencia')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('ativacao') &&
+                        !ex.tags?.includes('neural') &&
+                        !ex.tags?.includes('pliometrico') &&
+                        !ex.tags?.includes('potencia')
+                      )
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
                     value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
                     onChange={(_, newValue) => setFormData({
                       ...formData,
@@ -2286,7 +2335,7 @@ function TreinoForm() {
                         {...params}
                         label="Nome do Exercício"
                         fullWidth
-                        helperText="Selecione um exercício do banco de dados"
+                        helperText="Selecione um exercício de ativação neural"
                       />
                     )}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -2461,7 +2510,27 @@ function TreinoForm() {
               <Grid container spacing={4}>
                 <Grid item xs={12}>
                   <Autocomplete
-                    options={exerciciosOptions}
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('condicionamento') ||
+                        ex.tags?.includes('cardio') ||
+                        ex.tags?.includes('hiit') ||
+                        ex.tags?.includes('resistencia') ||
+                        ex.tags?.includes('circuito')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('condicionamento') &&
+                        !ex.tags?.includes('cardio') &&
+                        !ex.tags?.includes('hiit') &&
+                        !ex.tags?.includes('resistencia') &&
+                        !ex.tags?.includes('circuito')
+                      )
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
                     value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
                     onChange={(_, newValue) => setFormData({
                       ...formData,
@@ -2473,7 +2542,7 @@ function TreinoForm() {
                         {...params}
                         label="Nome do Exercício"
                         fullWidth
-                        helperText="Selecione um exercício do banco de dados"
+                        helperText="Selecione um exercício de condicionamento físico"
                       />
                     )}
                     isOptionEqualToValue={(option, value) => option.id === value.id}
