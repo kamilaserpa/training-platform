@@ -4,11 +4,19 @@ import {
   Edit as EditIcon
 } from '@mui/icons-material';
 import {
-  Alert,
-  Box,
+  Container,
+  Grid,
+  Typography,
   Button,
   Card,
   CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   CircularProgress,
   Container,
   Dialog,
@@ -51,6 +59,58 @@ import { signedUrlCache } from 'services/privateVideoStorage';
 function ExerciseVideoCell({ videoPath, exerciseName }: { videoPath?: string; exerciseName: string }) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+// Tags predefinidas para exercícios
+const PREDEFINED_TAGS = [
+  // Categorias principais
+  'mobilidade',
+  'core',
+  'ativacao',
+  'forca',
+  'condicionamento',
+
+  // Subcategorias
+  'articulacao',
+  'alongamento',
+  'estabilizacao',
+  'pliometrico',
+  'potencia',
+  'cardio',
+  'hiit',
+  'resistencia',
+  'circuito',
+  'neural',
+
+  // Padrões de movimento
+  'empurrar',
+  'puxar',
+  'squat',
+  'hinge',
+  'lunge',
+  'rotacao',
+
+  // Grupos musculares
+  'peito',
+  'costas',
+  'ombro',
+  'bracos',
+  'pernas',
+  'gluteo',
+  'panturrilha',
+  'abdomen',
+
+  // Intensidade
+  'baixa',
+  'media',
+  'alta',
+
+  // Equipamentos
+  'peso_livre',
+  'maquina',
+  'cabo',
+  'corporal',
+  'elastico'
+];
 
   useEffect(() => {
     const loadVideo = async () => {
@@ -120,6 +180,7 @@ function ExerciseDialog({
     description: editingData?.description || '',
     video_path: editingData?.video_path || '',        // ← Adicionar
     video_size_kb: editingData?.video_size_kb || 0,   // ← Adicionar
+    tags: editingData?.tags || [],
   });
 
   useEffect(() => {
@@ -133,6 +194,7 @@ function ExerciseDialog({
         description: editingData.description || '',
         video_path: editingData.video_path || '',        // ← Adicionar
         video_size_kb: editingData.video_size_kb || 0,   // ← Adicionar
+        tags: editingData.tags || [],
       });
     } else {
       setFormData({
@@ -142,6 +204,7 @@ function ExerciseDialog({
         description: '',
         video_path: '',      // ← Adicionar
         video_size_kb: 0,    // ← Adicionar
+        tags: [],
       });
     }
   }, [editingData]);
@@ -188,10 +251,10 @@ function ExerciseDialog({
     // Preparar dados garantindo que campos vazios sejam null (não undefined)
     const exerciseData: CreateExerciseDTO = {
       name: formData.name.trim(),
-      // muscle_groups: formData.muscle_group?.trim() || null, // Teste com muscle_groups (plural)
       movement_pattern_id: formData.movement_pattern_id || undefined,
       instructions: formData.instructions?.trim() || undefined,
       description: formData.description?.trim() || undefined,
+      tags: formData.tags && formData.tags.length > 0 ? formData.tags : undefined,
       video_path: formData.video_path || undefined,        // ← Adicionar
       video_size_kb: formData.video_size_kb || undefined,  // ← Adicionar
     };
@@ -245,6 +308,35 @@ function ExerciseDialog({
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <Autocomplete
+              multiple
+              freeSolo
+              options={PREDEFINED_TAGS}
+              value={formData.tags || []}
+              onChange={(_, newValue) => {
+                setFormData(prev => ({ ...prev, tags: newValue }));
+              }}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    variant="outlined"
+                    label={option}
+                    size="small"
+                    {...getTagProps({ index })}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Tags (Opcional)"
+                  placeholder="Digite ou selecione tags"
+                  helperText="Ex: mobilidade, core, força, etc."
+                />
+              )}
+            />
+          </Grid>
           <Grid item xs={12}>
             <TextField
               label="Instruções"
@@ -256,7 +348,7 @@ function ExerciseDialog({
               fullWidth
             />
           </Grid>
-            <Grid item xs={12}>
+          <Grid item xs={12}>
             <TextField
               label="Descrição"
               value={formData.description}
@@ -662,6 +754,9 @@ function ExerciciosPage() {
                     <Typography variant="subtitle2">Padrão de Movimento</Typography>
                   </TableCell>
                   <TableCell>
+                    <Typography variant="subtitle2">Tags</Typography>
+                  </TableCell>
+                  <TableCell>
                     <Typography variant="subtitle2">Descrição</Typography>
                   </TableCell>
                   <TableCell align="center">
@@ -672,7 +767,7 @@ function ExerciciosPage() {
               <TableBody>
                 {exercisesFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
                         {searchTerm || filterPadrao !== 'todos'
                           ? 'Nenhum exercício encontrado com os filtros aplicados'
@@ -695,6 +790,33 @@ function ExerciciosPage() {
                         <Typography variant="body2" color="text.secondary">
                           {exercise.movement_pattern?.name || '-'}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {exercise.tags && exercise.tags.length > 0 ? (
+                            exercise.tags.slice(0, 3).map((tag, index) => (
+                              <Chip
+                                key={index}
+                                label={tag}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            ))
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              -
+                            </Typography>
+                          )}
+                          {exercise.tags && exercise.tags.length > 3 && (
+                            <Chip
+                              label={`+${exercise.tags.length - 3}`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: '0.75rem' }}
+                            />
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
