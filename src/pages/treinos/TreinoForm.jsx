@@ -1848,21 +1848,6 @@ function TreinoForm() {
                                 <AddIcon fontSize="small" />
                               </Button>
                             </Tooltip>
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={() => handleOpenDialog('mobilidade')}
-                              disabled={submitting}
-                              variant="outlined"
-                              sx={{
-                                minWidth: { xs: "auto", sm: "auto" },
-                                px: { xs: 1, sm: 2 }
-                              }}
-                            >
-                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                                Simples
-                              </Box>
-                            </Button>
                           </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -1905,7 +1890,7 @@ function TreinoForm() {
                                   primary={typeof item === 'string' ? item : item.nome}
                                   secondary={
                                     typeof item === 'object'
-                                      ? `${item.series || 1}x${item.repeticoes || item.tempoSegundos + 's' || ''} • ${item.intervaloSegundos || 0}s rest${item.videoId ? ' • ' + (item.videoName || 'Com vídeo') : ''}`
+                                      ? formatProtocol(item)
                                       : undefined
                                   }
                                 />
@@ -1946,21 +1931,6 @@ function TreinoForm() {
                                 <AddIcon fontSize="small" />
                               </Button>
                             </Tooltip>
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={() => handleOpenDialog('core')}
-                              disabled={submitting}
-                              variant="outlined"
-                              sx={{
-                                minWidth: { xs: "auto", sm: "auto" },
-                                px: { xs: 1, sm: 2 }
-                              }}
-                            >
-                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                                Simples
-                              </Box>
-                            </Button>
                           </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -1998,7 +1968,7 @@ function TreinoForm() {
                               >
                                 <ListItemText
                                   primary={item.nome}
-                                  secondary={`${item.series}x - ${item.tempo}s on / ${item.intervalo}s off`}
+                                  secondary={formatProtocol(item)}
                                 />
                               </ListItem>
                             ))
@@ -2037,21 +2007,6 @@ function TreinoForm() {
                                 <AddIcon fontSize="small" />
                               </Button>
                             </Tooltip>
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={() => handleOpenDialog('neural')}
-                              disabled={submitting}
-                              variant="outlined"
-                              sx={{
-                                minWidth: { xs: "auto", sm: "auto" },
-                                px: { xs: 1, sm: 2 }
-                              }}
-                            >
-                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                                Simples
-                              </Box>
-                            </Button>
                           </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -2087,7 +2042,7 @@ function TreinoForm() {
                               >
                                 <ListItemText
                                   primary={item.nome}
-                                  secondary={`${item.series}x - ${item.tempo}s`}
+                                  secondary={formatProtocol(item)}
                                 />
                               </ListItem>
                             ))
@@ -2136,20 +2091,6 @@ function TreinoForm() {
                                 <AddIcon fontSize="small" />
                               </Button>
                             </Tooltip>
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={() => handleOpenDialog('treino1')}
-                              variant="outlined"
-                              sx={{
-                                minWidth: { xs: "auto", sm: "auto" },
-                                px: { xs: 1, sm: 2 }
-                              }}
-                            >
-                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                                Simples
-                              </Box>
-                            </Button>
                           </Stack>
                         </Box>
                         <List sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -2234,20 +2175,6 @@ function TreinoForm() {
                                 <AddIcon fontSize="small" />
                               </Button>
                             </Tooltip>
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={() => handleOpenDialog('treino2')}
-                              variant="outlined"
-                              sx={{
-                                minWidth: { xs: "auto", sm: "auto" },
-                                px: { xs: 1, sm: 2 }
-                              }}
-                            >
-                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                                Simples
-                              </Box>
-                            </Button>
                           </Stack>
                         </Box>
                         <List sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -2319,20 +2246,6 @@ function TreinoForm() {
                                 <AddIcon fontSize="small" />
                               </Button>
                             </Tooltip>
-                            <Button
-                              size="small"
-                              startIcon={<AddIcon />}
-                              onClick={() => handleOpenDialog('condicionamento')}
-                              variant="outlined"
-                              sx={{
-                                minWidth: { xs: "auto", sm: "auto" },
-                                px: { xs: 1, sm: 2 }
-                              }}
-                            >
-                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                                Simples
-                              </Box>
-                            </Button>
                           </Stack>
                         </Box>
                         <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -2368,7 +2281,7 @@ function TreinoForm() {
                               >
                                 <ListItemText
                                   primary={item.nome}
-                                  secondary={item.duracao}
+                                  secondary={formatProtocol(item)}
                                 />
                               </ListItem>
                             ))
