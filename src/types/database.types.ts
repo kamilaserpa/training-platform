@@ -113,6 +113,7 @@ export interface Training {
   scheduled_date: string;
   intensity_level?: number;
   description?: string;
+  internal_notes?: string;
   estimated_duration_minutes?: number;
   movement_pattern_id?: string | null;
   share_status: ShareStatus;
@@ -217,6 +218,7 @@ export interface CreateTrainingDTO {
   scheduled_date: string;
   intensity_level?: number;
   description?: string;
+  internal_notes?: string;
   estimated_duration_minutes?: number;
   movement_pattern_id?: string | null;
 }
@@ -251,6 +253,7 @@ export interface CreateExerciseDTO {
   instructions?: string;
   description?: string;
   tags?: string[]; // Tags para categorizar exercícios
+  muscle_groups?: string[];
 }
 
 // DTOs para Videos

@@ -20,48 +20,53 @@ import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
 
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Container,
-  Divider,
-  Grid,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
-  Snackbar,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography
+    Alert,
+    Autocomplete,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Chip,
+    CircularProgress,
+    Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    Grid,
+    IconButton,
+    List,
+    ListItem,
+    ListItemText,
+    Paper,
+    Snackbar,
+    Stack,
+    TextField,
+    Tooltip,
+    Typography
 } from '@mui/material'
 
 import {
-  Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
-  CheckCircle as CheckCircleIcon,
-  ContentCopy as CopyIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Link as LinkIcon,
-  PictureAsPdf as PdfIcon,
-  Save as SaveIcon,
-  Share as ShareIcon,
-  Timer as TimerIcon,
-  VideoLibrary as VideoIcon
+    Add as AddIcon,
+    ArrowBack as ArrowBackIcon,
+    CheckCircle as CheckCircleIcon,
+    ContentCopy as CopyIcon,
+    Delete as DeleteIcon,
+    Edit as EditIcon,
+    Link as LinkIcon,
+    PictureAsPdf as PdfIcon,
+    Save as SaveIcon,
+    Share as ShareIcon,
+    Timer as TimerIcon,
+    VideoLibrary as VideoIcon
 } from '@mui/icons-material'
 
 import {
-  FormCheckbox,
-  FormDatePicker,
-  FormInput,
-  FormSelect,
+    FormCheckbox,
+    FormDatePicker,
+    FormInput,
+    FormSelect,
 } from '../../components/form'
 
 // Schema de validação (Yup)
@@ -89,7 +94,13 @@ function TreinoForm() {
   const [treinoBloco2, setTreinoBloco2] = useState([])
   const [condicionamentoItems, setCondicionamentoItems] = useState([])
 
-  // Estados para o novo modal de exercício
+  // Estados para dialogs
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [currentSection, setCurrentSection] = useState('')
+  const [editingItem, setEditingItem] = useState(null)
+  const [formData, setFormData] = useState({})
+
+  // Estados para novo modal de exercício com vídeo
   const [addExerciseModalOpen, setAddExerciseModalOpen] = useState(false)
   const [addExerciseModalSection, setAddExerciseModalSection] = useState('')
   const [trainingBlocks, setTrainingBlocks] = useState([])
@@ -570,6 +581,55 @@ function TreinoForm() {
     })
   }
 
+  // Handlers para abrir dialogs
+  const handleOpenDialog = (section, itemOrIndex = null) => {
+    setCurrentSection(section)
+
+    // Se itemOrIndex é um número, é um índice (para edição)
+    // Se é um objeto ou null, é um item direto ou novo item
+    if (typeof itemOrIndex === 'number') {
+      // Está editando - encontrar o item pelo índice
+      let item = null
+      let index = itemOrIndex
+
+      switch (section) {
+        case 'mobilidade':
+          item = mobilidadeItems[index]
+          break
+        case 'core':
+          item = coreItems[index]
+          break
+        case 'neural':
+          item = neuralItems[index]
+          break
+        case 'treino1':
+          item = treinoBloco1[index]
+          break
+        case 'treino2':
+          item = treinoBloco2[index]
+          break
+        case 'condicionamento':
+          item = condicionamentoItems[index]
+          break
+      }
+
+      // Usar o novo modal para editar exercícios com mais campos
+      if (item && (item.exercicioId || item.series || item.videoId)) {
+        handleOpenEditExerciseModal(section, index, item)
+      } else {
+        // Dialog simples para mobilidade básica
+        setEditingItem(index)
+        setFormData(item || {})
+        setDialogOpen(true)
+      }
+    } else {
+      // Novo item ou item direto
+      setEditingItem(null)
+      setFormData(itemOrIndex || {})
+      setDialogOpen(true)
+    }
+  }
+
   // Handler para abrir modal de edição
   const handleOpenEditExerciseModal = async (section, index, item) => {
     try {
@@ -622,6 +682,102 @@ function TreinoForm() {
         severity: 'error'
       })
     }
+  }
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false)
+    setCurrentSection('')
+    setEditingItem(null)
+    setFormData({})
+  }
+
+
+  // Handler para salvar item
+  const handleSaveItem = () => {
+    console.log('💾 Salvando item na seção:', currentSection, 'Dados:', formData)
+
+    switch (currentSection) {
+      case 'mobilidade':
+        if (!formData.nome) {
+          console.warn('⚠️ Nome do exercício de mobilidade não definido:', formData)
+          setSnackbar({
+            open: true,
+            message: 'Por favor, selecione um exercício de mobilidade',
+            severity: 'warning'
+          })
+          return
+        }
+
+        // Para mobilidade, vamos armazenar um objeto com ID e nome se disponível
+        const mobilityItem = formData.exercicioId
+          ? { nome: formData.nome, exercicioId: formData.exercicioId }
+          : formData.nome
+
+        if (editingItem !== null) {
+          const newItems = [...mobilidadeItems]
+          newItems[editingItem] = mobilityItem
+          setMobilidadeItems(newItems)
+          console.log('✏️ Item de mobilidade editado:', mobilityItem)
+        } else {
+          setMobilidadeItems([...mobilidadeItems, mobilityItem])
+          console.log('➕ Item de mobilidade adicionado:', mobilityItem)
+        }
+        break
+
+      case 'core':
+        if (editingItem !== null) {
+          const newItems = [...coreItems]
+          newItems[editingItem] = formData
+          setCoreItems(newItems)
+        } else {
+          setCoreItems([...coreItems, formData])
+        }
+        break
+
+      case 'neural':
+        if (editingItem !== null) {
+          const newItems = [...neuralItems]
+          newItems[editingItem] = formData
+          setNeuralItems(newItems)
+        } else {
+          setNeuralItems([...neuralItems, formData])
+        }
+        break
+
+      case 'treino1':
+        if (editingItem !== null) {
+          const newItems = [...treinoBloco1]
+          newItems[editingItem] = formData
+          setTreinoBloco1(newItems)
+        } else {
+          setTreinoBloco1([...treinoBloco1, formData])
+        }
+        break
+
+      case 'treino2':
+        if (editingItem !== null) {
+          const newItems = [...treinoBloco2]
+          newItems[editingItem] = formData
+          setTreinoBloco2(newItems)
+          console.log('✏️ [DEBUG] Exercício editado no Bloco 2:', formData.exercicio, '- Total itens:', newItems.length)
+        } else {
+          setTreinoBloco2([...treinoBloco2, formData])
+          console.log('➕ [DEBUG] Exercício adicionado ao Bloco 2:', formData.exercicio, '- Total itens:', treinoBloco2.length + 1)
+        }
+        break
+
+      case 'condicionamento':
+        if (editingItem !== null) {
+          const newItems = [...condicionamentoItems]
+          newItems[editingItem] = formData
+          setCondicionamentoItems(newItems)
+        } else {
+          setCondicionamentoItems([...condicionamentoItems, formData])
+        }
+        break
+    }
+
+    handleCloseDialog()
   }
 
   // Handlers para remover itens
@@ -1415,7 +1571,6 @@ function TreinoForm() {
         name: trainingName,
         scheduled_date: data.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
         description: data.observacoes || undefined,
-        internal_notes: data.observacoes_internas || undefined,
         estimated_duration_minutes: 90, // valor padrão, pode ser ajustado depois
         movement_pattern_id: data.padrao_movimento || null, // Incluir padrão de movimento
         // Incluir dados de compartilhamento
@@ -1714,7 +1869,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleOpenEditExerciseModal('mobilidade', index, item)}
+                                      onClick={() => handleOpenDialog('mobilidade', index)}
                                       disabled={submitting}
                                     >
                                       <EditIcon fontSize="small" />
@@ -1797,7 +1952,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleOpenEditExerciseModal('core', index, item)}
+                                      onClick={() => handleOpenDialog('core', index)}
                                       disabled={submitting}
                                     >
                                       <EditIcon fontSize="small" />
@@ -1873,7 +2028,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleOpenEditExerciseModal('neural', index, item)}
+                                      onClick={() => handleOpenDialog('neural', index)}
                                     >
                                       <EditIcon fontSize="small" />
                                     </IconButton>
@@ -1957,7 +2112,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleOpenEditExerciseModal('treino1', index, item)}
+                                      onClick={() => handleOpenDialog('treino1', index)}
                                     >
                                       <EditIcon fontSize="small" />
                                     </IconButton>
@@ -2041,7 +2196,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleOpenEditExerciseModal('treino2', index, item)}
+                                      onClick={() => handleOpenDialog('treino2', index)}
                                     >
                                       <EditIcon fontSize="small" />
                                     </IconButton>
@@ -2112,7 +2267,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleOpenEditExerciseModal('condicionamento', index, item)}
+                                      onClick={() => handleOpenDialog('condicionamento', index)}
                                     >
                                       <EditIcon fontSize="small" />
                                     </IconButton>
@@ -2345,6 +2500,624 @@ function TreinoForm() {
         initialConfig={editingModalData?.config || null}
         section={addExerciseModalSection}
       />
+
+      {/* Dialog ANTIGO removido - agora usa AddExerciseModal */}
+
+              <Autocomplete
+                options={(() => {
+                  // Separar exercícios por relevância: com tags relacionadas primeiro
+                  const taggedExercises = exerciciosOptions.filter(ex =>
+                    ex.tags?.includes('mobilidade') ||
+                    ex.tags?.includes('alongamento') ||
+                    ex.tags?.includes('articulacao')
+                  )
+
+                  const otherExercises = exerciciosOptions.filter(ex =>
+                    !ex.tags?.includes('mobilidade') &&
+                    !ex.tags?.includes('alongamento') &&
+                    !ex.tags?.includes('articulacao')
+                  )
+
+                  console.log('🏃‍♂️ Debug Mobilidade - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                  console.log('🏃‍♂️ Debug Mobilidade - Outros exercícios depois:', otherExercises.length)
+
+                  // Retornar todos: primeiro os relevantes, depois os outros
+                  return [...taggedExercises, ...otherExercises]
+                })()}
+                value={exerciciosOptions.find(opt => opt.label === formData.nome) || null}
+                onChange={(_, newValue) => {
+                  console.log('🔄 Autocomplete onChange mobilidade:', newValue)
+                  console.log('📝 formData antes:', formData)
+
+                  const newFormData = {
+                    ...formData,
+                    exercicioId: newValue?.id || '',
+                    nome: newValue?.label || ''
+                  }
+
+                  console.log('📝 formData depois:', newFormData)
+                  setFormData(newFormData)
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Exercício de Mobilidade"
+                    fullWidth
+                    helperText="Selecione um exercício de mobilidade do banco de dados"
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText="Nenhum exercício encontrado"
+                loading={loading}
+                renderOption={(props, option) => {
+                  const { key, ...otherProps } = props;
+                  return (
+                    <li key={key} {...otherProps}>
+                      <Box>
+                        <Typography variant="body2" fontWeight={500}>
+                          {option.label}
+                        </Typography>
+                        {option.tags && option.tags.length > 0 && (
+                          <Typography variant="caption" color="text.secondary">
+                            Tags: {option.tags.join(', ')}
+                          </Typography>
+                        )}
+                      </Box>
+                    </li>
+                  );
+                }}
+              />
+            )}
+
+            {/* Core: nome, séries, tempo, intervalo */}
+            {currentSection === 'core' && (
+              <Grid container spacing={4}>
+                <Grid item xs={12} sm={12}>
+                  <Autocomplete
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('core') ||
+                        ex.tags?.includes('estabilizacao')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('core') &&
+                        !ex.tags?.includes('estabilizacao')
+                      )
+
+                      console.log('💪 Debug Core - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('💪 Debug Core - Outros exercícios depois:', otherExercises.length)
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    label="Séries"
+                    type="number"
+                    value={formData.series || ''}
+                    onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>                <TextField
+                  label="Tempo (segundos)"
+                  type="number"
+                  value={formData.tempo || ''}
+                  onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
+                  fullWidth
+                />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    label="Intervalo (segundos)"
+                    type="number"
+                    value={formData.intervalo || ''}
+                    onChange={(e) => setFormData({ ...formData, intervalo: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Observações"
+                    value={formData.observacoes || ''}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder="Ex: Manter coluna alinhada, foco na respiração..."
+                    fullWidth
+                    helperText="Informações adicionais sobre a execução"
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Neural: nome, séries, tempo */}
+            {currentSection === 'neural' && (
+              <Grid container spacing={4}>
+                <Grid item xs={12} sm={6}>
+                  <Autocomplete
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('ativacao') ||
+                        ex.tags?.includes('neural') ||
+                        ex.tags?.includes('pliometrico') ||
+                        ex.tags?.includes('potencia')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('ativacao') &&
+                        !ex.tags?.includes('neural') &&
+                        !ex.tags?.includes('pliometrico') &&
+                        !ex.tags?.includes('potencia')
+                      )
+
+                      console.log('⚡ Debug Neural - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('⚡ Debug Neural - Outros exercícios depois:', otherExercises.length)
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício de ativação neural"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Séries"
+                    type="number"
+                    value={formData.series || ''}
+                    onChange={(e) => setFormData({ ...formData, series: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Tempo (segundos)"
+                    type="number"
+                    value={formData.tempo || ''}
+                    onChange={(e) => setFormData({ ...formData, tempo: parseInt(e.target.value) })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Observações"
+                    value={formData.observacoes || ''}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder="Ex: Explosão máxima, velocidade..."
+                    fullWidth
+                    helperText="Informações adicionais sobre a execução"
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Treino 1 e 2: nome, séries, repetições, carga, tempo, intervalo */}
+            {(currentSection === 'treino1' || currentSection === 'treino2') && (
+              <Grid container spacing={4}>
+                <Grid item xs={12}>
+                  <Autocomplete
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('forca') ||
+                        ex.tags?.includes('empurrar') ||
+                        ex.tags?.includes('puxar') ||
+                        ex.tags?.includes('squat') ||
+                        ex.tags?.includes('hinge') ||
+                        ex.tags?.includes('lunge')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('forca') &&
+                        !ex.tags?.includes('empurrar') &&
+                        !ex.tags?.includes('puxar') &&
+                        !ex.tags?.includes('squat') &&
+                        !ex.tags?.includes('hinge') &&
+                        !ex.tags?.includes('lunge')
+                      )
+
+                      console.log('🏋️‍♀️ Debug Treino Principal - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('🏋️‍♀️ Debug Treino Principal - Outros exercícios depois:', otherExercises.length)
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício do banco de dados"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Séries"
+                    type="number"
+                    value={formData.series || ''}
+                    onChange={(e) => {
+                      const series = parseInt(e.target.value) || 0
+                      const tempo = formData.tempoSegundos || 0
+                      const intervalo = formData.intervaloSegundos || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        series: series,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Repetições"
+                    value={formData.repeticoes || ''}
+                    onChange={(e) => setFormData({ ...formData, repeticoes: e.target.value })}
+                    placeholder="Ex: 8-10"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Carga"
+                    value={formData.carga || ''}
+                    onChange={(e) => setFormData({ ...formData, carga: e.target.value })}
+                    placeholder="Ex: 80kg ou Corporal"
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Tempo (seg)"
+                    type="number"
+                    value={formData.tempoSegundos || ''}
+                    onChange={(e) => {
+                      const tempo = parseInt(e.target.value) || 0
+                      const intervalo = formData.intervaloSegundos || 0
+                      const series = formData.series || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        tempoSegundos: tempo,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                    helperText="Duração de cada série em segundos"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={4} md={4}>
+                  <TextField
+                    label="Intervalo (seg)"
+                    type="number"
+                    value={formData.intervaloSegundos || ''}
+                    onChange={(e) => {
+                      const intervalo = parseInt(e.target.value) || 0
+                      const tempo = formData.tempoSegundos || 0
+                      const series = formData.series || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        intervaloSegundos: intervalo,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                    helperText="Descanso entre séries em segundos"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <TextField
+                    label="Tempo Total"
+                    value={formData.tempoTotal || 0}
+                    fullWidth
+                    disabled
+                    helperText="Calculado automaticamente: (Tempo + Intervalo) × Séries"
+                    InputProps={{
+                      endAdornment: <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Observações"
+                    value={formData.observacoes || ''}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder="Ex: Cadência 3-0-1, amplitude completa..."
+                    fullWidth
+                    helperText="Informações adicionais sobre a execução"
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {/* Condicionamento: nome, séries, tempo, intervalo */}
+            {currentSection === 'condicionamento' && (
+              <Grid container spacing={4}>
+                <Grid item xs={12}>
+                  <Autocomplete
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('condicionamento') ||
+                        ex.tags?.includes('cardio') ||
+                        ex.tags?.includes('hiit') ||
+                        ex.tags?.includes('resistencia') ||
+                        ex.tags?.includes('circuito')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('condicionamento') &&
+                        !ex.tags?.includes('cardio') &&
+                        !ex.tags?.includes('hiit') &&
+                        !ex.tags?.includes('resistencia') &&
+                        !ex.tags?.includes('circuito')
+                      )
+
+                      console.log('🔥 Debug Condicionamento - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('🔥 Debug Condicionamento - Outros exercícios depois:', otherExercises.length)
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
+                    value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
+                    onChange={(_, newValue) => setFormData({
+                      ...formData,
+                      exercicioId: newValue?.id || '',
+                      nome: newValue?.label || ''
+                    })}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Nome do Exercício"
+                        fullWidth
+                        helperText="Selecione um exercício do banco de dados"
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText="Nenhum exercício encontrado"
+                    loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4} md={3}>
+                  <TextField
+                    label="Séries"
+                    type="number"
+                    value={formData.series || ''}
+                    onChange={(e) => {
+                      const series = parseInt(e.target.value) || 0
+                      const tempo = formData.tempoSegundos || 0
+                      const intervalo = formData.intervaloSegundos || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        series: series,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4} md={3}>
+                  <TextField
+                    label="Repetições"
+                    value={formData.repeticoes || ''}
+                    onChange={(e) => setFormData({ ...formData, repeticoes: e.target.value })}
+                    placeholder="Ex: 8-10"
+                    fullWidth
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4} md={3}>
+                  <TextField
+                    label="Tempo (seg)"
+                    type="number"
+                    value={formData.tempoSegundos || ''}
+                    onChange={(e) => {
+                      const tempo = parseInt(e.target.value) || 0
+                      const intervalo = formData.intervaloSegundos || 0
+                      const series = formData.series || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        tempoSegundos: tempo,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                    helperText="Duração de cada série em segundos"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={4} md={3}>
+                  <TextField
+                    label="Intervalo (seg)"
+                    type="number"
+                    value={formData.intervaloSegundos || ''}
+                    onChange={(e) => {
+                      const intervalo = parseInt(e.target.value) || 0
+                      const tempo = formData.tempoSegundos || 0
+                      const series = formData.series || 0
+                      const tempoTotal = series > 0 ? (tempo + intervalo) * series : 0
+
+                      setFormData({
+                        ...formData,
+                        intervaloSegundos: intervalo,
+                        tempoTotal: tempoTotal
+                      })
+                    }}
+                    fullWidth
+                    helperText="Descanso entre séries em segundos"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Tempo Total"
+                    value={formData.tempoTotal || 0}
+                    fullWidth
+                    disabled
+                    helperText="Calculado automaticamente: (Tempo + Intervalo) × Séries"
+                    InputProps={{
+                      endAdornment: <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    label="Observações"
+                    value={formData.observacoes || ''}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder="Ex: HIIT, Tabata, Circuito..."
+                    fullWidth
+                    helperText="Informações adicionais sobre o protocolo"
+                  />
+                </Grid>
+              </Grid>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              console.log('🔘 Botão salvar clicado - formData atual:', formData)
+              console.log('🔘 formData.nome:', formData.nome)
+              console.log('🔘 Botão desabilitado?', !formData.nome)
+              handleSaveItem()
+            }}
+            disabled={!formData.nome}
+          >
+            Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar para feedback */}
       <Snackbar
