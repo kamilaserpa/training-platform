@@ -8,7 +8,7 @@ const CACHE_PREFIX = 'tp-pwa';
 // - Patch (x.x.1): Bug fixes, ajustes menores
 // - Minor (x.1.x): Novas features, mudanças compatíveis
 // - Major (1.x.x): Breaking changes, refatorações grandes
-const SW_VERSION = '1.0.0'; // iOS PWA hang fix - network-only navigation
+const SW_VERSION = '1.0.1'; // Fix: robust Vite chunk detection + cache refresh
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${SW_VERSION}`; // images, fonts, manifest
 const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${SW_VERSION}`; // hashed build assets
 const CORE_CACHE = `${CACHE_PREFIX}-core-${SW_VERSION}`; // core assets (NO HTML)
@@ -32,11 +32,18 @@ const isSupabase = (url) => /\.supabase\.(co|com)/.test(url.host);
 const isNavigate = (req) => req.mode === 'navigate';
 const isHTMLRequest = (req) => req.headers.get('accept')?.includes('text/html');
 
-// Vite builds hashed assets under /assets/ with content hashing. Treat as immutable.
+// Vite builds outputs under /assets/ (chunks, CSS, images). Treat those as immutable.
+// Support both dot-hash and hyphen-hash patterns used by Vite.
 const isImmutableAsset = (url) => {
   if (!isSameOrigin(url)) return false;
-  // Match /assets/file.[hash].js|css|png|svg|... (8+ hex chars typical)
-  return /\/assets\/.*\.[a-f0-9]{8,}\.[^/]+$/.test(url.pathname);
+  const p = url.pathname;
+  if (!p.startsWith('/assets/')) return false;
+  // Common hashed patterns (dot or hyphen): file.[hash].ext OR file-[hash].ext
+  const dotHash = /\/assets\/[^/]+\.[a-zA-Z0-9]{8,}\.[^/]+$/.test(p);
+  const hyphenHash = /\/assets\/[^/]+-[a-zA-Z0-9]{8,}\.[^/]+$/.test(p);
+  // Fallback: treat JS/CSS in /assets as immutable even if pattern changes
+  const jsCss = /\/assets\/.*\.(js|css)$/i.test(p);
+  return dotHash || hyphenHash || jsCss;
 };
 
 // Static assets we want SWR (icons, images in public, fonts)
