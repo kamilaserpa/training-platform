@@ -282,6 +282,7 @@ export interface UpdateVideoDTO {
   tags?: string[];
   duration_seconds?: number;
   thumbnail_path?: string;
+  source?: VideoSource;
 }
 
 export interface VideoFilters {
