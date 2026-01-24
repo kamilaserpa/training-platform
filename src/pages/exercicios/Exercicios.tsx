@@ -602,7 +602,7 @@ function ExerciciosPage() {
                       <TableCell>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {exercise.tags && exercise.tags.length > 0 ? (
-                            exercise.tags.slice(0, 3).map((tag, index) => (
+                            exercise.tags.slice(0, 3).map((tag: string, index: number) => (
                               <Chip
                                 key={index}
                                 label={tag}
