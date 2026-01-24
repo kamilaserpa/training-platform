@@ -33,6 +33,7 @@ interface VideoSelectorProps {
 
 interface VideoWithUrl extends Video {
     previewUrl?: string;
+    isImage?: boolean;
 }
 
 export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove }: VideoSelectorProps) => {
@@ -115,13 +116,17 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
 
                         if (error) throw error;
 
+                        // Detecta se o arquivo é imagem pelo path
+                        const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(video.storage_path);
+
                         return {
                             ...video,
                             previewUrl: data.signedUrl,
-                        };
+                            isImage,
+                        } as VideoWithUrl;
                     } catch (err) {
                         console.error(`Erro ao gerar URL para vídeo ${video.id}:`, err);
-                        return video;
+                        return video as VideoWithUrl;
                     }
                 })
             );
@@ -402,7 +407,7 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
                                         </Box>
                                     )}
                                     <CardActionArea onClick={() => onSelect(video)}>
-                                        {/* Preview do Vídeo */}
+                                        {/* Preview de vídeo ou imagem */}
                                         {video.previewUrl && (
                                             <Box
                                                 sx={{
@@ -411,23 +416,38 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
                                                     backgroundColor: 'grey.900',
                                                 }}
                                             >
-                                                <video
-                                                    ref={(el) => {
-                                                        videoRefs.current[video.id] = el;
-                                                    }}
-                                                    src={video.previewUrl}
-                                                    loop
-                                                    muted
-                                                    playsInline
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: 0,
-                                                        left: 0,
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        objectFit: 'cover',
-                                                    }}
-                                                />
+                                                {video.isImage ? (
+                                                    <img
+                                                        src={video.previewUrl}
+                                                        alt={video.title}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: 0,
+                                                            left: 0,
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'cover',
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <video
+                                                        ref={(el) => {
+                                                            videoRefs.current[video.id] = el;
+                                                        }}
+                                                        src={video.previewUrl}
+                                                        loop
+                                                        muted
+                                                        playsInline
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: 0,
+                                                            left: 0,
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'cover',
+                                                        }}
+                                                    />
+                                                )}
                                                 {isSelected && (
                                                     <Box
                                                         sx={{
@@ -440,22 +460,7 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
                                                             border: '4px solid',
                                                             borderColor: 'primary.main',
                                                         }}
-                                                    >
-                                                        <CheckIcon
-                                                            sx={{
-                                                                position: 'absolute',
-                                                                top: '50%',
-                                                                left: '50%',
-                                                                transform: 'translate(-50%, -50%)',
-                                                                color: 'primary.main',
-                                                                fontSize: 64,
-                                                                bgcolor: 'white',
-                                                                borderRadius: '50%',
-                                                                p: 1,
-                                                                boxShadow: 3,
-                                                            }}
-                                                        />
-                                                    </Box>
+                                                    />
                                                 )}
                                             </Box>
                                         )}

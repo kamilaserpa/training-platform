@@ -1415,6 +1415,7 @@ function TreinoForm() {
         name: trainingName,
         scheduled_date: data.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
         description: data.observacoes || undefined,
+        internal_notes: data.observacoes_internas || undefined,
         estimated_duration_minutes: 90, // valor padrão, pode ser ajustado depois
         movement_pattern_id: data.padrao_movimento || null, // Incluir padrão de movimento
         // Incluir dados de compartilhamento

@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { videoService } from '../../services/videoService';
 import type { CreateVideoDTO } from '../../types/database.types';
@@ -40,6 +41,7 @@ interface VideoFormData {
 }
 
 const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps) => {
+  const { isAdmin } = useAuth();
   const [formData, setFormData] = useState<VideoFormData>({
     title: '',
     description: '',
@@ -159,7 +161,8 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
         plane: formData.plane,
         type: formData.type,
         genre: formData.genre,
-        source: formData.source,
+        // Forçar 'personal' para não-admin; admins podem escolher
+        source: isAdmin ? formData.source : 'personal',
         duration_seconds: durationSeconds,
         file_size_kb: Math.round(selectedFile.size / 1024),
       };
@@ -339,23 +342,25 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
             </FormControl>
           </Grid>
 
-          {/* Origem */}
-          <Grid item xs={12}>
-            <FormControl fullWidth disabled={uploading}>
-              <InputLabel>Origem</InputLabel>
-              <Select
-                value={formData.source}
-                label="Origem"
-                onChange={(e) => handleInputChange('source', e.target.value)}
-              >
-                <MenuItem value="personal">Pessoal</MenuItem>
-                <MenuItem value="platform">Plataforma</MenuItem>
-              </Select>
-              <FormHelperText>
-                Vídeos da plataforma são visíveis para todos os usuários
-              </FormHelperText>
-            </FormControl>
-          </Grid>
+          {/* Origem (visível apenas para admin) */}
+          {isAdmin && (
+            <Grid item xs={12}>
+              <FormControl fullWidth disabled={uploading}>
+                <InputLabel>Origem</InputLabel>
+                <Select
+                  value={formData.source}
+                  label="Origem"
+                  onChange={(e) => handleInputChange('source', e.target.value)}
+                >
+                  <MenuItem value="personal">Pessoal</MenuItem>
+                  <MenuItem value="platform">Plataforma</MenuItem>
+                </Select>
+                <FormHelperText>
+                  Vídeos da plataforma são visíveis para todos os usuários
+                </FormHelperText>
+              </FormControl>
+            </Grid>
+          )}
 
           {/* Progress Bar */}
           {uploading && (
