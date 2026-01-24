@@ -8,7 +8,7 @@ const CACHE_PREFIX = 'tp-pwa';
 // - Patch (x.x.1): Bug fixes, ajustes menores
 // - Minor (x.1.x): Novas features, mudanças compatíveis
 // - Major (1.x.x): Breaking changes, refatorações grandes
-const SW_VERSION = '1.0.1'; // Fix: robust Vite chunk detection + cache refresh
+const SW_VERSION = '1.0.2'; // Add message handler for SKIP_WAITING + cache refresh
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${SW_VERSION}`; // images, fonts, manifest
 const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${SW_VERSION}`; // hashed build assets
 const CORE_CACHE = `${CACHE_PREFIX}-core-${SW_VERSION}`; // core assets (NO HTML)
@@ -99,6 +99,19 @@ self.addEventListener('activate', (event) => {
       await self.clients.claim();
     })()
   );
+});
+
+// Allow client to request immediate activation of waiting SW
+self.addEventListener('message', (event) => {
+  try {
+    const data = event?.data;
+    if (data && data.type === 'SKIP_WAITING') {
+      // Activate new SW immediately
+      self.skipWaiting();
+    }
+  } catch (err) {
+    // noop
+  }
 });
 
 // Fetch strategies

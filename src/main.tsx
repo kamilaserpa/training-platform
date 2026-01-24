@@ -60,6 +60,27 @@ if ('serviceWorker' in navigator) {
     // Flag para prevenir loop de reload (iOS Safari)
     let refreshing = false;
 
+    // Mostra um aviso simples de atualização disponível
+    const showUpdateBanner = () => {
+      if (document.getElementById('sw-update-banner')) return;
+      const banner = document.createElement('div');
+      banner.id = 'sw-update-banner';
+      banner.style.position = 'fixed';
+      banner.style.left = '50%';
+      banner.style.bottom = '16px';
+      banner.style.transform = 'translateX(-50%)';
+      banner.style.zIndex = '10000';
+      banner.style.background = '#1A1F3D';
+      banner.style.color = 'white';
+      banner.style.padding = '10px 16px';
+      banner.style.borderRadius = '8px';
+      banner.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
+      banner.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      banner.style.fontSize = '14px';
+      banner.textContent = 'Atualização disponível. Atualizando...';
+      document.body.appendChild(banner);
+    };
+
     navigator.serviceWorker
       .register(swUrl)
       .then((registration) => {
@@ -68,6 +89,7 @@ if ('serviceWorker' in navigator) {
 
         // Force update on waiting worker
         if (registration.waiting) {
+          showUpdateBanner();
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
 
@@ -78,6 +100,7 @@ if ('serviceWorker' in navigator) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // Novo SW instalado, força ativação
+                showUpdateBanner();
                 newWorker.postMessage({ type: 'SKIP_WAITING' });
               }
             });
