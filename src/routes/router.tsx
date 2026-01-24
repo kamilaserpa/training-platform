@@ -1,3 +1,5 @@
+import PageLoader from 'components/loading/PageLoader';
+import Progress from 'components/loading/Progress';
 import { Suspense, lazy } from 'react';
 import { Outlet, createHashRouter } from 'react-router-dom';
 import PrivateRoute from '../components/navigation/PrivateRoute';
@@ -19,6 +21,7 @@ const SemanasRefactored = lazy(() => import('../pages/semanas/SemanasRefactored'
 const Treinos = lazy(() => import('../pages/treinos/Treinos'));
 const Configuracoes = lazy(() => import('../pages/configuracoes/Configuracoes'));
 const Exercicios = lazy(() => import('../pages/exercicios/Exercicios'));
+const VideoLibrary = lazy(() => import('../pages/videos/VideoLibrary'));
 const Usuarios = lazy(() => import('../pages/usuarios/Usuarios'));
 const Perfil = lazy(() => import('../pages/perfil/Perfil'));
 const ThemePlayground = lazy(() => import('../pages/ThemePlayground'));
@@ -27,9 +30,6 @@ const ExportSettingsPage = lazy(() => import('../pages/export/ExportSettings'));
 const SignIn = lazy(() => import('../pages/authentication/SignIn'));
 const SignUp = lazy(() => import('../pages/authentication/SignUp'));
 const Page404 = lazy(() => import('../pages/errors/Page404'));
-
-import PageLoader from 'components/loading/PageLoader';
-import Progress from 'components/loading/Progress';
 
 export const routes = [
   {
@@ -81,6 +81,14 @@ export const routes = [
           {
             path: paths.exercicios,
             element: <Exercicios />,
+          },
+
+          // ==========================================
+          // Biblioteca de Vídeos
+          // ==========================================
+          {
+            path: paths.videos,
+            element: <VideoLibrary />,
           },
 
           // ==========================================

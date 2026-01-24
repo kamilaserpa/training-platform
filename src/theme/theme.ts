@@ -1,26 +1,33 @@
 import { createTheme } from '@mui/material';
-import type {} from '@mui/x-data-grid/themeAugmentation';
-import type {} from '@mui/x-date-pickers/themeAugmentation';
-import palette from './palette';
-import typography from './typography';
-import customShadows from './shadows';
-import CssBaseline from './components/utils/CssBaseline';
-import Stack from './components/layout/Stack';
-import Paper from './components/surfaces/Paper';
+import type { } from '@mui/x-data-grid/themeAugmentation';
+import type { } from '@mui/x-date-pickers/themeAugmentation';
 import Button from './components/buttons/Button';
 import ButtonBase from './components/buttons/ButtonBase';
 import IconButton from './components/buttons/IconButton';
 import Toolbar from './components/buttons/Toolbar';
-import Chip from './components/data-display/Chip';
+import Card from './components/cards/Card';
+import CardContent from './components/cards/CardContent';
+import CardMedia from './components/cards/CardMedia';
+import Avatar from './components/data-display/Avatar';
+import AvatarGroup from './components/data-display/AvatarGroup';
 import Badge from './components/data-display/Badge';
+import Chip from './components/data-display/Chip';
+import Divider from './components/data-display/Divider';
+import DataGrid from './components/data-grid/DataGrid';
+import DateCalendar from './components/date-picker/DateCalendar';
+import MonthCalendar from './components/date-picker/MonthCalendar';
+import YearCalendar from './components/date-picker/YearCalendar';
+import Autocomplete from './components/inputs/Autocomplete';
 import Checkbox from './components/inputs/Checkbox';
 import FilledInput from './components/inputs/FilledInput';
 import FormControlLabel from './components/inputs/FormControlLabel';
 import InputAdornment from './components/inputs/InputAdornment';
 import InputBase from './components/inputs/InputBase';
+import InputLabel from './components/inputs/InputLabel';
 import OutlinedInput from './components/inputs/OutlinedInput';
 import Select from './components/inputs/Select';
-import Autocomplete from './components/inputs/Autocomplete';
+import TextField from './components/inputs/TextField';
+import Stack from './components/layout/Stack';
 import Collapse from './components/list/Collapse';
 import List from './components/list/List';
 import ListItemButton from './components/list/ListItemButton';
@@ -30,18 +37,12 @@ import MenuItem from './components/list/MenuItem';
 import AppBar from './components/navigation/AppBar';
 import Drawer from './components/navigation/Drawer';
 import Link from './components/navigation/Link';
-import YearCalendar from './components/date-picker/YearCalendar';
-import MonthCalendar from './components/date-picker/MonthCalendar';
 import PaginationItem from './components/pagination/PaginationItem';
-import DataGrid from './components/data-grid/DataGrid';
-import Avatar from './components/data-display/Avatar';
-import AvatarGroup from './components/data-display/AvatarGroup';
-import Card from './components/cards/Card';
-import CardMedia from './components/cards/CardMedia';
-import CardContent from './components/cards/CardContent';
-import DateCalendar from './components/date-picker/DateCalendar';
-import InputLabel from './components/inputs/InputLabel';
-import Divider from './components/data-display/Divider';
+import Paper from './components/surfaces/Paper';
+import CssBaseline from './components/utils/CssBaseline';
+import palette from './palette';
+import customShadows from './shadows';
+import typography from './typography';
 
 export const theme = createTheme({
   palette,
@@ -76,6 +77,8 @@ export const theme = createTheme({
     MuiInputAdornment: InputAdornment,
     MuiInputBase: InputBase,
     MuiOutlinedInput: OutlinedInput,
+    MuiTextField: TextField,
+    MuiSelect: Select,
     MuiAutocomplete: Autocomplete,
     MuiCollapse: Collapse,
     MuiList: List,

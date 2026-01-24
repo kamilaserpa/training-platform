@@ -83,7 +83,8 @@ const Topbar = ({ isClosing, mobileOpen, setMobileOpen }: TopbarProps) => {
       </Stack>
 
       <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
-        <LanguageSelect />
+        {/* Internacionalização: seleção do idioma */}
+        {/* <LanguageSelect /> */}
         <IconButton size="large">
           <Badge color="error" variant="dot">
             <IconifyIcon icon="ic:baseline-notifications-none" />

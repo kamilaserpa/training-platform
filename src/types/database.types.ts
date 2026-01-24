@@ -11,6 +11,13 @@ export type BlockType =
   | 'CONDICIONAMENTO_FISICO';
 export type WeekStatus = 'draft' | 'active' | 'completed' | 'archived';
 
+// Video Enums
+export type VideoLevel = 'beginner' | 'intermediate' | 'advanced';
+export type VideoPlane = 'frontal' | 'lateral' | 'dorsal' | 'detail';
+export type VideoType = 'demo' | 'education';
+export type VideoGenre = 'strength' | 'cardio' | 'mobility' | 'core' | 'balance' | 'flexibility' | 'power' | 'endurance' | 'other';
+export type VideoSource = 'platform' | 'personal';
+
 // Tabelas principais
 export interface User {
   id: string;
@@ -54,11 +61,33 @@ export interface Exercise {
   instructions?: string;
   video_url?: string;
   image_url?: string;
+  tags?: string[]; // Tags para categorizar exercícios
   created_by?: string;
   created_at: string;
   updated_at: string;
   // Relacionamentos
   movement_pattern?: MovementPattern;
+  videos?: Video[]; // Lista de vídeos disponíveis para este exercício
+}
+
+// Nova interface: Video
+export interface Video {
+  id: string;
+  title: string;
+  description?: string;
+  storage_path: string;
+  level: VideoLevel;
+  plane: VideoPlane;
+  type: VideoType;
+  genre: VideoGenre;
+  tags: string[];
+  source: VideoSource;
+  duration_seconds?: number;
+  file_size_kb?: number;
+  thumbnail_path?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TrainingWeek {
@@ -118,6 +147,7 @@ export interface ExercisePrescription {
   id: string;
   training_block_id: string;
   exercise_id: string;
+  video_id?: string; // Vídeo específico escolhido para este treino
   order_index: number;
   sets: number;
   reps?: string;
@@ -132,6 +162,7 @@ export interface ExercisePrescription {
   // Relacionamentos
   training_block?: TrainingBlock;
   exercise?: Exercise;
+  video?: Video; // Vídeo selecionado
 }
 
 export interface TrainingBlockMovementPattern {
@@ -202,6 +233,7 @@ export interface CreateTrainingBlockDTO {
 export interface CreateExercisePrescriptionDTO {
   training_block_id: string;
   exercise_id: string;
+  video_id?: string; // Vídeo específico para este treino
   order_index: number;
   sets: number;
   reps?: string;
@@ -218,4 +250,44 @@ export interface CreateExerciseDTO {
   movement_pattern_id?: string;
   instructions?: string;
   description?: string;
+  tags?: string[]; // Tags para categorizar exercícios
+}
+
+// DTOs para Videos
+export interface CreateVideoDTO {
+  title: string;
+  description?: string | null;
+  storage_path: string;
+  level?: VideoLevel;
+  plane?: VideoPlane;
+  type?: VideoType;
+  genre?: VideoGenre;
+  tags?: string[];
+  source?: VideoSource;
+  duration_seconds?: number;
+  file_size_kb?: number;
+  thumbnail_path?: string;
+}
+
+export interface UpdateVideoDTO {
+  title?: string;
+  description?: string;
+  level?: VideoLevel;
+  plane?: VideoPlane;
+  type?: VideoType;
+  genre?: VideoGenre;
+  tags?: string[];
+  duration_seconds?: number;
+  thumbnail_path?: string;
+}
+
+export interface VideoFilters {
+  exercise_id?: string;
+  level?: VideoLevel;
+  plane?: VideoPlane;
+  type?: VideoType;
+  genre?: VideoGenre;
+  source?: VideoSource;
+  tags?: string[];
+  search?: string; // Busca por título ou descrição
 }
