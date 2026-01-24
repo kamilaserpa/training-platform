@@ -41,7 +41,8 @@ interface VideoFormData {
 }
 
 const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps) => {
-  const { isAdmin } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
+  const canSelectSource = !loading && (isAdmin || user?.role === 'admin');
   const [formData, setFormData] = useState<VideoFormData>({
     title: '',
     description: '',
@@ -162,7 +163,7 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
         type: formData.type,
         genre: formData.genre,
         // Forçar 'personal' para não-admin; admins podem escolher
-        source: isAdmin ? formData.source : 'personal',
+        source: canSelectSource ? formData.source : 'personal',
         duration_seconds: durationSeconds,
         file_size_kb: Math.round(selectedFile.size / 1024),
       };
@@ -343,7 +344,7 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
           </Grid>
 
           {/* Origem (visível apenas para admin) */}
-          {isAdmin && (
+          {canSelectSource && (
             <Grid item xs={12}>
               <FormControl fullWidth disabled={uploading}>
                 <InputLabel>Origem</InputLabel>
