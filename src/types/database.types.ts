@@ -15,7 +15,7 @@ export type WeekStatus = 'draft' | 'active' | 'completed' | 'archived';
 export type VideoLevel = 'beginner' | 'intermediate' | 'advanced';
 export type VideoPlane = 'frontal' | 'lateral' | 'dorsal' | 'detail';
 export type VideoType = 'demo' | 'education';
-export type VideoGenre = 'strength' | 'cardio' | 'mobility' | 'core' | 'balance' | 'flexibility' | 'power' | 'endurance';
+export type VideoGenre = 'strength' | 'cardio' | 'mobility' | 'core' | 'balance' | 'flexibility' | 'power' | 'endurance' | 'other';
 export type VideoSource = 'platform' | 'personal';
 
 // Tabelas principais
@@ -61,6 +61,7 @@ export interface Exercise {
   instructions?: string;
   video_url?: string;
   image_url?: string;
+  tags?: string[]; // Tags para categorizar exercícios
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -72,7 +73,6 @@ export interface Exercise {
 // Nova interface: Video
 export interface Video {
   id: string;
-  exercise_id: string;
   title: string;
   description?: string;
   storage_path: string;
@@ -88,8 +88,6 @@ export interface Video {
   created_by?: string;
   created_at: string;
   updated_at: string;
-  // Relacionamentos
-  exercise?: Exercise;
 }
 
 export interface TrainingWeek {
@@ -252,6 +250,7 @@ export interface CreateExerciseDTO {
   movement_pattern_id?: string;
   instructions?: string;
   description?: string;
+  tags?: string[]; // Tags para categorizar exercícios
 }
 
 // DTOs para Videos

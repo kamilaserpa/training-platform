@@ -1,33 +1,35 @@
 import {
-    Add as AddIcon,
-    Close as CloseIcon,
-    Delete as DeleteIcon,
-    Edit as EditIcon,
-    FilterList as FilterIcon,
-    PlayCircleOutline as PlayIcon,
-    Refresh as RefreshIcon,
+  Add as AddIcon,
+  Close as CloseIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  FilterList as FilterIcon,
+  PlayCircleOutline as PlayIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
-    Alert,
-    Box,
-    Button,
-    Card,
-    Chip,
-    CircularProgress,
-    Dialog,
-    DialogContent,
-    DialogTitle,
-    Grid,
-    IconButton,
-    MenuItem,
-    Stack,
-    TextField,
-    Tooltip,
-    Typography
+  Alert,
+  Box,
+  Button,
+  Card,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import VideoUploadDialog from '../../components/videos/VideoUploadDialog';
@@ -43,6 +45,26 @@ const VideoLibrary = () => {
 
   // Dialog de upload
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+
+  // Dialog de edição
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    title: string;
+    description: string;
+    level: Video['level'];
+    plane: Video['plane'];
+    type: Video['type'];
+    genre: Video['genre'];
+  }>({
+    title: '',
+    description: '',
+    level: 'beginner',
+    plane: 'frontal',
+    type: 'demo',
+    genre: 'strength',
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   // Dialog de visualização
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -131,6 +153,49 @@ const VideoLibrary = () => {
     }
   };
 
+  const handleEdit = (video: Video) => {
+    setEditingVideo(video);
+    setEditFormData({
+      title: video.title,
+      description: video.description || '',
+      level: video.level,
+      plane: video.plane,
+      type: video.type,
+      genre: video.genre,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingVideo) return;
+
+    setEditLoading(true);
+    try {
+      await videoService.updateVideo(editingVideo.id, {
+        title: editFormData.title,
+        description: editFormData.description || undefined,
+        level: editFormData.level,
+        plane: editFormData.plane,
+        type: editFormData.type,
+        genre: editFormData.genre,
+      });
+
+      loadVideos();
+      setEditDialogOpen(false);
+      setEditingVideo(null);
+    } catch (err: any) {
+      console.error('Erro ao atualizar vídeo:', err);
+      alert('Erro ao atualizar vídeo: ' + err.message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditDialogOpen(false);
+    setEditingVideo(null);
+  };
+
   const handleViewVideo = async (video: Video) => {
     setSelectedVideo(video);
     setViewDialogOpen(true);
@@ -138,7 +203,7 @@ const VideoLibrary = () => {
     setVideoUrl(null);
 
     try {
-      // Gerar URL assinada do vídeo
+      // Gerar URL assinada da mídia
       const { data, error } = await supabase.storage
         .from('exercise-videos')
         .createSignedUrl(video.storage_path, 86400); // 24 horas
@@ -146,8 +211,8 @@ const VideoLibrary = () => {
       if (error) throw error;
       setVideoUrl(data.signedUrl);
     } catch (err) {
-      console.error('Erro ao carregar vídeo:', err);
-      alert('Erro ao carregar vídeo');
+      console.error('Erro ao carregar mídia:', err);
+      alert('Erro ao carregar mídia');
     } finally {
       setLoadingUrl(false);
     }
@@ -250,28 +315,20 @@ const VideoLibrary = () => {
       },
     },
     {
-      field: 'duration_seconds',
-      headerName: 'Duração',
+      field: 'file_size_kb',
+      headerName: 'Tamanho',
       width: 90,
-      valueGetter: (params: any) => {
-        if (!params?.row) return '-';
-        const seconds = params.row.duration_seconds;
-        if (!seconds) return '-';
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-      },
-    },
-    {
-      field: 'created_at',
-      headerName: 'Criado',
-      width: 120,
-      valueGetter: (params: any) => {
-        if (!params?.row?.created_at) return '-';
-        return formatDistanceToNow(new Date(params.row.created_at), {
-          addSuffix: true,
-          locale: ptBR,
-        });
+      renderCell: (params: GridRenderCellParams<Video>) => {
+        const sizeKB = params.row.file_size_kb;
+
+        if (!sizeKB || sizeKB === 0) return '-';
+
+        if (sizeKB < 1024) {
+          return `${sizeKB} KB`;
+        } else {
+          const sizeMB = sizeKB / 1024;
+          return `${sizeMB.toFixed(1)} MB`;
+        }
       },
     },
     {
@@ -292,21 +349,21 @@ const VideoLibrary = () => {
           <Tooltip title="Editar">
             <IconButton
               size="small"
-              onClick={() => {/* TODO: Abrir dialog de edição */}}
+              onClick={() => handleEdit(params.row)}
             >
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Excluir">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => handleDelete(params.row.id)}
-              disabled={params.row.source === 'platform'}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => handleDelete(params.row.id)}
+            disabled={params.row.source === 'platform'}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+
         </Box>
       ),
     },
@@ -321,7 +378,7 @@ const VideoLibrary = () => {
 
       {/* Estatísticas */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="h4" color="primary">
               {stats.totalCount}
@@ -331,7 +388,7 @@ const VideoLibrary = () => {
             </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="h4" color="primary">
               {stats.platformCount}
@@ -341,7 +398,7 @@ const VideoLibrary = () => {
             </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="h4" color="primary">
               {stats.personalCount}
@@ -351,7 +408,7 @@ const VideoLibrary = () => {
             </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="h4" color="primary">
               {stats.totalSizeMB.toFixed(1)} MB
@@ -370,10 +427,9 @@ const VideoLibrary = () => {
             <FilterIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
             Filtros
           </Typography>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={3}>
             <Button
               size="small"
-              variant="outlined"
               onClick={() => setShowFilters(!showFilters)}
             >
               {showFilters ? 'Ocultar' : 'Mostrar'}
@@ -385,8 +441,8 @@ const VideoLibrary = () => {
         </Stack>
 
         {showFilters && (
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid container spacing={2} mt={2}>
+            <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
                 size="small"
@@ -397,7 +453,7 @@ const VideoLibrary = () => {
                 onKeyPress={(e) => e.key === 'Enter' && handleApplyFilters()}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 select
@@ -412,7 +468,9 @@ const VideoLibrary = () => {
                 <MenuItem value="advanced">Avançado</MenuItem>
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+
+            {/* Plano de visão */}
+            {/* <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
                 select
@@ -427,8 +485,9 @@ const VideoLibrary = () => {
                 <MenuItem value="dorsal">Dorsal</MenuItem>
                 <MenuItem value="detail">Detalhe</MenuItem>
               </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            </Grid> */}
+
+            {/* <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
                 select
@@ -441,8 +500,10 @@ const VideoLibrary = () => {
                 <MenuItem value="demo">Demonstração</MenuItem>
                 <MenuItem value="education">Educativo</MenuItem>
               </TextField>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            </Grid> */}
+
+            {/* Filtro por origem */}
+            {/* <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
                 select
@@ -455,7 +516,8 @@ const VideoLibrary = () => {
                 <MenuItem value="platform">Plataforma</MenuItem>
                 <MenuItem value="personal">Pessoal</MenuItem>
               </TextField>
-            </Grid>
+            </Grid> */}
+
             <Grid item xs={12} md={12} display="flex" justifyContent="flex-end">
               <Button
                 variant="contained"
@@ -524,8 +586,11 @@ const VideoLibrary = () => {
         onClose={handleCloseViewDialog}
         maxWidth="md"
         fullWidth
+        aria-labelledby="video-dialog-title"
+        aria-describedby="video-dialog-content"
+        disableEnforceFocus
       >
-        <DialogTitle>
+        <DialogTitle id="video-dialog-title">
           <Box display="flex" alignItems="center" justifyContent="space-between">
             <Typography variant="h6">
               {selectedVideo?.title}
@@ -540,7 +605,7 @@ const VideoLibrary = () => {
             </IconButton>
           </Box>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent id="video-dialog-content">
           {loadingUrl && (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
               <CircularProgress />
@@ -548,17 +613,39 @@ const VideoLibrary = () => {
           )}
           {!loadingUrl && videoUrl && (
             <Box>
-              <video
-                src={videoUrl}
-                controls
-                autoPlay
-                loop
-                style={{
-                  width: '100%',
-                  maxHeight: '70vh',
-                  borderRadius: '8px',
-                }}
-              />
+              {(() => {
+                // Detectar se é imagem ou vídeo pelo storage_path
+                const isImage = selectedVideo?.storage_path?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+
+                if (isImage) {
+                  return (
+                    <img
+                      src={videoUrl}
+                      alt={selectedVideo?.title}
+                      style={{
+                        width: '100%',
+                        maxHeight: '70vh',
+                        borderRadius: '8px',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  );
+                } else {
+                  return (
+                    <video
+                      src={videoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      style={{
+                        width: '100%',
+                        maxHeight: '70vh',
+                        borderRadius: '8px',
+                      }}
+                    />
+                  );
+                }
+              })()}
               {selectedVideo?.description && (
                 <Typography variant="body2" color="text.secondary" mt={2}>
                   {selectedVideo.description}
@@ -585,7 +672,7 @@ const VideoLibrary = () => {
           )}
           {!loadingUrl && !videoUrl && (
             <Alert severity="error">
-              Não foi possível carregar o vídeo
+              Não foi possível carregar a mídia
             </Alert>
           )}
         </DialogContent>
@@ -600,6 +687,117 @@ const VideoLibrary = () => {
           loadStats();
         }}
       />
+
+      {/* Dialog de Edição */}
+      <Dialog
+        open={editDialogOpen}
+        onClose={handleEditCancel}
+        maxWidth="sm"
+        fullWidth
+        aria-labelledby="edit-dialog-title"
+        aria-describedby="edit-dialog-content"
+        disableEnforceFocus
+      >
+        <DialogTitle id="edit-dialog-title">Editar Vídeo</DialogTitle>
+        <DialogContent id="edit-dialog-content">
+          <Grid container spacing={4} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Título"
+                value={editFormData.title}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                disabled={editLoading}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Descrição"
+                multiline
+                rows={3}
+                value={editFormData.description}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                disabled={editLoading}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth disabled={editLoading}>
+                <InputLabel>Nível</InputLabel>
+                <Select
+                  value={editFormData.level}
+                  label="Nível"
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, level: e.target.value as any }))}
+                >
+                  <MenuItem value="beginner">Iniciante</MenuItem>
+                  <MenuItem value="intermediate">Intermediário</MenuItem>
+                  <MenuItem value="advanced">Avançado</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth disabled={editLoading}>
+                <InputLabel>Plano</InputLabel>
+                <Select
+                  value={editFormData.plane}
+                  label="Plano"
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, plane: e.target.value as any }))}
+                >
+                  <MenuItem value="frontal">Frontal</MenuItem>
+                  <MenuItem value="lateral">Lateral</MenuItem>
+                  <MenuItem value="dorsal">Dorsal</MenuItem>
+                  <MenuItem value="detail">Detalhe</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth disabled={editLoading}>
+                <InputLabel>Tipo</InputLabel>
+                <Select
+                  value={editFormData.type}
+                  label="Tipo"
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, type: e.target.value as any }))}
+                >
+                  <MenuItem value="demo">Demonstração</MenuItem>
+                  <MenuItem value="education">Educativo</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth disabled={editLoading}>
+                <InputLabel>Gênero</InputLabel>
+                <Select
+                  value={editFormData.genre}
+                  label="Gênero"
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, genre: e.target.value as any }))}
+                >
+                  <MenuItem value="strength">Força</MenuItem>
+                  <MenuItem value="cardio">Cardio</MenuItem>
+                  <MenuItem value="mobility">Mobilidade</MenuItem>
+                  <MenuItem value="core">Core</MenuItem>
+                  <MenuItem value="balance">Equilíbrio</MenuItem>
+                  <MenuItem value="flexibility">Flexibilidade</MenuItem>
+                  <MenuItem value="power">Potência</MenuItem>
+                  <MenuItem value="endurance">Resistência</MenuItem>
+                  <MenuItem value="other">Outro</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditCancel} disabled={editLoading}>
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleEditSave}
+            disabled={editLoading || !editFormData.title.trim()}
+          >
+            {editLoading ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

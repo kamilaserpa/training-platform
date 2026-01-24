@@ -8,10 +8,6 @@ import * as yup from 'yup'
 
 // Imports dos componentes
 import { AddExerciseModal } from '../../components/treinos/AddExerciseModal'
-import { useEffect, useState } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import * as yup from 'yup'
 
 // Imports dos serviços
 import logoImage from '../../assets/images/logo-main.png'
@@ -20,61 +16,57 @@ import { movementPatternService } from '../../services/movementPatternService'
 import { trainingService } from '../../services/trainingService'
 import { videoService } from '../../services/videoService'
 import { weekService } from '../../services/weekService'
-import { weekService } from '../../services/weekService'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
 
 import {
-  Alert,
-  Autocomplete,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Grid,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
-  Snackbar,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography
+    Alert,
+    Autocomplete,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Chip,
+    CircularProgress,
+    Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    Grid,
+    IconButton,
+    List,
+    ListItem,
+    ListItemText,
+    Paper,
+    Snackbar,
+    Stack,
+    TextField,
+    Tooltip,
+    Typography
 } from '@mui/material'
 
 import {
-  Add as AddIcon,
-  ArrowBack as ArrowBackIcon,
-  CheckCircle as CheckCircleIcon,
-  ContentCopy as CopyIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Link as LinkIcon,
-  PictureAsPdf as PdfIcon,
-  Save as SaveIcon,
-  Share as ShareIcon,
-  Timer as TimerIcon,
-  VideoLibrary as VideoIcon
-  Save as SaveIcon,
-  Share as ShareIcon,
-  Timer as TimerIcon,
+    Add as AddIcon,
+    ArrowBack as ArrowBackIcon,
+    CheckCircle as CheckCircleIcon,
+    ContentCopy as CopyIcon,
+    Delete as DeleteIcon,
+    Edit as EditIcon,
+    Link as LinkIcon,
+    PictureAsPdf as PdfIcon,
+    Save as SaveIcon,
+    Share as ShareIcon,
+    Timer as TimerIcon,
+    VideoLibrary as VideoIcon
 } from '@mui/icons-material'
 
 import {
-  FormCheckbox,
-  FormDatePicker,
-  FormInput,
-  FormSelect,
+    FormCheckbox,
+    FormDatePicker,
+    FormInput,
+    FormSelect,
 } from '../../components/form'
 
 // Schema de validação (Yup)
@@ -124,7 +116,7 @@ function TreinoForm() {
       padrao_movimento: '',
       observacoes: '',
       observacoes_internas: '',
-      link_ativo: false,
+      link_ativo: true,
     },
   })
 
@@ -2506,6 +2498,7 @@ function TreinoForm() {
         initialExercise={editingModalData?.exercise || null}
         initialVideo={editingModalData?.video || null}
         initialConfig={editingModalData?.config || null}
+        section={addExerciseModalSection}
       />
 
       {/* Dialog para Adicionar/Editar Itens */}
@@ -2607,6 +2600,9 @@ function TreinoForm() {
                         !ex.tags?.includes('estabilizacao')
                       )
 
+                      console.log('💪 Debug Core - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('💪 Debug Core - Outros exercícios depois:', otherExercises.length)
+
                       // Retornar todos: primeiro os relevantes, depois os outros
                       return [...taggedExercises, ...otherExercises]
                     })()}
@@ -2627,6 +2623,23 @@ function TreinoForm() {
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     noOptionsText="Nenhum exercício encontrado"
                     loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
@@ -2689,6 +2702,9 @@ function TreinoForm() {
                         !ex.tags?.includes('potencia')
                       )
 
+                      console.log('⚡ Debug Neural - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('⚡ Debug Neural - Outros exercícios depois:', otherExercises.length)
+
                       // Retornar todos: primeiro os relevantes, depois os outros
                       return [...taggedExercises, ...otherExercises]
                     })()}
@@ -2709,6 +2725,23 @@ function TreinoForm() {
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     noOptionsText="Nenhum exercício encontrado"
                     loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -2747,7 +2780,32 @@ function TreinoForm() {
               <Grid container spacing={4}>
                 <Grid item xs={12}>
                   <Autocomplete
-                    options={exerciciosOptions}
+                    options={(() => {
+                      // Separar exercícios por relevância: com tags relacionadas primeiro
+                      const taggedExercises = exerciciosOptions.filter(ex =>
+                        ex.tags?.includes('forca') ||
+                        ex.tags?.includes('empurrar') ||
+                        ex.tags?.includes('puxar') ||
+                        ex.tags?.includes('squat') ||
+                        ex.tags?.includes('hinge') ||
+                        ex.tags?.includes('lunge')
+                      )
+
+                      const otherExercises = exerciciosOptions.filter(ex =>
+                        !ex.tags?.includes('forca') &&
+                        !ex.tags?.includes('empurrar') &&
+                        !ex.tags?.includes('puxar') &&
+                        !ex.tags?.includes('squat') &&
+                        !ex.tags?.includes('hinge') &&
+                        !ex.tags?.includes('lunge')
+                      )
+
+                      console.log('🏋️‍♀️ Debug Treino Principal - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('🏋️‍♀️ Debug Treino Principal - Outros exercícios depois:', otherExercises.length)
+
+                      // Retornar todos: primeiro os relevantes, depois os outros
+                      return [...taggedExercises, ...otherExercises]
+                    })()}
                     value={exerciciosOptions.find(opt => opt.id === formData.exercicioId) || null}
                     onChange={(_, newValue) => setFormData({
                       ...formData,
@@ -2765,6 +2823,23 @@ function TreinoForm() {
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     noOptionsText="Nenhum exercício encontrado"
                     loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
                   />
                 </Grid>
 
@@ -2896,6 +2971,9 @@ function TreinoForm() {
                         !ex.tags?.includes('circuito')
                       )
 
+                      console.log('🔥 Debug Condicionamento - Exercícios com tags relevantes primeiro:', taggedExercises.length)
+                      console.log('🔥 Debug Condicionamento - Outros exercícios depois:', otherExercises.length)
+
                       // Retornar todos: primeiro os relevantes, depois os outros
                       return [...taggedExercises, ...otherExercises]
                     })()}
@@ -2916,6 +2994,23 @@ function TreinoForm() {
                     isOptionEqualToValue={(option, value) => option.id === value.id}
                     noOptionsText="Nenhum exercício encontrado"
                     loading={loading}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps}>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {option.label}
+                            </Typography>
+                            {option.tags && option.tags.length > 0 && (
+                              <Typography variant="caption" color="text.secondary">
+                                Tags: {option.tags.join(', ')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </li>
+                      );
+                    }}
                   />
                 </Grid>
 

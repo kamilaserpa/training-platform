@@ -1,33 +1,33 @@
 import {
-  AccessTime as AccessTimeIcon,
-  EventAvailable as EventAvailableIcon,
-  ExpandMore as ExpandMoreIcon,
-  FitnessCenter as FitnessCenterIcon,
-  Info as InfoIcon,
-  PictureAsPdf as PdfIcon,
-  PlayCircleOutline as PlayCircleOutlineIcon,
-  Repeat as RepeatIcon,
-  Timer as TimerIcon
+    AccessTime as AccessTimeIcon,
+    EventAvailable as EventAvailableIcon,
+    ExpandMore as ExpandMoreIcon,
+    FitnessCenter as FitnessCenterIcon,
+    Info as InfoIcon,
+    PictureAsPdf as PdfIcon,
+    PlayCircleOutline as PlayCircleOutlineIcon,
+    Repeat as RepeatIcon,
+    Timer as TimerIcon
 } from '@mui/icons-material'
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Collapse,
-  Container,
-  Divider,
-  Grid,
-  IconButton,
-  Paper,
-  Stack,
-  Tooltip,
-  Typography,
-  useMediaQuery,
-  useTheme,
+    Alert,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Chip,
+    CircularProgress,
+    Collapse,
+    Container,
+    Divider,
+    Grid,
+    IconButton,
+    Paper,
+    Stack,
+    Tooltip,
+    Typography,
+    useMediaQuery,
+    useTheme,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -291,6 +291,22 @@ const TreinoPublico = () => {
           >
             {treino.name}
           </Typography>
+
+
+          {/* Nome do Profissional */}
+          {treino.user && (
+            <Typography
+              variant="subtitle1"
+              sx={{
+                mb: 2,
+                fontWeight: 500,
+                opacity: 0.9,
+                fontSize: { xs: '0.9rem', sm: '1rem' }
+              }}
+            >
+              Treino criado por: <Box component="span" fontWeight="600">{treino.user.name}</Box>
+            </Typography>
+          )}
 
           <Stack
             direction={{ xs: 'column', sm: 'row' }}

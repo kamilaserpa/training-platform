@@ -37,6 +37,8 @@ interface AddExerciseModalProps {
   initialExercise?: Exercise | null;
   initialVideo?: Video | null;
   initialConfig?: ExerciseConfig | null;
+  // Seção do treino para priorização por tags
+  section?: string;
 }
 
 export const AddExerciseModal = ({
@@ -47,6 +49,7 @@ export const AddExerciseModal = ({
   initialExercise = null,
   initialVideo = null,
   initialConfig = null,
+  section,
 }: AddExerciseModalProps) => {
   const [step, setStep] = useState<Step>(editMode ? 'video' : 'exercise');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(initialExercise);
@@ -114,6 +117,11 @@ export const AddExerciseModal = ({
   const handleSkipVideo = () => {
     setSelectedVideo(null);
     setStep('config');
+  };
+
+  const handleRemoveVideo = () => {
+    setSelectedVideo(null);
+    // Não avança o step, fica na seleção de vídeo para o usuário escolher outro ou pular
   };
 
   const handleSave = () => {
@@ -211,13 +219,16 @@ export const AddExerciseModal = ({
 
       <DialogContent dividers>
         {step === 'exercise' && (
-          <ExerciseSelector onSelect={handleExerciseSelect} />
+          <ExerciseSelector
+            onSelect={handleExerciseSelect}
+            section={section}
+          />
         )}
 
         {step === 'video' && selectedExercise && (
           <Box>
             {editMode && (
-              <Box mb={2} pb={{xs: 0, sm: 2}} bgcolor="info.lighter" borderRadius={1}>
+              <Box mb={2} pb={{ xs: 0, sm: 2 }} bgcolor="info.lighter" borderRadius={1}>
                 <Typography variant="body2">
                   Você pode selecionar ou pular para continuar sem vídeo.
                 </Typography>
@@ -227,6 +238,7 @@ export const AddExerciseModal = ({
               exerciseId={selectedExercise.id}
               onSelect={handleVideoSelect}
               selectedVideoId={selectedVideo?.id}
+              onRemove={selectedVideo ? handleRemoveVideo : undefined}
             />
           </Box>
         )}

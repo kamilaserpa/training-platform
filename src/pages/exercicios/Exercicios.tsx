@@ -4,19 +4,13 @@ import {
   Edit as EditIcon
 } from '@mui/icons-material';
 import {
-  Container,
-  Grid,
-  Typography,
+  Alert,
+  Autocomplete,
+  Box,
   Button,
   Card,
   CardContent,
   Chip,
-  CircularProgress,
-  Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   CircularProgress,
   Container,
   Dialog,
@@ -50,15 +44,7 @@ import { exerciseService } from '../../services/exerciseService';
 import { movementPatternService } from '../../services/movementPatternService';
 import type { CreateExerciseDTO, Exercise, MovementPattern } from '../../types/database.types';
 
-import { ExerciseVideo } from 'components/ExerciseVideo';
-import { VideoUpload } from 'components/form/VideoUpload';
 import { useFetchExercises } from 'hooks/useFetchExercises';
-import { signedUrlCache } from 'services/privateVideoStorage';
-
-// Componente auxiliar para exibir vídeo na tabela
-function ExerciseVideoCell({ videoPath, exerciseName }: { videoPath?: string; exerciseName: string }) {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
 // Tags predefinidas para exercícios
 const PREDEFINED_TAGS = [
@@ -88,6 +74,7 @@ const PREDEFINED_TAGS = [
   'hinge',
   'lunge',
   'rotacao',
+  'isometria',
 
   // Grupos musculares
   'peito',
@@ -112,49 +99,7 @@ const PREDEFINED_TAGS = [
   'elastico'
 ];
 
-  useEffect(() => {
-    const loadVideo = async () => {
-      if (videoPath) {
-        try {
-          setLoading(true);
-          const url = await signedUrlCache.getOrCreate(videoPath);
-          setVideoUrl(url);
-        } catch (error) {
-          console.error('Erro ao carregar vídeo:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    loadVideo();
-  }, [videoPath]);
 
-  if (!videoPath) {
-    return (
-      <Typography variant="caption" color="text.secondary">
-        Sem vídeo
-      </Typography>
-    );
-  }
-
-  if (loading) {
-    return <CircularProgress size={20} />;
-  }
-
-  if (!videoUrl) {
-    return (
-      <Typography variant="caption" color="error">
-        Erro ao carregar
-      </Typography>
-    );
-  }
-
-  return (
-    <Box sx={{ width: 100, height: 75 }}>
-      <ExerciseVideo videoUrl={videoUrl} alt={`Demonstração: ${exerciseName}`} />
-    </Box>
-  );
-}
 
 // Interface para props do dialog
 interface ExerciseDialogProps {
@@ -178,22 +123,16 @@ function ExerciseDialog({
     movement_pattern_id: editingData?.movement_pattern_id || '',
     instructions: editingData?.instructions || '',
     description: editingData?.description || '',
-    video_path: editingData?.video_path || '',        // ← Adicionar
-    video_size_kb: editingData?.video_size_kb || 0,   // ← Adicionar
     tags: editingData?.tags || [],
   });
 
   useEffect(() => {
-    console.log('🔄 [ExerciseDialog] editingData mudou:', editingData);
-
     if (editingData) {
       setFormData({
         name: editingData.name || '',
         movement_pattern_id: editingData.movement_pattern_id || '',
         instructions: editingData.instructions || '',
         description: editingData.description || '',
-        video_path: editingData.video_path || '',        // ← Adicionar
-        video_size_kb: editingData.video_size_kb || 0,   // ← Adicionar
         tags: editingData.tags || [],
       });
     } else {
@@ -202,8 +141,6 @@ function ExerciseDialog({
         movement_pattern_id: '',
         instructions: '',
         description: '',
-        video_path: '',      // ← Adicionar
-        video_size_kb: 0,    // ← Adicionar
         tags: [],
       });
     }
@@ -223,30 +160,13 @@ function ExerciseDialog({
     }));
   };
 
-  // Handlers para upload de vídeo
-  const handleVideoUploadSuccess = (path: string, sizeKB: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      video_path: path,
-      video_size_kb: sizeKB,
-    }));
-  };
 
-  const handleVideoDelete = () => {
-    setFormData((prev) => ({
-      ...prev,
-      video_path: '',
-      video_size_kb: 0,
-    }));
-  };
 
   const handleSave = () => {
     if (!formData.name.trim()) {
       alert('Por favor, informe o nome do exercício');
       return;
     }
-
-    console.log('💾 [ExerciseDialog] Salvando exercício:', formData);
 
     // Preparar dados garantindo que campos vazios sejam null (não undefined)
     const exerciseData: CreateExerciseDTO = {
@@ -255,8 +175,6 @@ function ExerciseDialog({
       instructions: formData.instructions?.trim() || undefined,
       description: formData.description?.trim() || undefined,
       tags: formData.tags && formData.tags.length > 0 ? formData.tags : undefined,
-      video_path: formData.video_path || undefined,        // ← Adicionar
-      video_size_kb: formData.video_size_kb || undefined,  // ← Adicionar
     };
 
     // Limpar undefined do objeto (PostgreSQL prefere null)
@@ -265,8 +183,6 @@ function ExerciseDialog({
         exerciseData[key as keyof CreateExerciseDTO] = null as any;
       }
     });
-
-    console.log('📤 [ExerciseDialog] Dados preparados para envio:', exerciseData);
 
     onSave(exerciseData);
     onClose();
@@ -360,15 +276,7 @@ function ExerciseDialog({
             />
           </Grid>
 
-          {/* Upload de vídeo */}
-          <Grid item xs={12}>
-            <VideoUpload
-              exerciseId={editingData?.id || 'temp-' + Date.now()}
-              currentVideoPath={formData.video_path}
-              onUploadSuccess={handleVideoUploadSuccess}
-              onDelete={handleVideoDelete}
-            />
-          </Grid>
+
         </Grid>
       </DialogContent>
       <DialogActions>
@@ -382,100 +290,7 @@ function ExerciseDialog({
 }
 
 
-function ExerciseForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    movement_pattern_id: '',
-    video_path: '',      // ← Adicionar
-    video_size_kb: 0,    // ← Adicionar
-  });
 
-  const handleVideoUploadSuccess = (path: string, sizeKB: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      video_path: path,
-      video_size_kb: sizeKB,
-    }));
-  };
-
-  const handleVideoDelete = () => {
-    setFormData((prev) => ({
-      ...prev,
-      video_path: '',
-      video_size_kb: 0,
-    }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('exercises')
-        .insert({
-          name: formData.name,
-          description: formData.description,
-          movement_pattern_id: formData.movement_pattern_id,
-          video_path: formData.video_path,        // ← Salvar
-          video_size_kb: formData.video_size_kb,  // ← Salvar
-          created_by: user?.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      alert('✅ Exercício criado com sucesso!');
-    } catch (error) {
-      console.error('Erro:', error);
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>Novo Exercício</DialogTitle>
-      <DialogContent>
-        <Grid container spacing={2}>
-          {/* Campos existentes */}
-          <Grid item xs={12}>
-            <TextField
-              label="Nome"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              fullWidth
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Descrição"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              multiline
-              rows={3}
-              fullWidth
-            />
-          </Grid>
-
-          {/* NOVO: Upload de vídeo */}
-          <Grid item xs={12}>
-            <VideoUpload
-              exerciseId={formData.id || 'temp-' + Date.now()}
-              currentVideoPath={formData.video_path}
-              onUploadSuccess={handleVideoUploadSuccess}
-              onDelete={handleVideoDelete}
-            />
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
-        <Button onClick={handleSubmit} variant="contained">
-          Salvar
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
 
 function ExerciciosPage() {
   // Cache-first data fetching com IndexedDB
@@ -604,7 +419,6 @@ function ExerciciosPage() {
     if (!confirm(`Tem certeza que deseja excluir o exercício "${exerciseName}"?`)) return;
 
     try {
-      console.log('🗑️ [Exercicios] Excluindo exercício:', id);
       setError(null);
       await exerciseService.deleteExercise(id);
 
@@ -744,9 +558,6 @@ function ExerciciosPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell width="120">
-                    <Typography variant="subtitle2">Vídeo</Typography>
-                  </TableCell>
                   <TableCell>
                     <Typography variant="subtitle2">Nome</Typography>
                   </TableCell>
@@ -767,7 +578,7 @@ function ExerciciosPage() {
               <TableBody>
                 {exercisesFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
                         {searchTerm || filterPadrao !== 'todos'
                           ? 'Nenhum exercício encontrado com os filtros aplicados'
@@ -778,9 +589,6 @@ function ExerciciosPage() {
                 ) : (
                   exercisesFiltrados.map((exercise) => (
                     <TableRow key={exercise.id} hover>
-                      <TableCell>
-                        <ExerciseVideoCell videoPath={exercise.video_path} exerciseName={exercise.name} />
-                      </TableCell>
                       <TableCell>
                         <Typography variant="body2" fontWeight="medium">
                           {exercise.name}

@@ -624,6 +624,11 @@ class TrainingService {
         .from('trainings')
         .select(`
           *,
+          user:users!created_by (
+            id,
+            name,
+            email
+          ),
           training_blocks (
             *,
             exercise_prescriptions (

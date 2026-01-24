@@ -28,13 +28,14 @@ interface VideoSelectorProps {
     exerciseId: string;
     onSelect: (video: Video) => void;
     selectedVideoId?: string;
+    onRemove?: () => void; // Nova prop para remover vídeo selecionado
 }
 
 interface VideoWithUrl extends Video {
     previewUrl?: string;
 }
 
-export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId }: VideoSelectorProps) => {
+export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove }: VideoSelectorProps) => {
     const [videos, setVideos] = useState<VideoWithUrl[]>([]);
     const [filteredVideos, setFilteredVideos] = useState<VideoWithUrl[]>([]);
     const [loading, setLoading] = useState(true);
@@ -230,19 +231,32 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId }: VideoSe
     }
 
     return (
-        <Box>
+        <Box sx={{ paddingTop: { xs: 2, sm: 0 } }}>
             {/* Informação sobre vídeo atual */}
             {selectedVideoId && videos.find(v => v.id === selectedVideoId) && (
                 <Alert
                     severity="info"
-                    sx={{ mb: 2 }}
+                    sx={{ mb: 2, px: 0 }}
                     icon={<CheckIcon />}
+                    action={
+                        onRemove && (
+                            <Button
+                                color="primary"
+                                variant="outlined"
+                                size="small"
+                                onClick={onRemove}
+                                sx={{ fontWeight: 600 }}
+                            >
+                                Remover Vídeo
+                            </Button>
+                        )
+                    }
                 >
                     <Typography variant="body2" fontWeight={600}>
                         Vídeo atual: {videos.find(v => v.id === selectedVideoId)?.title}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        Selecione outro vídeo abaixo para alterá-lo, ou clique em "Pular Vídeo" para remover.
+                    <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                        Selecione outro vídeo abaixo para alterá-lo{onRemove ? ', ou clique em "Remover Vídeo" para removê-lo' : ''}.
                     </Typography>
                 </Alert>
             )}
@@ -398,7 +412,9 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId }: VideoSe
                                                 }}
                                             >
                                                 <video
-                                                    ref={(el) => (videoRefs.current[video.id] = el)}
+                                                    ref={(el) => {
+                                                        videoRefs.current[video.id] = el;
+                                                    }}
                                                     src={video.previewUrl}
                                                     loop
                                                     muted

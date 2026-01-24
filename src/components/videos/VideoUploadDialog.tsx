@@ -1,22 +1,22 @@
 import { Close as CloseIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
 import {
-    Alert,
-    Box,
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    FormControl,
-    FormHelperText,
-    Grid,
-    IconButton,
-    InputLabel,
-    LinearProgress,
-    MenuItem,
-    Select,
-    TextField,
-    Typography,
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormHelperText,
+  Grid,
+  IconButton,
+  InputLabel,
+  LinearProgress,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -35,7 +35,7 @@ interface VideoFormData {
   level: 'beginner' | 'intermediate' | 'advanced';
   plane: 'frontal' | 'lateral' | 'dorsal' | 'detail';
   type: 'demo' | 'education';
-  genre: 'strength' | 'cardio' | 'flexibility' | 'balance' | 'functional' | 'other';
+  genre: 'strength' | 'cardio' | 'mobility' | 'core' | 'balance' | 'flexibility' | 'power' | 'endurance' | 'other';
   source: 'platform' | 'personal';
 }
 
@@ -63,9 +63,12 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
     const file = event.target.files?.[0];
     if (file) {
       // Validar tipo de arquivo
-      const validTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+      const validTypes = [
+        'video/mp4', 'video/webm', 'video/quicktime',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'
+      ];
       if (!validTypes.includes(file.type)) {
-        setError('Formato inválido. Use MP4, WebM ou MOV.');
+        setError('Formato inválido. Use MP4, WebM, MOV, JPG, PNG, GIF ou WEBP.');
         return;
       }
 
@@ -107,7 +110,7 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError('Selecione um arquivo de vídeo');
+      setError('Selecione um arquivo de mídia');
       return;
     }
 
@@ -141,8 +144,9 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
 
       setUploadProgress(60);
 
-      // Obter duração do vídeo
-      const durationSeconds = await getVideoDuration(selectedFile);
+      // Obter duração apenas para vídeos
+      const isVideo = selectedFile.type.startsWith('video/');
+      const durationSeconds = isVideo ? await getVideoDuration(selectedFile) : 0;
 
       setUploadProgress(80);
 
@@ -171,7 +175,7 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
       }, 500);
     } catch (err: any) {
       console.error('Erro ao fazer upload:', err);
-      setError(err.message || 'Erro ao fazer upload do vídeo');
+      setError(err.message || 'Erro ao fazer upload da mídia');
     } finally {
       setUploading(false);
     }
@@ -199,7 +203,7 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Typography variant="h6">Novo Vídeo</Typography>
+          <Typography variant="h6">Nova Mídia</Typography>
           <IconButton
             edge="end"
             color="inherit"
@@ -212,7 +216,7 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
       </DialogTitle>
 
       <DialogContent dividers>
-        <Grid container spacing={2}>
+        <Grid container spacing={4}>
           {/* Upload de arquivo */}
           <Grid item xs={12}>
             <Button
@@ -223,11 +227,11 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
               disabled={uploading}
               sx={{ py: 2 }}
             >
-              {selectedFile ? selectedFile.name : 'Selecionar Vídeo'}
+              {selectedFile ? selectedFile.name : 'Selecionar Mídia'}
               <input
                 type="file"
                 hidden
-                accept="video/mp4,video/webm,video/quicktime"
+                accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/jpg,image/png,image/gif,image/webp"
                 onChange={handleFileSelect}
                 disabled={uploading}
               />
@@ -324,9 +328,12 @@ const VideoUploadDialog = ({ open, onClose, onSuccess }: VideoUploadDialogProps)
               >
                 <MenuItem value="strength">Força</MenuItem>
                 <MenuItem value="cardio">Cardio</MenuItem>
-                <MenuItem value="flexibility">Flexibilidade</MenuItem>
+                <MenuItem value="mobility">Mobilidade</MenuItem>
+                <MenuItem value="core">Core</MenuItem>
                 <MenuItem value="balance">Equilíbrio</MenuItem>
-                <MenuItem value="functional">Funcional</MenuItem>
+                <MenuItem value="flexibility">Flexibilidade</MenuItem>
+                <MenuItem value="power">Potência</MenuItem>
+                <MenuItem value="endurance">Resistência</MenuItem>
                 <MenuItem value="other">Outro</MenuItem>
               </Select>
             </FormControl>

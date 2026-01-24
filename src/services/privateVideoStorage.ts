@@ -1,26 +1,31 @@
 import { supabase } from '../lib/supabase';
 
-export interface VideoUploadResult {
+export interface MediaUploadResult {
   path: string;
   size: number;
   format: string;
+  type: 'video' | 'image';
   url?: string;
 }
 
-export interface VideoListItem {
+export interface MediaListItem {
   name: string;
   size: number;
   created_at: string;
   updated_at: string;
 }
 
+// Manter compatibilidade com código existente
+export interface VideoUploadResult extends MediaUploadResult {}
+export interface VideoListItem extends MediaListItem {}
+
 /**
- * Serviço para gerenciar armazenamento privado de vídeos de exercícios
+ * Serviço para gerenciar armazenamento privado de mídias de exercícios
  *
  * Características:
  * - Bucket privado com RLS
  * - Signed URLs com expiração
- * - Suporte a MP4 e GIF
+ * - Suporte a vídeos (MP4, WEBM) e imagens (JPG, PNG, GIF, WEBP)
  * - Validação de tamanho
  */
 export const privateVideoStorage = {
@@ -29,25 +34,29 @@ export const privateVideoStorage = {
   SIGNED_URL_EXPIRY: 86400, // 24 horas em segundos (permite treinos longos)
 
   /**
-   * Upload de vídeo para bucket privado
-   * Aceita MP4, WEBM ou GIF
+   * Upload de mídia para bucket privado
+   * Aceita vídeos (MP4, WEBM) e imagens (JPG, PNG, GIF, WEBP)
    *
-   * @param file - Arquivo de vídeo
-   * @param videoId - ID único do vídeo (UUID)
+   * @param file - Arquivo de mídia
+   * @param mediaId - ID único da mídia (UUID)
    * @returns Informações do upload
    *
    * @example
-   * const videoId = crypto.randomUUID();
-   * const result = await privateVideoStorage.uploadVideo(file, videoId);
-   * console.log(result.path); // 'videos/uuid.mp4'
+   * const mediaId = crypto.randomUUID();
+   * const result = await privateVideoStorage.uploadVideo(file, mediaId);
+   * console.log(result.path); // 'videos/uuid.mp4' ou 'images/uuid.jpg'
    */
   async uploadVideo(file: File, videoId: string): Promise<VideoUploadResult> {
-    // Validar tipo de arquivo
-    const allowedTypes = ['video/mp4', 'video/webm', 'image/gif'];
+    // Validar tipo de arquivo - vídeos e imagens
+    const allowedTypes = [
+      'video/mp4', 'video/webm', 'video/quicktime',
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'
+    ];
     if (!allowedTypes.includes(file.type)) {
       throw new Error(
-        'Formato não suportado. Use MP4, WEBM ou GIF.\n' +
-          'Recomendado: MP4 (10-20× menor que GIF)',
+        'Formato não suportado.\n' +
+          'Vídeos: MP4, WEBM, QuickTime\n' +
+          'Imagens: JPG, PNG, GIF, WEBP',
       );
     }
 
@@ -61,11 +70,13 @@ export const privateVideoStorage = {
       );
     }
 
-    // Determinar extensão
+    // Determinar extensão e tipo
     const fileExt = this.getFileExtension(file);
-    const filePath = `videos/${videoId}.${fileExt}`;
+    const mediaType = this.getMediaType(file);
+    const folder = mediaType === 'video' ? 'videos' : 'images';
+    const filePath = `${folder}/${videoId}.${fileExt}`;
 
-    console.log(`📤 Fazendo upload: ${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
+    console.log(`📤 Fazendo upload: ${file.name} (${(file.size / 1024).toFixed(0)} KB) - ${mediaType}`);
 
     // Upload para Supabase Storage
     const { error } = await supabase.storage
@@ -86,6 +97,7 @@ export const privateVideoStorage = {
       path: filePath,
       size: file.size,
       format: fileExt,
+      type: mediaType,
     };
   },
 
@@ -158,7 +170,12 @@ export const privateVideoStorage = {
       throw new Error(`Erro ao listar vídeos: ${error.message}`);
     }
 
-    return data as VideoListItem[];
+    return data.map((item) => ({
+      name: item.name,
+      size: item.metadata?.size || 0,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+    }));
   },
 
   /**
@@ -202,10 +219,23 @@ export const privateVideoStorage = {
    * Helpers privados
    */
   getFileExtension(file: File): string {
+    // Vídeos
     if (file.type === 'video/mp4') return 'mp4';
     if (file.type === 'video/webm') return 'webm';
+    if (file.type === 'video/quicktime') return 'mov';
+
+    // Imagens
+    if (file.type === 'image/jpeg') return 'jpg';
+    if (file.type === 'image/jpg') return 'jpg';
+    if (file.type === 'image/png') return 'png';
     if (file.type === 'image/gif') return 'gif';
+    if (file.type === 'image/webp') return 'webp';
+
     return 'mp4'; // fallback
+  },
+
+  getMediaType(file: File): 'video' | 'image' {
+    return file.type.startsWith('video/') ? 'video' : 'image';
   },
 };
 

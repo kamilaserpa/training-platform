@@ -9,7 +9,7 @@ import { theme } from 'theme/theme';
 // Suprimir erros relacionados a extensões do browser
 window.addEventListener('error', (e) => {
   if (e.message?.includes('message channel closed before a response was received') ||
-      e.message?.includes('listener indicated an asynchronous response')) {
+    e.message?.includes('listener indicated an asynchronous response')) {
     e.preventDefault();
     return false;
   }
@@ -18,7 +18,24 @@ window.addEventListener('error', (e) => {
 // Suprimir erros de promise rejeitada relacionados a extensões
 window.addEventListener('unhandledrejection', (e) => {
   if (e.reason?.message?.includes('message channel closed before a response was received') ||
-      e.reason?.message?.includes('listener indicated an asynchronous response')) {
+    e.reason?.message?.includes('listener indicated an asynchronous response')) {
+    e.preventDefault();
+    return false;
+  }
+});
+
+// Suprimir apenas erros de extensões do browser (que não controlamos)
+window.addEventListener('error', (e) => {
+  if (e.message?.includes('message channel closed before a response was received') ||
+    e.message?.includes('listener indicated an asynchronous response')) {
+    e.preventDefault();
+    return false;
+  }
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  if (e.reason?.message?.includes('message channel closed before a response was received') ||
+    e.reason?.message?.includes('listener indicated an asynchronous response')) {
     e.preventDefault();
     return false;
   }
@@ -46,8 +63,6 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register(swUrl)
       .then((registration) => {
-        console.log('✅ SW registered:', registration);
-
         // Force update check (timeout para iOS)
         setTimeout(() => registration.update(), 1000);
 
@@ -58,13 +73,11 @@ if ('serviceWorker' in navigator) {
 
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
-          console.log('🔄 SW update found');
 
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // Novo SW instalado, força ativação
-                console.log('🔄 Novo SW instalado, ativando...');
                 newWorker.postMessage({ type: 'SKIP_WAITING' });
               }
             });
@@ -75,7 +88,6 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (refreshing) return;
           refreshing = true;
-          console.log('🔄 Controller changed, reloading...');
           window.location.reload();
         });
       })
