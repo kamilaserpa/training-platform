@@ -61,6 +61,7 @@ export interface Exercise {
   instructions?: string;
   video_url?: string;
   image_url?: string;
+  tags?: string[]; // Tags para categorizar exercícios
   created_by?: string;
   created_at: string;
   updated_at: string;

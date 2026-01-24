@@ -77,11 +77,11 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
     }
 
     const taggedExercises = exercisesList.filter(
-      (ex) => ex.tags && ex.tags.some((tag) => relevantTags.includes(tag))
+      (ex) => ex.tags && ex.tags.some((tag: string) => relevantTags.includes(tag))
     );
 
     const otherExercises = exercisesList.filter(
-      (ex) => !ex.tags || !ex.tags.some((tag) => relevantTags.includes(tag))
+      (ex) => !ex.tags || !ex.tags.some((tag: string) => relevantTags.includes(tag))
     );
 
     return [...taggedExercises, ...otherExercises];
@@ -209,7 +209,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
                       </Typography>
                       {exercise.tags && exercise.tags.length > 0 && (
                         <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: 'wrap' }}>
-                          {exercise.tags.slice(0, 3).map((tag, index) => (
+                          {exercise.tags.slice(0, 3).map((tag: string, index: number) => (
                             <Chip
                               key={index}
                               label={tag}
