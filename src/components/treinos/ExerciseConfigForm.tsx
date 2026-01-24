@@ -130,7 +130,7 @@ export const ExerciseConfigForm = ({
             <Card sx={{ mb: 3, bgcolor: 'primary.lighter', border: '1px solid', borderColor: 'primary.main' }}>
                 <CardContent>
                     <Grid container spacing={3} alignItems="center">
-                        <Grid item xs={12} sm={7}>
+                        <Grid item xs={7}>
                             <Typography variant="subtitle2" color="primary" gutterBottom>
                                 Exercício Selecionado
                             </Typography>
@@ -143,7 +143,7 @@ export const ExerciseConfigForm = ({
                                 </Typography>
                             )}
                         </Grid>
-                        <Grid item xs={12} sm={5}>
+                        <Grid item xs={5}>
                             <Box sx={{ width: '100%', borderRadius: 1, overflow: 'hidden' }}>
                                 {previewUrl ? (
                                     <ExerciseVideo
@@ -227,7 +227,7 @@ export const ExerciseConfigForm = ({
                         label="Intervalo (seg)"
                         type="number"
                         value={config.rest_seconds || ''}
-                        onChange={(e) => handleChange('rest_seconds', e.target.value ? parseInt(e.target.value) : null)}
+                        onChange={(e) => handleChange('rest_seconds', parseInt(e.target.value) || 0)}
                         fullWidth
                         helperText="Descanso entre séries em segundos"
                         inputProps={{ min: 0 }}
