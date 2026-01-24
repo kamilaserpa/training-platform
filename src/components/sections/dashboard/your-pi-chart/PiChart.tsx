@@ -10,7 +10,7 @@ import { useMemo } from 'react';
 
 interface PiChartProps {
   sx?: SxProps;
-  chartRef: React.RefObject<EChartsReactCore>;
+  chartRef: React.RefObject<EChartsReactCore | null>;
 }
 
 echarts.use([PieChart, TooltipComponent, CanvasRenderer]);
