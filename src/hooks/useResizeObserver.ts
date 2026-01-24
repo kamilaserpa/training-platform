@@ -1,7 +1,7 @@
-import { useState, useEffect, RefObject } from 'react';
+import { RefObject, useEffect, useState } from 'react';
 import ResizeObserver from 'resize-observer-polyfill';
 
-const useResizeObserver = (ref: RefObject<HTMLElement>) => {
+const useResizeObserver = <T extends HTMLElement>(ref: RefObject<T | null>) => {
   const [width, setWidth] = useState(0);
 
   useEffect(() => {

@@ -6,18 +6,20 @@ const Autocomplete: Components<Omit<Theme, 'components'>>['MuiAutocomplete'] = {
     root: ({ theme }) => ({
       '& .MuiInputBase-root': {
         padding: theme.spacing(0, 1.25),
-        borderRadius: theme.shape.borderRadius * 4.5,
+        // borderRadius: theme.shape.borderRadius * 4.5,
+        minHeight: '46px',
       },
       '& .MuiInputBase-input': {
-        padding: theme.spacing(1),
+        padding: theme.spacing(1.125, 0),
         fontSize: theme.typography.body2.fontSize,
         fontWeight: 600,
       },
     }),
     paper: ({ theme }) => ({
-      borderRadius: theme.shape.borderRadius * 1.5,
       boxShadow: theme.shadows[8],
       border: `1px solid ${theme.palette.divider}`,
+      padding: theme.spacing(0.5),
+      marginTop: theme.spacing(0.5),
     }),
     option: ({ theme }) => ({
       fontWeight: 500,
@@ -26,8 +28,8 @@ const Autocomplete: Components<Omit<Theme, 'components'>>['MuiAutocomplete'] = {
       borderRadius: theme.shape.borderRadius * 1.5,
       margin: theme.spacing(0.25, 0.5),
       transition: 'all 0.3s ease-in-out',
-      '&:hover': { 
-        backgroundColor: theme.palette.info.dark 
+      '&:hover': {
+        backgroundColor: theme.palette.info.dark
       },
       '&[aria-selected="true"]': {
         backgroundColor: theme.palette.primary.main,

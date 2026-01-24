@@ -142,7 +142,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
             )}
           </Stack>
 
-          <Box sx={{ mt: 2, mx: -2, p: 0 }}>
+          <Box sx={{ mt: 2, mx: -2}}>
             {dias.map((dia) => (
               <Accordion
                 key={dia.key}

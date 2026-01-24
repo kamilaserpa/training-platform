@@ -135,7 +135,7 @@ self.addEventListener('fetch', (event) => {
 // Do NOT cache HTML - causes iOS standalone mode to hang
 async function handleNavigateNetworkOnly(request) {
   console.log('[SW] Navigation request:', request.url);
-  
+
   try {
     // Direct network fetch with generous timeout for iOS
     const networkResp = await Promise.race([
@@ -149,14 +149,14 @@ async function handleNavigateNetworkOnly(request) {
     ]);
 
     console.log('[SW] Navigation response:', networkResp.status);
-    
+
     // Return response WITHOUT caching
     // This prevents iOS PWA hang on subsequent visits
     return networkResp;
-    
+
   } catch (error) {
     console.error('[SW] Navigation failed:', error);
-    
+
     // Only show offline page on complete network failure
     return new Response(
       `<!DOCTYPE html>

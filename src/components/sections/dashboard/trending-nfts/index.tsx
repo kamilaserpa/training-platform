@@ -1,19 +1,19 @@
-import { useState, useRef } from 'react';
-import { Swiper as SwiperClass } from 'swiper/types';
-import { SwiperSlide } from 'swiper/react';
-import { NFTData } from 'data/NFTData';
-import Stack from '@mui/material/Stack';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import ReactSwiper from 'components/base/ReactSwiper';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
+import ReactSwiper from 'components/base/ReactSwiper';
+import { NFTData } from 'data/NFTData';
 import useResizeObserver from 'hooks/useResizeObserver';
+import { useRef, useState } from 'react';
+import { SwiperSlide } from 'swiper/react';
+import { Swiper as SwiperClass } from 'swiper/types';
 import NFTCard from './NFTCard';
 
 const TrendingNFTs = () => {
   const swiperRef = useRef<SwiperClass | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const containerSize = useResizeObserver(containerRef);
   const [isSlideBegin, setIsSlideBegin] = useState(true);
   const [isSlideEnd, setIsSlideEnd] = useState(false);

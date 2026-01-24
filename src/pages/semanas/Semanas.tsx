@@ -1,53 +1,52 @@
-import { useState, useEffect } from 'react';
 import {
+  Add as AddIcon,
+  Clear as ClearIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  PictureAsPdf as PdfIcon,
+  Search as SearchIcon,
+} from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
   Grid,
-  Typography,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  SelectChangeEvent,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Box,
-  Chip,
-  Button,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  IconButton,
   Tooltip,
-  SelectChangeEvent,
+  Typography
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  Clear as ClearIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  PictureAsPdf as PdfIcon,
-} from '@mui/icons-material';
+import { useEffect, useState } from 'react';
 
 // Serviços e tipos
-import { weekService } from '../../services/weekService';
-import { trainingService } from '../../services/trainingService';
-import { useAuth } from '../../contexts/AuthContext';
-import type { TrainingWeek, WeekFocus, CreateTrainingWeekDTO } from '../../types/database.types';
+import logoImage from '../../assets/images/logo-main.png';
 import { DatabaseSetupAlert } from '../../components/DatabaseSetupAlert';
+import { useAuth } from '../../contexts/AuthContext';
+import { trainingService } from '../../services/trainingService';
+import { weekService } from '../../services/weekService';
+import type { CreateTrainingWeekDTO, TrainingWeek, WeekFocus } from '../../types/database.types';
 import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { imageToBase64 } from '../../utils/pdf/pdfUtils';
-import logoImage from '../../assets/images/logo-main.png';
 
 // Interface para props do dialog
 interface WeekDialogProps {
@@ -180,16 +179,16 @@ function WeekDialog({ open, onClose, onSave, editingData, weekFocuses }: WeekDia
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
       disableRestoreFocus
       disableEnforceFocus
     >
       <DialogTitle>{editingData ? 'Editar Semana' : 'Nova Semana'}</DialogTitle>
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent>
         <Grid container spacing={5} sx={{ mt: 3 }}>
           <Grid item xs={12} sm={6}>
             <TextField
@@ -277,7 +276,7 @@ function SemanasPage() {
   const [filterStatus, setFilterStatus] = useState('todos');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingWeek, setEditingWeek] = useState<TrainingWeek | null>(null);
-  
+
   // Estado para dialog de confirmação de exclusão
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
@@ -301,10 +300,10 @@ function SemanasPage() {
       ]);
 
       // Filtrar duplicatas por ID para evitar chaves duplicadas no React
-      const uniqueWeeks = weeksData.filter((week, index, self) => 
+      const uniqueWeeks = weeksData.filter((week, index, self) =>
         index === self.findIndex(w => w.id === week.id)
       );
-      const uniqueFocuses = focusesData.filter((focus, index, self) => 
+      const uniqueFocuses = focusesData.filter((focus, index, self) =>
         index === self.findIndex(f => f.id === focus.id)
       );
 
@@ -315,7 +314,7 @@ function SemanasPage() {
       setWeekFocuses(uniqueFocuses);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
-      
+
       // Verificar se é erro de autenticação
       if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found') || err?.code === '42501') {
         console.log('🔄 [Auth] Token inválido detectado na inicialização, limpando sessão...');
@@ -354,7 +353,7 @@ function SemanasPage() {
       setEditingWeek(null);
     } catch (err: any) {
       console.error('Erro ao salvar semana:', err);
-      
+
       // Verificar se é erro de autenticação ou RLS
       if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
         console.log('🔄 [Auth] Token inválido detectado, limpando sessão...');
@@ -431,12 +430,12 @@ function SemanasPage() {
     <Grid container spacing={2.5}>
       {error && (
         <Grid item xs={12}>
-          <DatabaseSetupAlert 
-            error={error} 
+          <DatabaseSetupAlert
+            error={error}
             onRetry={() => {
               setError(null);
               loadInitialData();
-            }} 
+            }}
           />
         </Grid>
       )}
@@ -450,7 +449,7 @@ function SemanasPage() {
           <Button
             variant="contained"
             onClick={handleAddWeek}
-            sx={{ 
+            sx={{
               minWidth: { xs: 'auto', sm: 150 },
               px: { xs: 1.5, sm: 2 },
               display: 'flex',
@@ -486,7 +485,7 @@ function SemanasPage() {
               <Button
                 variant="outlined"
                 onClick={clearFilters}
-                sx={{ 
+                sx={{
                   minWidth: { xs: '48px', md: 120 },
                   width: { xs: '48px', md: 'auto' },
                   px: { xs: 1, md: 2 },

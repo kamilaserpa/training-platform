@@ -1,49 +1,104 @@
-import { useState, useMemo, useEffect } from 'react';
 import {
-  Container,
-  Grid,
-  Typography,
-  Button,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon
+} from '@mui/icons-material';
+import {
+  Alert,
+  Autocomplete,
   Box,
+  Button,
   Card,
   CardContent,
-  TextField,
+  Chip,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
+  Grid,
+  IconButton,
   InputLabel,
-  Select,
   MenuItem,
+  Paper,
+  Select,
+  SelectChangeEvent,
+  Snackbar,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  IconButton,
+  TextField,
   Tooltip,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  SelectChangeEvent,
+  Typography,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  FilterList as FilterListIcon,
-} from '@mui/icons-material';
+import { useEffect, useMemo, useState } from 'react';
 
 // Serviços e tipos
 import { exerciseService } from '../../services/exerciseService';
 import { movementPatternService } from '../../services/movementPatternService';
-import type { Exercise, MovementPattern, CreateExerciseDTO } from '../../types/database.types';
+import type { CreateExerciseDTO, Exercise, MovementPattern } from '../../types/database.types';
 
 import { useFetchExercises } from 'hooks/useFetchExercises';
+
+// Tags predefinidas para exercícios
+const PREDEFINED_TAGS = [
+  // Categorias principais
+  'mobilidade',
+  'core',
+  'ativacao',
+  'forca',
+  'condicionamento',
+
+  // Subcategorias
+  'articulacao',
+  'alongamento',
+  'estabilizacao',
+  'pliometrico',
+  'potencia',
+  'cardio',
+  'hiit',
+  'resistencia',
+  'circuito',
+  'neural',
+
+  // Padrões de movimento
+  'empurrar',
+  'puxar',
+  'squat',
+  'hinge',
+  'lunge',
+  'rotacao',
+  'isometria',
+
+  // Grupos musculares
+  'peito',
+  'costas',
+  'ombro',
+  'bracos',
+  'pernas',
+  'gluteo',
+  'panturrilha',
+  'abdomen',
+
+  // Intensidade
+  'baixa',
+  'media',
+  'alta',
+
+  // Equipamentos
+  'peso_livre',
+  'maquina',
+  'cabo',
+  'corporal',
+  'elastico'
+];
+
 
 
 // Interface para props do dialog
@@ -68,18 +123,17 @@ function ExerciseDialog({
     movement_pattern_id: editingData?.movement_pattern_id || '',
     instructions: editingData?.instructions || '',
     description: editingData?.description || '',
+    tags: editingData?.tags || [],
   });
 
   useEffect(() => {
-    console.log('🔄 [ExerciseDialog] editingData mudou:', editingData);
-    
     if (editingData) {
       setFormData({
         name: editingData.name || '',
-
         movement_pattern_id: editingData.movement_pattern_id || '',
         instructions: editingData.instructions || '',
         description: editingData.description || '',
+        tags: editingData.tags || [],
       });
     } else {
       setFormData({
@@ -87,6 +141,7 @@ function ExerciseDialog({
         movement_pattern_id: '',
         instructions: '',
         description: '',
+        tags: [],
       });
     }
   }, [editingData]);
@@ -105,21 +160,21 @@ function ExerciseDialog({
     }));
   };
 
+
+
   const handleSave = () => {
     if (!formData.name.trim()) {
       alert('Por favor, informe o nome do exercício');
       return;
     }
 
-    console.log('💾 [ExerciseDialog] Salvando exercício:', formData);
-
     // Preparar dados garantindo que campos vazios sejam null (não undefined)
     const exerciseData: CreateExerciseDTO = {
       name: formData.name.trim(),
-      // muscle_groups: formData.muscle_group?.trim() || null, // Teste com muscle_groups (plural)
       movement_pattern_id: formData.movement_pattern_id || undefined,
       instructions: formData.instructions?.trim() || undefined,
       description: formData.description?.trim() || undefined,
+      tags: formData.tags && formData.tags.length > 0 ? formData.tags : undefined,
     };
 
     // Limpar undefined do objeto (PostgreSQL prefere null)
@@ -128,8 +183,6 @@ function ExerciseDialog({
         exerciseData[key as keyof CreateExerciseDTO] = null as any;
       }
     });
-
-    console.log('📤 [ExerciseDialog] Dados preparados para envio:', exerciseData);
 
     onSave(exerciseData);
     onClose();
@@ -140,7 +193,7 @@ function ExerciseDialog({
       <DialogTitle>
         {editingData ? `Editar Exercício: ${editingData.name}` : 'Novo Exercício'}
       </DialogTitle>
-      <DialogContent sx={{ pt: 2, p: 0 }}>
+      <DialogContent>
         <Grid container spacing={5} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6} md={4}>
             <TextField
@@ -171,6 +224,35 @@ function ExerciseDialog({
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <Autocomplete
+              multiple
+              freeSolo
+              options={PREDEFINED_TAGS}
+              value={formData.tags || []}
+              onChange={(_, newValue) => {
+                setFormData(prev => ({ ...prev, tags: newValue }));
+              }}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    variant="outlined"
+                    label={option}
+                    size="small"
+                    {...getTagProps({ index })}
+                  />
+                ))
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Tags (Opcional)"
+                  placeholder="Digite ou selecione tags"
+                  helperText="Ex: mobilidade, core, força, etc."
+                />
+              )}
+            />
+          </Grid>
           <Grid item xs={12}>
             <TextField
               label="Instruções"
@@ -182,7 +264,7 @@ function ExerciseDialog({
               fullWidth
             />
           </Grid>
-            <Grid item xs={12}>
+          <Grid item xs={12}>
             <TextField
               label="Descrição"
               value={formData.description}
@@ -193,10 +275,12 @@ function ExerciseDialog({
               fullWidth
             />
           </Grid>
+
+
         </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
+        <Button onClick={onClose} variant="outlined" color="inherit">Cancelar</Button>
         <Button onClick={handleSave} variant="contained">
           {editingData ? 'Salvar' : 'Adicionar'}
         </Button>
@@ -205,6 +289,9 @@ function ExerciseDialog({
   );
 }
 
+
+
+
 function ExerciciosPage() {
   // Cache-first data fetching com IndexedDB
   const {
@@ -212,7 +299,7 @@ function ExerciciosPage() {
     isLoading: loadingExercises,
     refetch: refetchExercises,
   } = useFetchExercises();
-  
+
   const [movementPatterns, setMovementPatterns] = useState<MovementPattern[]>([]);
   const [loadingPatterns, setLoadingPatterns] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -220,11 +307,11 @@ function ExerciciosPage() {
   const [filterPadrao, setFilterPadrao] = useState('todos');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  
+
   // Estados para feedback
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+
   // Usar exercícios do cache ou array vazio
   const exercises = exercisesFromCache || [];
   const loading = loadingExercises || loadingPatterns;
@@ -232,12 +319,12 @@ function ExerciciosPage() {
   // Carregar apenas padrões de movimento (exercícios vêm do cache)
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadPatterns = async () => {
       try {
         setLoadingPatterns(true);
         setError(null);
-        
+
         const patternsData = await movementPatternService.getAllMovementPatterns();
 
         if (!isMounted) return;
@@ -245,9 +332,9 @@ function ExerciciosPage() {
       } catch (err: any) {
         if (!isMounted) return;
         console.error('❌ [Exercicios] Erro ao carregar padrões:', err);
-        
+
         let errorMessage = 'Erro ao carregar padrões de movimento. ';
-        
+
         if (err.code === '42501') {
           errorMessage += 'Problema de permissão. Verifique as políticas RLS no Supabase.';
         } else if (err.code === 'PGRST116') {
@@ -257,7 +344,7 @@ function ExerciciosPage() {
         } else {
           errorMessage += `Detalhes: ${err.message || 'Erro desconhecido'}.`;
         }
-        
+
         setError(errorMessage);
       } finally {
         if (isMounted) {
@@ -265,9 +352,9 @@ function ExerciciosPage() {
         }
       }
     };
-    
+
     loadPatterns();
-    
+
     return () => {
       isMounted = false;
     };
@@ -295,7 +382,7 @@ function ExerciciosPage() {
   const handleSaveExercise = async (exerciseData: CreateExerciseDTO) => {
     try {
       setError(null);
-      
+
       if (editingExercise) {
         const updated = await exerciseService.updateExercise(editingExercise.id, exerciseData);
         setSuccessMessage(`Exercício "${updated.name}" atualizado com sucesso!`);
@@ -306,12 +393,12 @@ function ExerciciosPage() {
 
       // Atualizar cache com dados frescos
       await refetchExercises();
-      
+
       setOpenDialog(false);
       setEditingExercise(null);
       setShowSuccess(true);
     } catch (err: any) {
-      
+
       let errorMessage = 'Erro ao salvar exercício. ';
       if (err.code === '42501') {
         errorMessage += 'Sem permissão para esta operação.';
@@ -320,7 +407,7 @@ function ExerciciosPage() {
       } else {
         errorMessage += err.message || 'Tente novamente.';
       }
-      
+
       setError(errorMessage);
     }
   };
@@ -328,23 +415,22 @@ function ExerciciosPage() {
   const handleDeleteExercise = async (id: string) => {
     const exerciseToDelete = exercises.find(ex => ex.id === id);
     const exerciseName = exerciseToDelete?.name || 'exercício';
-    
+
     if (!confirm(`Tem certeza que deseja excluir o exercício "${exerciseName}"?`)) return;
 
     try {
-      console.log('🗑️ [Exercicios] Excluindo exercício:', id);
       setError(null);
       await exerciseService.deleteExercise(id);
-      
+
       // Atualizar cache com dados frescos
       await refetchExercises();
-      
+
       setSuccessMessage(`Exercício "${exerciseName}" excluído com sucesso!`);
       setShowSuccess(true);
       console.log('✅ [Exercicios] Exercício excluído com sucesso');
     } catch (err: any) {
       console.error('❌ [Exercicios] Erro ao deletar exercício:', err);
-      
+
       let errorMessage = 'Erro ao excluir exercício. ';
       if (err.code === '42501') {
         errorMessage += 'Sem permissão para esta operação.';
@@ -353,7 +439,7 @@ function ExerciciosPage() {
       } else {
         errorMessage += err.message || 'Tente novamente.';
       }
-      
+
       setError(errorMessage);
     }
   };
@@ -381,14 +467,14 @@ function ExerciciosPage() {
   return (
     <Container maxWidth="xl" sx={{ py: 4, px: { xs: 0, sm: 3 } }}>
       {error && (
-        <Alert 
-          severity="error" 
-          onClose={() => setError(null)} 
+        <Alert
+          severity="error"
+          onClose={() => setError(null)}
           sx={{ mb: 3 }}
           action={
-            <Button 
-              color="inherit" 
-              size="small" 
+            <Button
+              color="inherit"
+              size="small"
               onClick={loadInitialData}
               disabled={loading}
             >
@@ -479,6 +565,9 @@ function ExerciciosPage() {
                     <Typography variant="subtitle2">Padrão de Movimento</Typography>
                   </TableCell>
                   <TableCell>
+                    <Typography variant="subtitle2">Tags</Typography>
+                  </TableCell>
+                  <TableCell>
                     <Typography variant="subtitle2">Descrição</Typography>
                   </TableCell>
                   <TableCell align="center">
@@ -509,6 +598,33 @@ function ExerciciosPage() {
                         <Typography variant="body2" color="text.secondary">
                           {exercise.movement_pattern?.name || '-'}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {exercise.tags && exercise.tags.length > 0 ? (
+                            exercise.tags.slice(0, 3).map((tag, index) => (
+                              <Chip
+                                key={index}
+                                label={tag}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontSize: '0.75rem' }}
+                              />
+                            ))
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              -
+                            </Typography>
+                          )}
+                          {exercise.tags && exercise.tags.length > 3 && (
+                            <Chip
+                              label={`+${exercise.tags.length - 3}`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: '0.75rem' }}
+                            />
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
@@ -565,9 +681,9 @@ function ExerciciosPage() {
         onClose={() => setShowSuccess(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setShowSuccess(false)} 
-          severity="success" 
+        <Alert
+          onClose={() => setShowSuccess(false)}
+          severity="success"
           variant="filled"
           sx={{ width: '100%' }}
         >
