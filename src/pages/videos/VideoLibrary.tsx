@@ -33,13 +33,16 @@ import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import VideoUploadDialog from '../../components/videos/VideoUploadDialog';
+import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { videoService } from '../../services/videoService';
 import type { Video, VideoFilters } from '../../types/database.types';
 
 const VideoLibrary = () => {
+  const { user, loading: authLoading, isAdmin } = useAuth();
+  const canSelectSource = !authLoading && (isAdmin || user?.role === 'admin');
   const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingVideos, setLoadingVideos] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(true);
 
@@ -56,6 +59,7 @@ const VideoLibrary = () => {
     plane: Video['plane'];
     type: Video['type'];
     genre: Video['genre'];
+    source: Video['source'];
   }>({
     title: '',
     description: '',
@@ -63,6 +67,7 @@ const VideoLibrary = () => {
     plane: 'frontal',
     type: 'demo',
     genre: 'strength',
+    source: 'personal',
   });
   const [editLoading, setEditLoading] = useState(false);
 
@@ -91,7 +96,7 @@ const VideoLibrary = () => {
   });
 
   const loadVideos = async () => {
-    setLoading(true);
+    setLoadingVideos(true);
     setError(null);
     try {
       const data = await videoService.getVideos(filters);
@@ -100,7 +105,7 @@ const VideoLibrary = () => {
       console.error('Erro ao carregar vídeos:', err);
       setError(err.message || 'Erro ao carregar vídeos');
     } finally {
-      setLoading(false);
+      setLoadingVideos(false);
     }
   };
 
@@ -162,6 +167,7 @@ const VideoLibrary = () => {
       plane: video.plane,
       type: video.type,
       genre: video.genre,
+      source: video.source,
     });
     setEditDialogOpen(true);
   };
@@ -171,14 +177,20 @@ const VideoLibrary = () => {
 
     setEditLoading(true);
     try {
-      await videoService.updateVideo(editingVideo.id, {
+      const updates: any = {
         title: editFormData.title,
         description: editFormData.description || undefined,
         level: editFormData.level,
         plane: editFormData.plane,
         type: editFormData.type,
         genre: editFormData.genre,
-      });
+      };
+
+      if (canSelectSource) {
+        updates.source = editFormData.source;
+      }
+
+      await videoService.updateVideo(editingVideo.id, updates);
 
       loadVideos();
       setEditDialogOpen(false);
@@ -266,6 +278,14 @@ const VideoLibrary = () => {
           />
         );
       },
+    },
+    {
+      field: 'source',
+      headerName: 'Origem',
+      width: 130,
+      renderCell: (params: GridRenderCellParams<Video>) => (
+        <Chip label={params.row.source === 'platform' ? 'Plataforma' : 'Pessoal'} size="small" />
+      ),
     },
     {
       field: 'plane',
@@ -563,7 +583,7 @@ const VideoLibrary = () => {
         <DataGrid
           rows={videos}
           columns={columns}
-          loading={loading}
+          loading={loadingVideos}
           autoHeight
           disableRowSelectionOnClick
           initialState={{
@@ -783,6 +803,21 @@ const VideoLibrary = () => {
                 </Select>
               </FormControl>
             </Grid>
+            {canSelectSource && (
+              <Grid item xs={12}>
+                <FormControl fullWidth disabled={editLoading}>
+                  <InputLabel>Origem</InputLabel>
+                  <Select
+                    value={editFormData.source}
+                    label="Origem"
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, source: e.target.value as any }))}
+                  >
+                    <MenuItem value="personal">Pessoal</MenuItem>
+                    <MenuItem value="platform">Plataforma</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>
