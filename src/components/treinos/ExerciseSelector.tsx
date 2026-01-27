@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { exerciseService } from '../../services/exerciseService';
 import type { CreateExerciseDTO, Exercise } from '../../types/database.types';
@@ -34,6 +34,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
   const [showQuickCreateInline, setShowQuickCreateInline] = useState(false);
   const [creatingExercise, setCreatingExercise] = useState(false);
   const [quickExerciseName, setQuickExerciseName] = useState('');
+  const createAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     loadExercises();
@@ -41,7 +42,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
 
   useEffect(() => {
     if (search.trim()) {
-      const filtered = exercises.filter((ex) =>
+      const filtered = exercises.filter((ex: Exercise) =>
         ex.name.toLowerCase().includes(search.toLowerCase())
       );
       setFilteredExercises(prioritizeExercisesBySection(filtered));
@@ -51,8 +52,6 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
   }, [search, exercises, section]);
 
   const prioritizeExercisesBySection = (exercisesList: Exercise[]) => {
-    if (!section || exercisesList.length === 0) return exercisesList;
-
     let relevantTags: string[] = [];
 
     switch (section) {
@@ -109,6 +108,10 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
   const openQuickCreateInline = () => {
     setQuickExerciseName(search.trim() || '');
     setShowQuickCreateInline(true);
+    // Garantir que os botões fiquem visíveis ao abrir a criação
+    setTimeout(() => {
+      createAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
   };
 
   const cancelQuickCreateInline = () => {
@@ -170,6 +173,8 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
         sx={{ mb: 2 }}
       />
 
+      {/* Área de criação movida para o rodapé abaixo da lista */}
+
       <List
         sx={{
           maxHeight: 400,
@@ -186,16 +191,6 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
                 ? `Nenhum exercício encontrado para "${search}"`
                 : 'Nenhum exercício encontrado'}
             </Typography>
-            {search.trim() && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={openQuickCreateInline}
-                size="small"
-              >
-                Criar "{search}"
-              </Button>
-            )}
           </Box>
         ) : (
           filteredExercises.map((exercise) => (
@@ -238,8 +233,8 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
         )}
       </List>
 
-      {/* Criação rápida inline abaixo da lista */}
-      <Box mt={2}>
+      {/* Bloco de criação abaixo da lista (sempre visível no rodapé) */}
+      <Box mt={2} ref={createAreaRef}>
         {!showQuickCreateInline ? (
           <Button
             variant="outlined"
@@ -254,10 +249,10 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
               },
             }}
           >
-            {search.trim() ? `Criar "${search.trim()}"` : 'Criar novo exercício'}
+            {search.trim() ? `Criar \"${search.trim()}\"` : 'Criar novo exercício'}
           </Button>
         ) : (
-          <Box display="flex" flexDirection="column" gap={2}>
+          <Box display="flex" flexDirection="column" gap={2} pt={4}>
             <TextField
               label="Nome do Exercício *"
               value={quickExerciseName}
@@ -266,8 +261,19 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
               autoFocus
               required
             />
-            <Box display="flex" gap={1}>
-              <Button onClick={cancelQuickCreateInline} disabled={creatingExercise}>
+            <Box
+              display="flex"
+              gap={1}
+              sx={{
+                flexDirection: { xs: 'column', sm: 'row' },
+                '& > button': {
+                  width: { xs: '100%', sm: 'auto' },
+                  minWidth: { sm: 120 },
+                },
+              }}
+            >
+              <Button onClick={cancelQuickCreateInline} disabled={creatingExercise}
+                variant="outlined" color="inherit">
                 Cancelar
               </Button>
               <Button
