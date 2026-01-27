@@ -28,6 +28,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Grid,
   IconButton,
@@ -95,6 +99,15 @@ function TreinoForm() {
   const [trainingBlocks, setTrainingBlocks] = useState([])
   const [editingModalIndex, setEditingModalIndex] = useState(null)
   const [editingModalData, setEditingModalData] = useState(null)
+
+  // Confirmação ao sair para criação de semana
+  const [confirmLeaveSemanasOpen, setConfirmLeaveSemanasOpen] = useState(false)
+  const handleOpenConfirmSemanas = () => setConfirmLeaveSemanasOpen(true)
+  const handleCloseConfirmSemanas = () => setConfirmLeaveSemanasOpen(false)
+  const handleConfirmNavigateToSemanas = () => {
+    setConfirmLeaveSemanasOpen(false)
+    navigate('/pages/semanas')
+  }
 
   // Configuração do React Hook Form
   const methods = useForm({
@@ -1610,7 +1623,7 @@ function TreinoForm() {
                             <Button
                               variant="contained"
                               color="secondary"
-                              onClick={() => navigate('/pages/semanas')}
+                              onClick={handleOpenConfirmSemanas}
                               disabled={submitting}
                               sx={{
                                 minWidth: 'auto',
@@ -2345,6 +2358,46 @@ function TreinoForm() {
         initialConfig={editingModalData?.config || null}
         section={addExerciseModalSection}
       />
+
+      {/* Confirmação para navegar para Semanas */}
+      <Dialog
+        open={confirmLeaveSemanasOpen}
+        onClose={handleCloseConfirmSemanas}
+        aria-labelledby="confirm-leave-semanas-title"
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle id="confirm-leave-semanas-title">
+          Sair do formulário de treino?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Ao seguir para "Criar Semana", você sairá do fluxo do treino. Alterações não salvas podem ser perdidas.
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Deseja continuar para a criação de semana?
+          </Typography>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            px: 3,
+            pb: 2,
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1,
+            alignItems: { xs: 'stretch', sm: 'center' },
+            '& > .MuiButton-root': {
+              width: { xs: '100%', sm: 'auto' }
+            }
+          }}
+        >
+          <Button onClick={handleCloseConfirmSemanas} variant="outlined" color="secondary">
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmNavigateToSemanas} variant="contained" color="secondary">
+            Ir para Semanas
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar para feedback */}
       <Snackbar
