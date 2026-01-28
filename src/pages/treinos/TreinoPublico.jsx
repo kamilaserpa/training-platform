@@ -26,7 +26,6 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useMediaQuery,
   useTheme,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
@@ -49,7 +48,6 @@ const TreinoPublico = () => {
 
   // Hooks do MUI devem estar no topo, antes de qualquer return condicional
   const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const toggleVideoExpanded = (exerciseId) => {
     setExpandedVideos(prev => ({
@@ -367,16 +365,6 @@ const TreinoPublico = () => {
             </Typography>
           </Stack>
         </Box>
-      </Container>
-    )
-  }
-
-  if (error) {
-    return (
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Alert severity="error" sx={{ mb: 4 }}>
-          {error}
-        </Alert>
       </Container>
     )
   }
