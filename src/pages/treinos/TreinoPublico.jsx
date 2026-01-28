@@ -1,33 +1,33 @@
 import {
-    AccessTime as AccessTimeIcon,
-    EventAvailable as EventAvailableIcon,
-    ExpandMore as ExpandMoreIcon,
-    FitnessCenter as FitnessCenterIcon,
-    Info as InfoIcon,
-    PictureAsPdf as PdfIcon,
-    PlayCircleOutline as PlayCircleOutlineIcon,
-    Repeat as RepeatIcon,
-    Timer as TimerIcon
+  AccessTime as AccessTimeIcon,
+  EventAvailable as EventAvailableIcon,
+  ExpandMore as ExpandMoreIcon,
+  FitnessCenter as FitnessCenterIcon,
+  Info as InfoIcon,
+  PictureAsPdf as PdfIcon,
+  PlayCircleOutline as PlayCircleOutlineIcon,
+  Repeat as RepeatIcon,
+  Timer as TimerIcon
 } from '@mui/icons-material'
 import {
-    Alert,
-    Box,
-    Button,
-    Card,
-    CardContent,
-    Chip,
-    CircularProgress,
-    Collapse,
-    Container,
-    Divider,
-    Grid,
-    IconButton,
-    Paper,
-    Stack,
-    Tooltip,
-    Typography,
-    useMediaQuery,
-    useTheme,
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Collapse,
+  Container,
+  Divider,
+  Grid,
+  IconButton,
+  Paper,
+  Stack,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -43,6 +43,7 @@ const TreinoPublico = () => {
   const [treino, setTreino] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [errorType, setErrorType] = useState('') // 'not-found', 'disabled', 'expired', 'generic'
   const [videoUrls, setVideoUrls] = useState({})
   const [expandedVideos, setExpandedVideos] = useState({})
 
@@ -67,13 +68,25 @@ const TreinoPublico = () => {
 
         if (!trainingData) {
           setError('Treino não encontrado ou link expirado.')
+          setErrorType('not-found')
           return
         }
 
-        // Verificar se o link está ativo
-        if (trainingData.link_active === false) {
+        // Verificar se o link está ativo (share_status deve ser 'public')
+        if (trainingData.share_status !== 'public') {
           setError('Este link de compartilhamento foi desativado.')
+          setErrorType('disabled')
           return
+        }
+
+        // Verificar se o link expirou
+        if (trainingData.share_expires_at) {
+          const expirationDate = new Date(trainingData.share_expires_at)
+          if (expirationDate < new Date()) {
+            setError('Este link de compartilhamento expirou.')
+            setErrorType('expired')
+            return
+          }
         }
 
         setTreino(trainingData)
@@ -100,6 +113,7 @@ const TreinoPublico = () => {
       } catch (err) {
         console.error('Erro ao carregar treino público:', err)
         setError('Não foi possível carregar o treino. Verifique se o link está correto.')
+        setErrorType('generic')
       } finally {
         setLoading(false)
       }
@@ -145,6 +159,143 @@ const TreinoPublico = () => {
     return blocks[blockType] || {
       title: blockType.replace(/_/g, ' ')
     }
+  }
+
+  // Componente para exibir tela de link indisponível
+  const LinkUnavailableScreen = () => {
+    const getErrorContent = () => {
+      switch (errorType) {
+        case 'disabled':
+          return {
+            title: '🔒 Link Desativado',
+            message: 'Este link de compartilhamento foi desativado pelo profissional.',
+            subtitle: 'Entre em contato com seu treinador para solicitar um novo link.',
+            color: 'warning'
+          }
+        case 'expired':
+          return {
+            title: '⏰ Link Expirado',
+            message: 'Este link de compartilhamento expirou.',
+            subtitle: 'Solicite um novo link ao seu treinador para acessar o treino.',
+            color: 'info'
+          }
+        case 'not-found':
+          return {
+            title: '🔍 Treino Não Encontrado',
+            message: 'O treino solicitado não foi encontrado.',
+            subtitle: 'Verifique se o link está correto ou entre em contato com seu treinador.',
+            color: 'error'
+          }
+        default:
+          return {
+            title: '⚠️ Link Indisponível',
+            message: 'Não foi possível acessar este treino.',
+            subtitle: 'Verifique o link ou entre em contato com seu treinador.',
+            color: 'error'
+          }
+      }
+    }
+
+    const content = getErrorContent()
+
+    return (
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 3, md: 6 },
+            textAlign: 'center',
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            border: 1,
+            borderColor: 'divider'
+          }}
+        >
+          <Box
+            sx={{
+              mb: 3,
+              fontSize: { xs: 80, md: 120 },
+              lineHeight: 1
+            }}
+          >
+            {content.title.split(' ')[0]}
+          </Box>
+
+          <Typography
+            variant="h4"
+            fontWeight="700"
+            gutterBottom
+            color="text.primary"
+            sx={{ mb: 2 }}
+          >
+            {content.title.substring(content.title.indexOf(' ') + 1)}
+          </Typography>
+
+          <Alert
+            severity={content.color}
+            sx={{
+              mb: 3,
+              '& .MuiAlert-message': {
+                width: '100%',
+                textAlign: 'center'
+              }
+            }}
+          >
+            <Typography variant="body1" fontWeight="500">
+              {content.message}
+            </Typography>
+          </Alert>
+
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ mb: 4, lineHeight: 1.6 }}
+          >
+            {content.subtitle}
+          </Typography>
+
+          <Divider sx={{ my: 4 }} />
+
+          <Stack spacing={2} alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              <strong>💡 Dica:</strong> Links de compartilhamento são controlados pelo seu
+              profissional e podem ser ativados ou desativados a qualquer momento.
+            </Typography>
+
+            {errorType === 'not-found' && (
+              <Box
+                sx={{
+                  p: 2,
+                  bgcolor: 'action.hover',
+                  borderRadius: 2,
+                  width: '100%'
+                }}
+              >
+                <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                  Token: {token || 'não fornecido'}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        </Paper>
+
+        {/* Footer com informação da plataforma */}
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <img
+            src={logoImage}
+            alt="Training Platform"
+            style={{
+              height: 40,
+              opacity: 0.6,
+              marginBottom: 8
+            }}
+          />
+          <Typography variant="caption" color="text.secondary" display="block">
+            Training Platform - Sistema de Gestão de Treinos
+          </Typography>
+        </Box>
+      </Container>
+    )
   }
 
   const formatExerciseProtocol = (prescription) => {
@@ -230,11 +381,17 @@ const TreinoPublico = () => {
     )
   }
 
+  // Se há erro, mostrar tela de link indisponível
+  if (error) {
+    return <LinkUnavailableScreen />
+  }
+
+  // Se não tem treino (mas não tem erro), mostrar mensagem genérica
   if (!treino) {
     return (
       <Container maxWidth="md" sx={{ py: 8 }}>
-        <Alert severity="warning" sx={{ mb: 4 }}>
-          Treino não encontrado ou link expirado.
+        <Alert severity="info" sx={{ mb: 4 }}>
+          Carregando treino...
         </Alert>
       </Container>
     )

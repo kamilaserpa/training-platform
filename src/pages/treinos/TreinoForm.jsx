@@ -1431,14 +1431,13 @@ function TreinoForm() {
         internal_notes: data.observacoes_internas || undefined,
         estimated_duration_minutes: 90, // valor padrão, pode ser ajustado depois
         movement_pattern_id: data.padrao_movimento || null, // Incluir padrão de movimento
-        // Incluir dados de compartilhamento
-        // Se link_ativo=true e tem token, status 'public'
-        // Se link_ativo=false, status 'private' (desativa compartilhamento)
-        // Se nunca foi gerado link, não incluir campos
-        ...(linkToken && {
-          share_token: linkToken,
-          share_status: data.link_ativo ? 'public' : 'private'
-        })
+        // Sempre definir share_status baseado no checkbox link_ativo
+        share_status: data.link_ativo ? 'public' : 'private'
+      }
+
+      // Se já tem token, incluir no payload
+      if (linkToken) {
+        trainingData.share_token = linkToken
       }
 
       let training
@@ -1451,6 +1450,12 @@ function TreinoForm() {
         console.log('🚀 Criando treino com dados:', trainingData)
         training = await trainingService.createTraining(trainingData)
         console.log('✅ Treino criado com sucesso:', training)
+
+        // Após criar, se tem share_token retornado pelo banco, atualizar estado local
+        if (training.share_token) {
+          setLinkToken(training.share_token)
+          setShareLink(generateShareLink(training.share_token))
+        }
       }
 
       // Criar/atualizar os blocos do treino com todos os exercícios
@@ -1464,15 +1469,15 @@ function TreinoForm() {
       console.log('✅ Blocos processados com sucesso!')
 
       // Mostrar feedback de sucesso
-      const linkStatusMessage = linkToken
-        ? (data.link_ativo ? ' Link de compartilhamento ativado.' : ' Link de compartilhamento desativado.')
-        : ''
+      const linkStatusMessage = data.link_ativo && training.share_token
+        ? ' Link de compartilhamento público gerado!'
+        : (linkToken ? ' Link de compartilhamento desativado.' : '')
 
       setSnackbar({
         open: true,
         message: isEditMode
           ? `Treino atualizado com sucesso!${linkStatusMessage}`
-          : 'Treino criado com sucesso! Agora você pode gerar o link de compartilhamento.',
+          : `Treino criado com sucesso!${linkStatusMessage}`,
         severity: 'success'
       })
 
@@ -2319,13 +2324,18 @@ function TreinoForm() {
               </Stack>
 
               {/* Botões de Ação */}
-              <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                sx={{ mt: 4 }}
+              >
                 <Button
                   type="submit"
                   variant="contained"
                   startIcon={<SaveIcon />}
                   size="large"
                   disabled={submitting || loading || loadingTrainingData}
+                  sx={{ width: { xs: '100%', sm: 'auto' } }}
                 >
                   {submitting
                     ? (submittingMessage || (isEditMode ? 'Atualizando...' : 'Salvando...'))
@@ -2337,6 +2347,7 @@ function TreinoForm() {
                   onClick={() => navigate('/pages/treinos')}
                   size="large"
                   disabled={submitting}
+                  sx={{ width: { xs: '100%', sm: 'auto' } }}
                 >
                   Cancelar
                 </Button>
