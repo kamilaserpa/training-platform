@@ -647,7 +647,6 @@ class TrainingService {
           )
         `)
         .eq('share_token', token)
-        .eq('share_status', 'public')
         .maybeSingle();
 
       console.log('📊 Resultado da query:', { data, error });
