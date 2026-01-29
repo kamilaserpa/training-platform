@@ -34,20 +34,28 @@
 
       var l = window.location;
 
-      // Don't rewrite if URL already has hash (hash routes like #/treino-publico/:token)
-      // or if already in the ?/ format (to avoid infinite loops)
-      if (l.hash.indexOf('#/') === 0 || l.search.indexOf('?/') === 0) {
-        // For hash routes or already rewritten URLs, do nothing
-        console.log('Hash route or already rewritten, skipping 404 redirect');
+      // For HashRouter: redirect all paths to index with hash route
+      // Example: /treino-publico/abc123 -> /#/treino-publico/abc123
+      if (l.hash.indexOf('#/') === 0) {
+        // Already a hash route, do nothing
+        console.log('Already a hash route, no redirect needed');
       } else {
-        // Apply SPA fallback rewrite for non-hash routes
-        l.replace(
-          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-          l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-          l.hash
-        );
+        // Convert path to hash route
+        var path = l.pathname.slice(1); // Remove leading slash
+        var segments = path.split('/');
+
+        // Remove base path segment if exists (for GitHub Pages)
+        if (pathSegmentsToKeep > 0) {
+          segments = segments.slice(pathSegmentsToKeep);
+        }
+
+        // Build the hash route
+        var hashRoute = segments.length > 0 ? '#/' + segments.join('/') : '#/';
+        var base = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                   l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/';
+
+        console.log('Redirecting to hash route:', base + hashRoute + l.search + l.hash);
+        l.replace(base + hashRoute + l.search + l.hash);
       }
     </script>
   </head>
