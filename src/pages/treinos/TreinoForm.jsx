@@ -1296,7 +1296,13 @@ function TreinoForm() {
   // Funções para gerenciar compartilhamento
   const generateShareLink = (token) => {
     const baseUrl = window.location.origin
-    const basePath = import.meta.env.PROD ? '/training-platform' : ''
+
+    // Use Vite's BASE_URL so it works for both:
+    // - Cloudflare Pages: BASE_URL = '/'
+    // - GitHub Pages: BASE_URL = '/training-platform/'
+    const viteBaseUrl = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+    const basePath = viteBaseUrl === '/' ? '' : viteBaseUrl
+
     return `${baseUrl}${basePath}/#/treino-publico/${token}`
   }
 
