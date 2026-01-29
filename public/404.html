@@ -34,29 +34,30 @@
 
       var l = window.location;
 
-      // For HashRouter: redirect all paths to index with hash route
+      // For HashRouter: Convert path to hash route
       // Example: /treino-publico/abc123 -> /#/treino-publico/abc123
-      if (l.hash.indexOf('#/') === 0) {
-        // Already a hash route, do nothing
-        console.log('Already a hash route, no redirect needed');
-      } else {
-        // Convert path to hash route
-        var path = l.pathname.slice(1); // Remove leading slash
-        var segments = path.split('/');
 
-        // Remove base path segment if exists (for GitHub Pages)
-        if (pathSegmentsToKeep > 0) {
-          segments = segments.slice(pathSegmentsToKeep);
-        }
+      var path = l.pathname.slice(1); // Remove leading slash
+      var segments = path.split('/').filter(function(s) { return s !== ''; });
 
-        // Build the hash route
-        var hashRoute = segments.length > 0 ? '#/' + segments.join('/') : '#/';
-        var base = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                   l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/';
-
-        console.log('Redirecting to hash route:', base + hashRoute + l.search + l.hash);
-        l.replace(base + hashRoute + l.search + l.hash);
+      // Remove base path segment if exists (for GitHub Pages)
+      if (pathSegmentsToKeep > 0 && segments.length >= pathSegmentsToKeep) {
+        segments = segments.slice(pathSegmentsToKeep);
       }
+
+      // Build the hash route
+      var hashRoute = segments.length > 0 ? '#/' + segments.join('/') : '#/';
+
+      // Build base path (preserve the first pathSegmentsToKeep segments)
+      var pathSegments = l.pathname.split('/').filter(function(s) { return s !== ''; });
+      var basePath = pathSegments.slice(0, pathSegmentsToKeep).join('/');
+      var base = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                 (basePath ? '/' + basePath + '/' : '/');
+
+      // Always redirect to ensure index.html is loaded
+      var newUrl = base + hashRoute + (l.search || '') + (l.hash && l.hash !== '#' ? l.hash : '');
+      console.log('Redirecting from 404 to:', newUrl);
+      l.replace(newUrl);
     </script>
   </head>
   <body>
