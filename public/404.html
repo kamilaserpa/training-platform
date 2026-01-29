@@ -30,32 +30,46 @@
       // https://username.github.io/repo-name/one/two?a=b&c=d#qwe becomes
       // https://username.github.io/repo-name/?/one/two&a=b~and~c=d#qwe
       // Otherwise, leave pathSegmentsToKeep as 0.
-      var pathSegmentsToKeep = 1;
-
+      // Auto-detect:
+      // - GitHub Pages project site: keep 1 segment (/training-platform/)
+      // - Cloudflare Pages (root): keep 0 (so app runs at /#/...)
       var l = window.location;
+      var isGithubPages = /\.github\.io$/i.test(l.hostname);
+      var pathSegmentsToKeep = isGithubPages ? 1 : 0;
 
-      // For HashRouter: Convert path to hash route
-      // Example: /treino-publico/abc123 -> /#/treino-publico/abc123
-
-      var path = l.pathname.slice(1); // Remove leading slash
-      var segments = path.split('/').filter(function(s) { return s !== ''; });
-
-      // Remove base path segment if exists (for GitHub Pages)
-      if (pathSegmentsToKeep > 0 && segments.length >= pathSegmentsToKeep) {
-        segments = segments.slice(pathSegmentsToKeep);
+      // Normalize hash (avoid legacy /#/#/...)
+      var rawHash = l.hash || '';
+      if (rawHash.indexOf('#/#/') === 0) {
+        rawHash = '#/' + rawHash.slice(4);
       }
 
-      // Build the hash route
-      var hashRoute = segments.length > 0 ? '#/' + segments.join('/') : '#/';
+      // Split pathname into segments
+      var pathSegments = l.pathname.split('/').filter(function (s) { return s !== ''; });
 
-      // Build base path (preserve the first pathSegmentsToKeep segments)
-      var pathSegments = l.pathname.split('/').filter(function(s) { return s !== ''; });
+      // Cloudflare: if someone hits /training-platform/... by mistake, strip it
+      // so we redirect to root /#/...
+      if (!isGithubPages && pathSegments.length > 0 && pathSegments[0] === 'training-platform') {
+        pathSegments = pathSegments.slice(1);
+      }
+
+      // Build base (keep first N segments)
       var basePath = pathSegments.slice(0, pathSegmentsToKeep).join('/');
       var base = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                 (basePath ? '/' + basePath + '/' : '/');
+        (basePath ? '/' + basePath + '/' : '/');
 
-      // Always redirect to ensure index.html is loaded
-      var newUrl = base + hashRoute + (l.search || '') + (l.hash && l.hash !== '#' ? l.hash : '');
+      // Decide target hash:
+      // - If already a HashRouter route (#/...), keep it (do NOT append another #/)
+      // - Otherwise convert pathname (minus basePath) into a hash route and preserve query
+      var targetHash;
+      if (rawHash.indexOf('#/') === 0) {
+        targetHash = rawHash;
+      } else {
+        var remainingSegments = pathSegments.slice(pathSegmentsToKeep);
+        targetHash = (remainingSegments.length > 0 ? '#/' + remainingSegments.join('/') : '#/') + (l.search || '');
+      }
+
+      // Always redirect to ensure index.html is loaded (not this 404.html)
+      var newUrl = base + targetHash;
       console.log('Redirecting from 404 to:', newUrl);
       l.replace(newUrl);
     </script>
