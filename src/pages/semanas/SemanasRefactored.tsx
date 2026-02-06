@@ -1,38 +1,38 @@
 import {
-    Add as AddIcon,
-    Search as SearchIcon
+  Add as AddIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import {
-    Alert,
-    Box,
-    Button,
-    Checkbox,
-    CircularProgress,
-    Container,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    FormControl,
-    Grid,
-    InputAdornment,
-    InputLabel,
-    MenuItem,
-    Paper,
-    Select,
-    SelectChangeEvent,
-    Snackbar,
-    Stack,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TextField,
-    Typography,
-    useMediaQuery,
-    useTheme
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  SelectChangeEvent,
+  Snackbar,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
@@ -46,6 +46,7 @@ import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
 import { trainingService } from '../../services/trainingService';
 import { weekService } from '../../services/weekService';
 import type { CreateTrainingWeekDTO, WeekFocus } from '../../types/database.types';
+import { formatISODateOnlyLocal, parseLocalDate } from '../../utils/date';
 import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { imageToBase64 } from '../../utils/pdf/pdfUtils';
 import { adaptarSemanasParaVisualizacao, type SemanaComTreinos } from '../../utils/semanaAdapter';
@@ -69,9 +70,9 @@ const SemanasRefactored = () => {
   // Adaptar semanas do cache (garantir que trainings existe)
   const semanas = weeksFromCache
     ? adaptarSemanasParaVisualizacao(weeksFromCache.map(w => ({
-        ...w,
-        trainings: w.trainings || []
-      })))
+      ...w,
+      trainings: w.trainings || []
+    })))
     : [];
   const loading = loadingWeeks || loadingFocuses;
 
@@ -142,8 +143,8 @@ const SemanasRefactored = () => {
     const term = searchTerm.toLowerCase().replace(/\s/g, '');
 
     // Buscar em: nome, foco, número da semana e período (data, mês, ano)
-    const startDate = new Date(semana.start_date);
-    const endDate = new Date(semana.end_date);
+    const startDate = parseLocalDate(semana.start_date);
+    const endDate = parseLocalDate(semana.end_date);
 
     const matchesName = semana.name?.toLowerCase().includes(term);
     const matchesFoco = semana.focoSemana.toLowerCase().includes(term);
@@ -177,8 +178,8 @@ const SemanasRefactored = () => {
     setFormData({
       name: '',
       week_focus_id: '',
-      start_date: monday.toISOString().split('T')[0],
-      end_date: sunday.toISOString().split('T')[0],
+      start_date: formatISODateOnlyLocal(monday),
+      end_date: formatISODateOnlyLocal(sunday),
       notes: '',
     });
     setOpenDialog(true);
@@ -186,8 +187,8 @@ const SemanasRefactored = () => {
 
   const isWeekInCurrentDateRange = (s: SemanaComTreinos) => {
     const today = new Date();
-    const start = new Date(s.start_date);
-    const end = new Date(s.end_date);
+    const start = parseLocalDate(s.start_date);
+    const end = parseLocalDate(s.end_date);
     return start <= today && today <= end;
   };
 
@@ -349,7 +350,7 @@ const SemanasRefactored = () => {
       return;
     }
 
-    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+    if (parseLocalDate(formData.end_date) < parseLocalDate(formData.start_date)) {
       setSnackbar({
         open: true,
         message: 'A data de fim deve ser posterior à data de início',

@@ -3,6 +3,7 @@
  */
 
 import type { Training, TrainingWeek } from '../types/database.types';
+import { parseLocalDate } from './date';
 
 export interface SemanaComTreinos {
   id: string;
@@ -26,7 +27,7 @@ export interface SemanaComTreinos {
  * Determina o número da semana baseado na data de início
  */
 function calcularNumeroSemana(startDate: string): number {
-  const date = new Date(startDate);
+  const date = parseLocalDate(startDate);
   const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
   const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
   return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
@@ -37,7 +38,7 @@ function calcularNumeroSemana(startDate: string): number {
  */
 function getDiaDaSemana(date: Date): 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | null {
   const dayOfWeek = date.getDay();
-  
+
   switch (dayOfWeek) {
     case 1: return 'segunda'; // Segunda-feira
     case 2: return 'terca';   // Terça-feira
@@ -67,9 +68,9 @@ export function adaptarSemanasParaVisualizacao(
     // Organizar treinos por dia da semana
     week.trainings.forEach((treino) => {
       if (treino.scheduled_date) {
-        const date = new Date(treino.scheduled_date);
+        const date = parseLocalDate(treino.scheduled_date);
         const dia = getDiaDaSemana(date);
-        
+
         if (dia) {
           dias[dia] = { treino };
         }

@@ -34,6 +34,7 @@ import logoImage from '../../assets/images/logo-main.png'
 import { ExerciseVideo } from '../../components/ExerciseVideo'
 import { signedUrlCache } from '../../services/privateVideoStorage'
 import { trainingService } from '../../services/trainingService'
+import { parseLocalDate } from '../../utils/date'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
 
@@ -123,7 +124,7 @@ const TreinoPublico = () => {
   }, [token])
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('pt-BR')
+    return parseLocalDate(dateString).toLocaleDateString('pt-BR')
   }
 
   const handleExportPDF = async () => {

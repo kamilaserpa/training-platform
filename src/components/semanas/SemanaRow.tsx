@@ -1,28 +1,29 @@
-import { useState } from 'react';
 import {
-  TableRow,
-  TableCell,
-  IconButton,
-  Collapse,
-  Box,
-  Typography,
-  Table,
-  TableHead,
-  TableBody,
-  Tooltip,
-  Stack,
-  Checkbox
-} from '@mui/material';
-import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
-import { DiaCell } from './DiaCell';
-import type { SemanaComTreinos } from '../../utils/semanaAdapter';
+import {
+  Box,
+  Checkbox,
+  Collapse,
+  IconButton,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography
+} from '@mui/material';
+import { useState } from 'react';
 import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
+import { parseLocalDate } from '../../utils/date';
+import type { SemanaComTreinos } from '../../utils/semanaAdapter';
+import { DiaCell } from './DiaCell';
 
 interface SemanaRowProps {
   semana: SemanaComTreinos;
@@ -74,10 +75,10 @@ export const SemanaRow = ({ semana, onEdit, onDelete, onExport }: SemanaRowProps
         </TableCell>
         <TableCell>
           <Typography variant="body2" color="text.secondary">
-            {new Date(semana.start_date).toLocaleDateString('pt-BR', {
+            {parseLocalDate(semana.start_date).toLocaleDateString('pt-BR', {
               day: '2-digit',
               month: '2-digit'
-            })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', {
+            })} - {parseLocalDate(semana.end_date).toLocaleDateString('pt-BR', {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric'

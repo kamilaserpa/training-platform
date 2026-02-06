@@ -4,12 +4,47 @@ import { createClient } from '@supabase/supabase-js';
 import { config } from '../config/env';
 import type { Database } from '../types/database.types';
 
+const DEFAULT_SUPABASE_FETCH_TIMEOUT_MS = 20000;
+
+const fetchWithTimeout: typeof fetch = async (input, init) => {
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(
+    () => controller.abort(),
+    DEFAULT_SUPABASE_FETCH_TIMEOUT_MS,
+  );
+
+  // If the caller provided a signal, propagate it to our controller.
+  const providedSignal = init?.signal;
+  if (providedSignal) {
+    if (providedSignal.aborted) controller.abort();
+    else providedSignal.addEventListener('abort', () => controller.abort(), { once: true });
+  }
+
+  // Prefer AbortSignal.any when available to respect both signals.
+  const signal =
+    providedSignal && typeof (AbortSignal as any)?.any === 'function'
+      ? (AbortSignal as any).any([providedSignal, controller.signal])
+      : controller.signal;
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal,
+    });
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+  }
+};
+
 // Criar o cliente Supabase
 const globalForSupabase = globalThis as unknown as { __supabase?: SupabaseClient<Database> };
 
 export const supabase =
   globalForSupabase.__supabase ??
   (globalForSupabase.__supabase = createClient<Database>(config.SUPABASE.url, config.SUPABASE.anonKey, {
+    global: {
+      fetch: fetchWithTimeout,
+    },
     auth: {
       persistSession: true,
       autoRefreshToken: true,
