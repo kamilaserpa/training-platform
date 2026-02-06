@@ -45,6 +45,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { trainingService } from '../../services/trainingService';
 import { weekService } from '../../services/weekService';
 import type { CreateTrainingWeekDTO, TrainingWeek, WeekFocus } from '../../types/database.types';
+import { formatISODateOnlyLocal, parseLocalDate } from '../../utils/date';
 import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { imageToBase64 } from '../../utils/pdf/pdfUtils';
 
@@ -59,7 +60,7 @@ interface WeekDialogProps {
 
 // Utilitários para formatação
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   return date.toLocaleDateString('pt-BR');
 };
 
@@ -123,8 +124,8 @@ function WeekDialog({ open, onClose, onSave, editingData, weekFocuses }: WeekDia
       setFormData({
         name: '',
         week_focus_id: '',
-        start_date: monday.toISOString().split('T')[0],
-        end_date: sunday.toISOString().split('T')[0],
+        start_date: formatISODateOnlyLocal(monday),
+        end_date: formatISODateOnlyLocal(sunday),
         notes: '',
       });
     }
@@ -160,7 +161,7 @@ function WeekDialog({ open, onClose, onSave, editingData, weekFocuses }: WeekDia
       return;
     }
 
-    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+    if (parseLocalDate(formData.end_date) < parseLocalDate(formData.start_date)) {
       alert('A data de fim deve ser posterior à data de início');
       return;
     }
@@ -510,108 +511,108 @@ function SemanasPage() {
       {/* Tabela de semanas */}
       <Grid item xs={12}>
         <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>
-                <Typography variant="subtitle2">Nome</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Foco</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Período</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Status</Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="subtitle2">Treinos</Typography>
-              </TableCell>
-              <TableCell align="center">
-                <Typography variant="subtitle2">Ações</Typography>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {weeksFiltradas.length === 0 ? (
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <Typography variant="body1" color="text.secondary">
-                    {searchTerm || filterStatus !== 'todos'
-                      ? 'Nenhuma semana encontrada com os filtros aplicados'
-                      : 'Nenhuma semana cadastrada'}
-                  </Typography>
+                <TableCell>
+                  <Typography variant="subtitle2">Nome</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Foco</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Período</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Status</Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="subtitle2">Treinos</Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="subtitle2">Ações</Typography>
                 </TableCell>
               </TableRow>
-            ) : (
-              weeksFiltradas.map((week, index) => (
-                <TableRow key={`week-${week.id}-${index}`} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {week.name}
+            </TableHead>
+            <TableBody>
+              {weeksFiltradas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      {searchTerm || filterStatus !== 'todos'
+                        ? 'Nenhuma semana encontrada com os filtros aplicados'
+                        : 'Nenhuma semana cadastrada'}
                     </Typography>
-                    {week.notes && (
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        {week.notes}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={week.week_focus?.name || 'Sem foco'}
-                      size="small"
-                      sx={{
-                        bgcolor: week.week_focus?.color_hex || '#grey',
-                        color: 'white',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(week.start_date)} - {formatDate(week.end_date)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={getStatusLabel(week.status)}
-                      color={getStatusColor(week.status) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {week.trainings?.length || 0} treino(s)
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" justifyContent="center" spacing={1}>
-                      <Tooltip title="Exportar Semana">
-                        <IconButton size="small" onClick={() => handleExportWeekPDF(week)} color="secondary" aria-label="Exportar Semana">
-                          <PdfIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Editar">
-                        <IconButton size="small" onClick={() => handleEditWeek(week)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Excluir">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteWeek(week.id)}
-                          color="error"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                weeksFiltradas.map((week, index) => (
+                  <TableRow key={`week-${week.id}-${index}`} hover>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {week.name}
+                      </Typography>
+                      {week.notes && (
+                        <Typography variant="caption" color="text.secondary" display="block">
+                          {week.notes}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={week.week_focus?.name || 'Sem foco'}
+                        size="small"
+                        sx={{
+                          bgcolor: week.week_focus?.color_hex || '#grey',
+                          color: 'white',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {formatDate(week.start_date)} - {formatDate(week.end_date)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getStatusLabel(week.status)}
+                        color={getStatusColor(week.status) as 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {week.trainings?.length || 0} treino(s)
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" justifyContent="center" spacing={1}>
+                        <Tooltip title="Exportar Semana">
+                          <IconButton size="small" onClick={() => handleExportWeekPDF(week)} color="secondary" aria-label="Exportar Semana">
+                            <PdfIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Editar">
+                          <IconButton size="small" onClick={() => handleEditWeek(week)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Excluir">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteWeek(week.id)}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </TableContainer>
       </Grid>
 
