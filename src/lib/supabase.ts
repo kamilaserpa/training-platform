@@ -1,13 +1,15 @@
 // Configuração do cliente Supabase
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config/env';
+import type { Database } from '../types/database.types';
 
 // Criar o cliente Supabase
-const globalForSupabase = globalThis as unknown as { __supabase?: ReturnType<typeof createClient> };
+const globalForSupabase = globalThis as unknown as { __supabase?: SupabaseClient<Database> };
 
 export const supabase =
   globalForSupabase.__supabase ??
-  (globalForSupabase.__supabase = createClient(config.SUPABASE.url, config.SUPABASE.anonKey, {
+  (globalForSupabase.__supabase = createClient<Database>(config.SUPABASE.url, config.SUPABASE.anonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -15,7 +17,6 @@ export const supabase =
       // Alguns ambientes/browsers geram AbortError ao usar navigator.locks (Web Locks API).
       // Como o app normalmente roda em uma aba, usamos um lock no-op para evitar esse crash.
       lock: async (_name, _acquireTimeout, fn) => await fn(),
-      lockAcquireTimeout: -1,
     },
   }));
 
