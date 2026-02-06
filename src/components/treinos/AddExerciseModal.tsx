@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import type { Exercise, Video } from '../../types/database.types';
+import { NoTranslate } from '../common/NoTranslate';
 import { ExerciseConfig, ExerciseConfigForm } from './ExerciseConfigForm';
 import { ExerciseSelector } from './ExerciseSelector';
 import { VideoSelector } from './VideoSelector';
@@ -187,7 +188,7 @@ export const AddExerciseModal = ({
             </Typography>
             {editMode && selectedExercise && step !== 'exercise' && (
               <Chip
-                label={selectedExercise.name}
+                label={<NoTranslate>{selectedExercise.name}</NoTranslate>}
                 size="small"
                 color="primary"
                 sx={{ ml: 1 }}
