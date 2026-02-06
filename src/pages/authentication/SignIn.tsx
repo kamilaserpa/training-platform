@@ -1,21 +1,20 @@
-import { useState, ChangeEvent, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import paths from '../../routes/paths';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Link from '@mui/material/Link';
-import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Typography from '@mui/material/Typography';
+import Link from '@mui/material/Link';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import Checkbox from '@mui/material/Checkbox';
-import Alert from '@mui/material/Alert';
-import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
+import { ChangeEvent, FormEvent, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import paths from '../../routes/paths';
 
 interface User {
   [key: string]: string;
@@ -23,7 +22,7 @@ interface User {
 
 const SignIn = () => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, isMockMode } = useAuth();
   const [user, setUser] = useState<User>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,7 +35,7 @@ const SignIn = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!user.email || !user.password) {
       setError('Por favor, preencha todos os campos');
       return;
@@ -47,16 +46,16 @@ const SignIn = () => {
 
     try {
       const { error: signInError } = await signIn(user.email, user.password);
-      
+
       if (signInError) {
         let errorMessage = 'Erro ao fazer login';
-        
+
         if (signInError === 'Invalid login credentials') {
           errorMessage = 'Email ou senha incorretos';
         } else if (signInError) {
           errorMessage = signInError;
         }
-        
+
         setError(errorMessage);
       } else {
         navigate(paths.dashboard);
@@ -119,6 +118,14 @@ const SignIn = () => {
         </Button>
 
         <Divider sx={{ my: 3 }}>or</Divider>
+
+        {isMockMode && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Modo <strong>MOCK</strong> ativo: o login não valida credenciais reais.
+            Configure <strong>VITE_SUPABASE_URL</strong> e <strong>VITE_SUPABASE_ANON_KEY</strong> e defina{' '}
+            <strong>VITE_USE_MOCK=false</strong> para autenticação de verdade.
+          </Alert>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

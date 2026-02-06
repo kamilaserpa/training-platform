@@ -48,7 +48,7 @@ class VideoService {
         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.overrideTypes<Video[], { merge: false }>();
 
       if (error) throw error;
 
@@ -68,7 +68,8 @@ class VideoService {
         .from('videos')
         .select('*')
         .eq('id', id)
-        .single();
+        .single()
+        .overrideTypes<Video, { merge: false }>();
 
       if (error) throw error;
 
@@ -89,19 +90,23 @@ class VideoService {
         .from('exercise_prescriptions')
         .select('video_id')
         .eq('exercise_id', exerciseId)
-        .not('video_id', 'is', null);
+        .not('video_id', 'is', null)
+        .overrideTypes<Array<{ video_id: string | null }>, { merge: false }>();
 
       if (prescError) throw prescError;
       if (!prescriptions || prescriptions.length === 0) return [];
 
-      const videoIds = [...new Set(prescriptions.map(p => p.video_id).filter(Boolean))];
+      const videoIds = Array.from(
+        new Set(prescriptions.map((p) => p.video_id).filter((id): id is string => !!id))
+      );
 
       // Buscar os vídeos
       const { data: videos, error: videoError } = await supabase
         .from('videos')
         .select('*')
         .in('id', videoIds)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .overrideTypes<Video[], { merge: false }>();
 
       if (videoError) throw videoError;
       return videos || [];
@@ -129,7 +134,8 @@ class VideoService {
           created_by: user.id,
         })
         .select('*')
-        .single();
+        .single()
+        .overrideTypes<Video, { merge: false }>();
 
       if (error) throw error;
 
@@ -150,7 +156,8 @@ class VideoService {
         .update(updates)
         .eq('id', id)
         .select('*')
-        .single();
+        .single()
+        .overrideTypes<Video, { merge: false }>();
 
       if (error) throw error;
 
@@ -190,7 +197,8 @@ class VideoService {
     try {
       const { data, error } = await supabase
         .from('videos')
-        .select('source, file_size_kb');
+        .select('source, file_size_kb')
+        .overrideTypes<Array<Pick<Video, 'source' | 'file_size_kb'>>, { merge: false }>();
 
       if (error) throw error;
 
@@ -218,7 +226,8 @@ class VideoService {
     try {
       const { data, error } = await supabase
         .from('videos')
-        .select('tags');
+        .select('tags')
+        .overrideTypes<Array<Pick<Video, 'tags'>>, { merge: false }>();
 
       if (error) throw error;
 

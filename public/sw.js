@@ -8,13 +8,23 @@ const CACHE_PREFIX = 'tp-pwa';
 // - Patch (x.x.1): Bug fixes, ajustes menores
 // - Minor (x.1.x): Novas features, mudanças compatíveis
 // - Major (1.x.x): Breaking changes, refatorações grandes
-const SW_VERSION = '1.0.2'; // Add message handler for SKIP_WAITING + cache refresh
+const SW_VERSION = '1.0.3'; // Fix immutable asset detection under subpath (GitHub Pages)
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${SW_VERSION}`; // images, fonts, manifest
 const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${SW_VERSION}`; // hashed build assets
 const CORE_CACHE = `${CACHE_PREFIX}-core-${SW_VERSION}`; // core assets (NO HTML)
 
 // Respect Vite base and GitHub Pages scope, e.g. /training-platform/
 const APP_BASE = self.registration.scope;
+const BASE_PATHNAME = (() => {
+  try {
+    const p = new URL(APP_BASE).pathname;
+    return p.endsWith('/') ? p : p + '/';
+  } catch {
+    return '/';
+  }
+})();
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Core assets to pre-cache (NO HTML - causes iOS PWA issues)
 const CORE_ASSETS = [
@@ -37,12 +47,13 @@ const isHTMLRequest = (req) => req.headers.get('accept')?.includes('text/html');
 const isImmutableAsset = (url) => {
   if (!isSameOrigin(url)) return false;
   const p = url.pathname;
-  if (!p.startsWith('/assets/')) return false;
+  const assetsBase = `${BASE_PATHNAME}assets/`;
+  if (!p.startsWith(assetsBase)) return false;
   // Common hashed patterns (dot or hyphen): file.[hash].ext OR file-[hash].ext
-  const dotHash = /\/assets\/[^/]+\.[a-zA-Z0-9]{8,}\.[^/]+$/.test(p);
-  const hyphenHash = /\/assets\/[^/]+-[a-zA-Z0-9]{8,}\.[^/]+$/.test(p);
+  const dotHash = new RegExp(`^${escapeRegExp(assetsBase)}[^/]+\\.[a-zA-Z0-9]{8,}\\.[^/]+$`).test(p);
+  const hyphenHash = new RegExp(`^${escapeRegExp(assetsBase)}[^/]+-[a-zA-Z0-9]{8,}\\.[^/]+$`).test(p);
   // Fallback: treat JS/CSS in /assets as immutable even if pattern changes
-  const jsCss = /\/assets\/.*\.(js|css)$/i.test(p);
+  const jsCss = new RegExp(`^${escapeRegExp(assetsBase)}.*\\.(js|css)$`, 'i').test(p);
   return dotHash || hyphenHash || jsCss;
 };
 

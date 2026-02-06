@@ -1,9 +1,9 @@
 // Context de autenticação para o sistema
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase, useMock } from '../lib/supabase';
 import type { Session } from '@supabase/supabase-js';
-import type { User as DatabaseUser } from '../types/database.types';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { supabase, useMock } from '../lib/supabase';
 import paths from '../routes/paths';
+import type { User as DatabaseUser } from '../types/database.types';
 
 // Mock user para desenvolvimento
 const mockUser: DatabaseUser = {
@@ -57,6 +57,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
+  const buildFallbackUser = useCallback((authUser: { id: string; email?: string | null }): DatabaseUser => {
+    const now = new Date().toISOString();
+    const email = authUser.email ?? 'usuario@sistema.com';
+    return {
+      id: authUser.id,
+      email,
+      name: email.split('@')[0] || 'Usuário',
+      role: 'viewer',
+      avatar_url: undefined,
+      created_at: now,
+      updated_at: now,
+    };
+  }, []);
+
   // Buscar dados do usuário no banco
   const fetchUserProfile = useCallback(async (userId: string): Promise<DatabaseUser | null> => {
     if (useMock) {
@@ -77,12 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: userId,
             name: 'Usuário',
             email: 'usuario@sistema.com',
-            role: 'owner',
+            role: 'viewer',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
         }
-        
+
         return null;
       }
 
@@ -114,10 +128,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
-        if (profile) {
-          setUser(profile);
+        if (data.session) {
+          setSession(data.session);
         }
+        const profile = await fetchUserProfile(data.user.id);
+        setUser(profile ?? buildFallbackUser({ id: data.user.id, email: data.user.email }));
       }
 
       return {};
@@ -256,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (!mounted) return;
 
         if (error) {
@@ -270,7 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id);
           if (mounted) {
-            setUser(profile);
+            setUser(profile ?? buildFallbackUser({ id: session.user.id, email: session.user.email }));
             setLoading(false);
           }
         } else {
@@ -278,11 +293,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
           }
         }
+
+        // Depois do getSession inicial, não devemos ignorar eventos SIGNED_IN.
+        isInitialLoad = false;
       } catch (error) {
         console.error('Erro na inicialização:', error);
         if (mounted) {
           setLoading(false);
         }
+
+        // Mesmo em caso de erro, liberar o listener para processar eventos futuros.
+        isInitialLoad = false;
       }
     };
 
@@ -294,9 +315,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      // Ignorar eventos INITIAL_SESSION e SIGNED_IN repetidos após o carregamento inicial
-      if (isInitialLoad && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
-        isInitialLoad = false;
+      // Ignorar apenas o INITIAL_SESSION durante o boot (evita trabalho duplicado)
+      if (isInitialLoad && event === 'INITIAL_SESSION') {
         return;
       }
 
@@ -317,17 +337,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      // Processar eventos que mudam o estado real de autenticação
+      if (event === 'SIGNED_OUT') {
+        setSession(session);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
         setSession(session);
 
-        if (session?.user && event !== 'SIGNED_OUT') {
+        if (session?.user) {
           const profile = await fetchUserProfile(session.user.id);
           if (mounted) {
-            setUser(profile);
-          }
-        } else {
-          if (mounted) {
-            setUser(null);
+            setUser(profile ?? buildFallbackUser({ id: session.user.id, email: session.user.email }));
           }
         }
 

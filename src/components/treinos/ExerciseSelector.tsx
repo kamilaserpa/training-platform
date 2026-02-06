@@ -92,7 +92,8 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
       const { data, error } = await supabase
         .from('exercises')
         .select('*')
-        .order('name');
+        .order('name')
+        .overrideTypes<Exercise[], { merge: false }>();
 
       if (error) throw error;
       setExercises(data || []);

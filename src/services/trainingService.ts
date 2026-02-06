@@ -1,12 +1,13 @@
 // Serviço para gerenciar treinos
 import { supabase, useMock } from '../lib/supabase';
 import type {
-    CreateExercisePrescriptionDTO,
-    CreateTrainingBlockDTO,
-    CreateTrainingDTO,
-    ExercisePrescription,
-    Training,
-    TrainingBlock,
+  CreateExercisePrescriptionDTO,
+  CreateTrainingBlockDTO,
+  CreateTrainingDTO,
+  ExercisePrescription,
+  Training,
+  TrainingBlock,
+  TrainingWeek,
 } from '../types/database.types';
 
 // Mock data para desenvolvimento
@@ -342,7 +343,8 @@ class TrainingService {
         .from('training_blocks')
         .insert(blockData)
         .select('*')
-        .single();
+        .single()
+        .overrideTypes<TrainingBlock, { merge: false }>();
 
       if (error) throw error;
 
@@ -679,7 +681,8 @@ class TrainingService {
           *,
           week_focus:week_focuses(*)
         `)
-        .order('start_date', { ascending: false });
+        .order('start_date', { ascending: false })
+        .overrideTypes<TrainingWeek[], { merge: false }>();
 
       if (weeksError) throw weeksError;
 

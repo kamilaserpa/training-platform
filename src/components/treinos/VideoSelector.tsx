@@ -102,7 +102,8 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
             const { data: videosData, error: videosError } = await supabase
                 .from('videos')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .overrideTypes<Video[], { merge: false }>();
 
             if (videosError) throw videosError;
 
