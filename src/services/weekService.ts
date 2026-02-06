@@ -1,6 +1,6 @@
 // Serviço para gerenciar semanas de treino
 import { supabase, useMock } from '../lib/supabase';
-import type { TrainingWeek, CreateTrainingWeekDTO, WeekFocus, CreateWeekFocusDTO, UpdateWeekFocusDTO } from '../types/database.types';
+import type { CreateTrainingWeekDTO, CreateWeekFocusDTO, TrainingWeek, UpdateWeekFocusDTO, WeekFocus } from '../types/database.types';
 
 // Mock data para desenvolvimento
 const mockWeekFocuses: WeekFocus[] = [
@@ -98,7 +98,11 @@ class WeekService {
     }
 
     try {
-      const { data, error } = await supabase.from('week_focuses').select('*').order('name');
+      const { data, error } = await supabase
+        .from('week_focuses')
+        .select('*')
+        .order('name')
+        .overrideTypes<WeekFocus[], { merge: false }>();
 
       if (error) throw error;
 
@@ -128,7 +132,8 @@ class WeekService {
         .from('week_focuses')
         .select('*')
         .eq('name', focusData.name)
-        .single();
+        .single()
+        .overrideTypes<WeekFocus, { merge: false }>();
 
       if (!existingError && existing) {
         // Se já existe, atualizar ao invés de criar
@@ -141,7 +146,8 @@ class WeekService {
           })
           .eq('id', existing.id)
           .select()
-          .single();
+          .single()
+          .overrideTypes<WeekFocus, { merge: false }>();
 
         if (error) throw error;
         return data;
@@ -155,7 +161,8 @@ class WeekService {
           color_hex: focusData.color_hex || '#3B82F6',
         })
         .select()
-        .single();
+        .single()
+        .overrideTypes<WeekFocus, { merge: false }>();
 
       if (error) throw error;
 
@@ -189,7 +196,8 @@ class WeekService {
         })
         .eq('id', id)
         .select()
-        .single();
+        .single()
+        .overrideTypes<WeekFocus, { merge: false }>();
 
       if (error) throw error;
 
@@ -238,7 +246,8 @@ class WeekService {
           trainings(*)
         `,
         )
-        .order('start_date', { ascending: false });
+        .order('start_date', { ascending: false })
+        .overrideTypes<TrainingWeek[], { merge: false }>();
 
       if (error) throw error;
 
@@ -265,7 +274,8 @@ class WeekService {
         `,
         )
         .eq('id', id)
-        .single();
+        .single()
+        .overrideTypes<TrainingWeek, { merge: false }>();
 
       if (error) throw error;
 
@@ -303,7 +313,8 @@ class WeekService {
           week_focus:week_focuses(*)
         `,
         )
-        .single();
+        .single()
+        .overrideTypes<TrainingWeek, { merge: false }>();
 
       if (error) throw error;
 
@@ -350,7 +361,8 @@ class WeekService {
           week_focus:week_focuses(*)
         `,
         )
-        .single();
+        .single()
+        .overrideTypes<TrainingWeek, { merge: false }>();
 
       if (error) throw error;
 
@@ -408,7 +420,8 @@ class WeekService {
           week_focus:week_focuses(*)
         `,
         )
-        .single();
+        .single()
+        .overrideTypes<TrainingWeek, { merge: false }>();
 
       if (error) throw error;
 

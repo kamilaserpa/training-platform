@@ -83,7 +83,11 @@ class MovementPatternService {
     }
 
     try {
-      const { data, error } = await supabase.from('movement_patterns').select('*').order('name');
+      const { data, error } = await supabase
+        .from('movement_patterns')
+        .select('*')
+        .order('name')
+        .overrideTypes<MovementPattern[], { merge: false }>();
 
       if (error) {
         throw error;
@@ -106,7 +110,8 @@ class MovementPatternService {
         .from('movement_patterns')
         .select('*')
         .eq('id', id)
-        .single();
+        .single()
+        .overrideTypes<MovementPattern, { merge: false }>();
 
       if (error) throw error;
 
@@ -127,10 +132,10 @@ class MovementPatternService {
         updated_at: new Date().toISOString(),
       };
       mockMovementPatterns.push(newPattern);
-      
+
       // Simular delay de rede
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       return newPattern;
     }
 
@@ -139,7 +144,8 @@ class MovementPatternService {
         .from('movement_patterns')
         .insert([{ name, description }])
         .select()
-        .single();
+        .single()
+        .overrideTypes<MovementPattern, { merge: false }>();
 
       if (error) throw error;
 
@@ -160,10 +166,10 @@ class MovementPatternService {
           description: description || undefined,
           updated_at: new Date().toISOString(),
         };
-        
+
         // Simular delay de rede
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
         return mockMovementPatterns[index];
       }
       throw new Error('Padrão não encontrado');
@@ -175,7 +181,8 @@ class MovementPatternService {
         .update({ name, description })
         .eq('id', id)
         .select()
-        .single();
+        .single()
+        .overrideTypes<MovementPattern, { merge: false }>();
 
       if (error) throw error;
 
@@ -191,7 +198,7 @@ class MovementPatternService {
       const index = mockMovementPatterns.findIndex((mp) => mp.id === id);
       if (index !== -1) {
         mockMovementPatterns.splice(index, 1);
-        
+
         // Simular delay de rede
         await new Promise(resolve => setTimeout(resolve, 200));
       }

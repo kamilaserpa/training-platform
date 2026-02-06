@@ -223,6 +223,108 @@ export interface CreateTrainingDTO {
   movement_pattern_id?: string | null;
 }
 
+// ------------------------------------------------------------
+// Supabase client typing
+// ------------------------------------------------------------
+// O supabase-js tipa .from('tabela') como `never` quando o tipo Database não
+// declara as tabelas. Como este projeto usa interfaces próprias para o domínio
+// e nem sempre tem o schema gerado via CLI, expomos um Database “genérico”.
+// Isso garante build/TS sem perder a liberdade de evoluir o schema.
+
+type SupabaseGenericRelationship = {
+  foreignKeyName: string;
+  columns: string[];
+  referencedRelation: string;
+  referencedColumns: string[];
+  isOneToOne?: boolean;
+};
+
+type SupabaseGenericTable = {
+  Row: any;
+  Insert: any;
+  Update: any;
+  Relationships: SupabaseGenericRelationship[];
+};
+
+type RowRecord<T> = T & Record<string, unknown>;
+
+export type Database = {
+  public: {
+    Tables: {
+      users: {
+        Row: RowRecord<User>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      week_focuses: {
+        Row: RowRecord<WeekFocus>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      movement_patterns: {
+        Row: RowRecord<MovementPattern>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      exercises: {
+        Row: RowRecord<Exercise>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      videos: {
+        Row: RowRecord<Video>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      training_weeks: {
+        Row: RowRecord<TrainingWeek>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      trainings: {
+        Row: RowRecord<Training>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      training_blocks: {
+        Row: RowRecord<TrainingBlock>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      exercise_prescriptions: {
+        Row: RowRecord<ExercisePrescription>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      training_block_movement_patterns: {
+        Row: RowRecord<TrainingBlockMovementPattern>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      user_permissions: {
+        Row: RowRecord<UserPermission>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, string>;
+    CompositeTypes: Record<string, never>;
+  };
+};
+
 export interface CreateTrainingBlockDTO {
   training_id: string;
   name: string;

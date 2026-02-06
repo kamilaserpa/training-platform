@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { exerciseService } from '../../services/exerciseService';
 import type { CreateExerciseDTO, Exercise } from '../../types/database.types';
+import { NoTranslate } from '../common/NoTranslate';
 
 interface ExerciseSelectorProps {
   onSelect: (exercise: Exercise) => void;
@@ -92,7 +93,8 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
       const { data, error } = await supabase
         .from('exercises')
         .select('*')
-        .order('name');
+        .order('name')
+        .overrideTypes<Exercise[], { merge: false }>();
 
       if (error) throw error;
       setExercises(data || []);
@@ -170,6 +172,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
         placeholder="Buscar exercício..."
         value={search}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+        inputProps={{ translate: 'no', className: 'notranslate' }}
         sx={{ mb: 2 }}
       />
 
@@ -200,7 +203,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
                   primary={
                     <Box>
                       <Typography variant="body1" fontWeight={500}>
-                        {exercise.name}
+                        <NoTranslate>{exercise.name}</NoTranslate>
                       </Typography>
                       {exercise.tags && exercise.tags.length > 0 && (
                         <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: 'wrap' }}>
@@ -257,6 +260,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
               label="Nome do Exercício *"
               value={quickExerciseName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuickExerciseName(e.target.value)}
+              inputProps={{ translate: 'no', className: 'notranslate' }}
               fullWidth
               autoFocus
               required

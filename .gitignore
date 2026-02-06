@@ -49,3 +49,5 @@ frontend/services/*Service.js
 # Documentação e arquivos sensíveis (NÃO subir para o repo público)
 docs/
 supabase-instructions/
+
+*.tsbuildinfo

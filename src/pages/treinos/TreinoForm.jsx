@@ -16,6 +16,7 @@ import { movementPatternService } from '../../services/movementPatternService'
 import { trainingService } from '../../services/trainingService'
 import { videoService } from '../../services/videoService'
 import { weekService } from '../../services/weekService'
+import { formatISODateOnlyLocal } from '../../utils/date'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
 
@@ -107,6 +108,41 @@ function TreinoForm() {
   const handleConfirmNavigateToSemanas = () => {
     setConfirmLeaveSemanasOpen(false)
     navigate('/pages/semanas')
+  }
+
+  // Confirmação para excluir exercício do bloco
+  const [confirmDeleteExerciseOpen, setConfirmDeleteExerciseOpen] = useState(false)
+  const [pendingDeleteExercise, setPendingDeleteExercise] = useState(null)
+
+  const getSectionLabel = (section) => {
+    switch (section) {
+      case 'mobilidade':
+        return 'Mobilidade Articular'
+      case 'core':
+        return 'Ativação de Core'
+      case 'neural':
+        return 'Ativação Neural'
+      case 'treino1':
+        return 'Treino Bloco 01'
+      case 'treino2':
+        return 'Treino Bloco 02'
+      case 'condicionamento':
+        return 'Condicionamento Físico'
+      default:
+        return 'Bloco'
+    }
+  }
+
+  const getExerciseDisplayName = (item) => {
+    if (!item) return ''
+    if (typeof item === 'string') return item
+    if (typeof item === 'object') return item.nome || item.name || item.videoName || ''
+    return ''
+  }
+
+  const handleCloseConfirmDeleteExercise = () => {
+    setConfirmDeleteExerciseOpen(false)
+    setPendingDeleteExercise(null)
   }
 
   // Configuração do React Hook Form
@@ -637,8 +673,7 @@ function TreinoForm() {
     }
   }
 
-  // Handlers para remover itens
-  const handleRemoveItem = (section, index) => {
+  const removeItemFromSection = (section, index) => {
     switch (section) {
       case 'mobilidade':
         setMobilidadeItems(mobilidadeItems.filter((_, i) => i !== index))
@@ -659,6 +694,25 @@ function TreinoForm() {
         setCondicionamentoItems(condicionamentoItems.filter((_, i) => i !== index))
         break
     }
+  }
+
+  // Handlers para remover itens (com confirmação)
+  const handleRemoveItem = (section, index, item) => {
+    if (submitting) return
+
+    setPendingDeleteExercise({
+      section,
+      index,
+      itemName: getExerciseDisplayName(item)
+    })
+    setConfirmDeleteExerciseOpen(true)
+  }
+
+  const handleConfirmDeleteExercise = () => {
+    if (!pendingDeleteExercise) return
+
+    removeItemFromSection(pendingDeleteExercise.section, pendingDeleteExercise.index)
+    handleCloseConfirmDeleteExercise()
   }
 
   // Handlers para o novo modal de exercício com vídeo
@@ -1427,12 +1481,14 @@ function TreinoForm() {
       setSubmittingMessage(isEditMode ? '🔄 Atualizando treino...' : '💾 Salvando treino...')
       console.log('📋 Dados do formulário:', data)
 
+      const scheduledDate = data?.data?.toDate ? data.data.toDate() : data.data
+
       // Preparar dados para o CreateTrainingDTO
       const trainingName = generateTrainingName(data.semana, data.data)
       const trainingData = {
         training_week_id: data.semana,
         name: trainingName,
-        scheduled_date: data.data.toISOString().split('T')[0], // Formato YYYY-MM-DD
+        scheduled_date: formatISODateOnlyLocal(scheduledDate), // Formato YYYY-MM-DD (local)
         description: data.observacoes || undefined,
         internal_notes: data.observacoes_internas || undefined,
         estimated_duration_minutes: 90, // valor padrão, pode ser ajustado depois
@@ -1496,10 +1552,16 @@ function TreinoForm() {
       }
 
     } catch (error) {
-      console.error('❌ Erro ao criar treino:', error)
+      console.error('❌ Erro ao salvar treino:', error)
+
+      const isAbort = error?.name === 'AbortError'
+      const message = isAbort
+        ? 'Tempo esgotado ao salvar/atualizar o treino. Verifique sua conexão e tente novamente.'
+        : (error?.message || 'Erro ao salvar treino. Tente novamente.')
+
       setSnackbar({
         open: true,
-        message: error.message || 'Erro ao criar treino. Tente novamente.',
+        message,
         severity: 'error'
       })
     } finally {
@@ -1746,7 +1808,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleRemoveItem('mobilidade', index)}
+                                      onClick={() => handleRemoveItem('mobilidade', index, item)}
                                       disabled={submitting}
                                     >
                                       <DeleteIcon fontSize="small" />
@@ -1829,7 +1891,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleRemoveItem('core', index)}
+                                      onClick={() => handleRemoveItem('core', index, item)}
                                       disabled={submitting}
                                     >
                                       <DeleteIcon fontSize="small" />
@@ -1904,7 +1966,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleRemoveItem('neural', index)}
+                                      onClick={() => handleRemoveItem('neural', index, item)}
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -1988,7 +2050,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleRemoveItem('treino1', index)}
+                                      onClick={() => handleRemoveItem('treino1', index, item)}
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -2072,7 +2134,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleRemoveItem('treino2', index)}
+                                      onClick={() => handleRemoveItem('treino2', index, item)}
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -2143,7 +2205,7 @@ function TreinoForm() {
                                     <IconButton
                                       edge="end"
                                       size="small"
-                                      onClick={() => handleRemoveItem('condicionamento', index)}
+                                      onClick={() => handleRemoveItem('condicionamento', index, item)}
                                     >
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
@@ -2375,6 +2437,44 @@ function TreinoForm() {
         initialConfig={editingModalData?.config || null}
         section={addExerciseModalSection}
       />
+
+      {/* Confirmação para excluir exercício */}
+      <Dialog
+        open={confirmDeleteExerciseOpen}
+        onClose={handleCloseConfirmDeleteExercise}
+        aria-labelledby="confirm-delete-exercise-title"
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle id="confirm-delete-exercise-title">Confirmar exclusão</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {pendingDeleteExercise?.itemName
+              ? `Deseja excluir o exercício "${pendingDeleteExercise.itemName}" do bloco "${getSectionLabel(pendingDeleteExercise.section)}"?`
+              : `Deseja excluir este exercício do bloco "${getSectionLabel(pendingDeleteExercise?.section)}"?`
+            }
+          </Typography>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            px: 3,
+            pb: 2,
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 1,
+            alignItems: { xs: 'stretch', sm: 'center' },
+            '& > .MuiButton-root': {
+              width: { xs: '100%', sm: 'auto' }
+            }
+          }}
+        >
+          <Button onClick={handleCloseConfirmDeleteExercise} variant="outlined" color="secondary">
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmDeleteExercise} variant="contained" color="error">
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Confirmação para navegar para Semanas */}
       <Dialog

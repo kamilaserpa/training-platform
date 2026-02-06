@@ -1,29 +1,30 @@
-import { useState } from 'react';
 import {
-  Card,
-  CardContent,
-  Typography,
-  IconButton,
-  Collapse,
-  Box,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Stack,
-  Tooltip,
-  Checkbox
-} from '@mui/material';
-import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
   ExpandMore as ExpandMoreIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
   KeyboardArrowUp as KeyboardArrowUpIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   PictureAsPdf as PdfIcon
 } from '@mui/icons-material';
-import { DiaCell } from './DiaCell';
-import type { SemanaComTreinos } from '../../utils/semanaAdapter';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Card,
+  CardContent,
+  Checkbox,
+  Collapse,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography
+} from '@mui/material';
+import { useState } from 'react';
 import { useWeeksSelection } from '../../contexts/WeeksSelectionContext';
+import { parseLocalDate } from '../../utils/date';
+import type { SemanaComTreinos } from '../../utils/semanaAdapter';
+import { DiaCell } from './DiaCell';
 
 interface SemanaCardProps {
   semana: SemanaComTreinos;
@@ -65,10 +66,10 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
               {semana.focoSemana}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-              {new Date(semana.start_date).toLocaleDateString('pt-BR', {
+              {parseLocalDate(semana.start_date).toLocaleDateString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit'
-              })} - {new Date(semana.end_date).toLocaleDateString('pt-BR', {
+              })} - {parseLocalDate(semana.end_date).toLocaleDateString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric'
@@ -124,7 +125,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
                   size="small"
                 >
                   <EditIcon
-                  color="primary" />
+                    color="primary" />
                 </IconButton>
               </Tooltip>
             )}
@@ -142,7 +143,7 @@ export const SemanaCard = ({ semana, onEdit, onDelete, onExport }: SemanaCardPro
             )}
           </Stack>
 
-          <Box sx={{ mt: 2, mx: -2}}>
+          <Box sx={{ mt: 2, mx: -2 }}>
             {dias.map((dia) => (
               <Accordion
                 key={dia.key}
