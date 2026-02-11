@@ -2,6 +2,10 @@
 import { supabase, useMock } from '../lib/supabase';
 import type { CreateTrainingWeekDTO, CreateWeekFocusDTO, TrainingWeek, UpdateWeekFocusDTO, WeekFocus } from '../types/database.types';
 
+export type TrainingWeekLite = Pick<TrainingWeek, 'id' | 'name' | 'start_date' | 'end_date'> & {
+  week_focus?: Pick<WeekFocus, 'name'> | null;
+};
+
 // Mock data para desenvolvimento
 const mockWeekFocuses: WeekFocus[] = [
   {
@@ -230,6 +234,41 @@ class WeekService {
   // ========================
   // Training Weeks CRUD
   // ========================
+
+  async getAllTrainingWeeksLite(): Promise<TrainingWeekLite[]> {
+    if (useMock) {
+      return mockTrainingWeeks.map((week) => ({
+        id: week.id,
+        name: week.name,
+        start_date: week.start_date,
+        end_date: week.end_date,
+        week_focus: week.week_focus ? { name: week.week_focus.name } : null,
+      }));
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('training_weeks')
+        .select(
+          `
+          id,
+          name,
+          start_date,
+          end_date,
+          week_focus:week_focuses(name)
+        `,
+        )
+        .order('start_date', { ascending: false })
+        .overrideTypes<TrainingWeekLite[], { merge: false }>();
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar semanas de treino (lite):', error);
+      throw error;
+    }
+  }
 
   async getAllTrainingWeeks(): Promise<TrainingWeek[]> {
     if (useMock) {

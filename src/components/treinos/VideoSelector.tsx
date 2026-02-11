@@ -28,7 +28,6 @@ interface VideoSelectorProps {
     exerciseId: string;
     onSelect: (video: Video) => void;
     selectedVideoId?: string;
-    onRemove?: () => void; // Nova prop para remover vídeo selecionado
 }
 
 interface VideoWithUrl extends Video {
@@ -36,7 +35,7 @@ interface VideoWithUrl extends Video {
     isImage?: boolean;
 }
 
-export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove }: VideoSelectorProps) => {
+export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId }: VideoSelectorProps) => {
     const [videos, setVideos] = useState<VideoWithUrl[]>([]);
     const [filteredVideos, setFilteredVideos] = useState<VideoWithUrl[]>([]);
     const [loading, setLoading] = useState(true);
@@ -237,38 +236,25 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
     }
 
     return (
-        <Box sx={{ paddingTop: { xs: 2, sm: 0 } }}>
+        <Box sx={{ paddingTop: { xs: 0, sm: 2 } }}>
             {/* Informação sobre vídeo atual */}
             {selectedVideoId && videos.find(v => v.id === selectedVideoId) && (
                 <Alert
                     severity="info"
-                    sx={{ mb: 2, px: 0 }}
-                    icon={<CheckIcon />}
-                    action={
-                        onRemove && (
-                            <Button
-                                color="primary"
-                                variant="outlined"
-                                size="small"
-                                onClick={onRemove}
-                                sx={{ fontWeight: 600 }}
-                            >
-                                Remover Vídeo
-                            </Button>
-                        )
-                    }
+                    icon={<CheckIcon color='success' />}
+                    color='success'
                 >
                     <Typography variant="body2" fontWeight={600}>
                         Vídeo atual: {videos.find(v => v.id === selectedVideoId)?.title}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                        Selecione outro vídeo abaixo para alterá-lo{onRemove ? ', ou clique em "Remover Vídeo" para removê-lo' : ''}.
+                        Selecione outro vídeo abaixo para alterá-lo.
                     </Typography>
                 </Alert>
             )}
 
             {/* Filtros */}
-            <Grid container spacing={{ xs: 4, sm: 2 }} mb={3}>
+            <Grid container spacing={{ xs: 4, sm: 2 }} mb={3} pt={4}>
                 <Grid item xs={12} sm={8}>
                     <TextField
                         fullWidth
@@ -413,7 +399,8 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
                                             <Box
                                                 sx={{
                                                     position: 'relative',
-                                                    paddingTop: '56.25%', // 16:9 aspect ratio
+                                                    // Aumenta a altura visível do preview (mais alto que 16:9)
+                                                    paddingTop: { xs: '85%', sm: '70%' },
                                                     backgroundColor: 'grey.900',
                                                 }}
                                             >
@@ -478,10 +465,28 @@ export const VideoSelector = ({ exerciseId, onSelect, selectedVideoId, onRemove 
                                             )}
 
                                             <Stack direction="row" spacing={0.5} flexWrap="wrap" gap={0.5}>
-                                                <Chip label={getLevelLabel(video.level || '')} size="small" />
-                                                <Chip label={getPlaneLabel(video.plane || '')} size="small" variant="outlined" />
-                                                <Chip label={getTypeLabel(video.type || '')} size="small" variant="outlined" />
-                                                <Chip label={getGenreLabel(video.genre || '')} size="small" color="primary" />
+                                                <Chip
+                                                    label={getLevelLabel(video.level || '')}
+                                                    size="small"
+                                                    sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                                                />
+                                                <Chip
+                                                    label={getPlaneLabel(video.plane || '')}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                                                />
+                                                <Chip
+                                                    label={getTypeLabel(video.type || '')}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                                                />
+                                                <Chip
+                                                    label={getGenreLabel(video.genre || '')}
+                                                    size="small"
+                                                    color="primary"
+                                                />
                                             </Stack>
                                         </CardContent>
                                     </CardActionArea>

@@ -1,5 +1,21 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
 import { db } from 'lib/db';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+const DEFAULT_CACHE_OP_TIMEOUT_MS = 1500;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Timeout (${operationName})`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
 
 export interface UseCachedQueryOptions<T> {
   /**
@@ -83,13 +99,13 @@ export interface UseCachedQueryResult<T> {
 
 /**
  * Cache-first data fetching hook with IndexedDB via Dexie
- * 
+ *
  * Pattern:
  * 1. Return cached data immediately if available
  * 2. Fetch fresh data in background
  * 3. Update cache and re-render when fresh data arrives
  * 4. Does not block navigation or UI
- * 
+ *
  * @example
  * ```tsx
  * const { data, isLoading, isRevalidating, refetch } = useCachedQuery({
@@ -123,8 +139,12 @@ export function useCachedQuery<T>({
    */
   const loadFromCache = useCallback(async () => {
     try {
-      const cached = await db.getCache<T>(cacheKey);
-      
+      const cached = await withTimeout(
+        db.getCache<T>(cacheKey),
+        DEFAULT_CACHE_OP_TIMEOUT_MS,
+        `db.getCache:${cacheKey}`,
+      );
+
       if (cached && isMountedRef.current) {
         setData(cached.data);
         setIsFromCache(true);
@@ -132,7 +152,7 @@ export function useCachedQuery<T>({
         setIsLoading(false);
         return true;
       }
-      
+
       return false;
     } catch (err) {
       console.error('Failed to load from cache:', err);
@@ -146,24 +166,34 @@ export function useCachedQuery<T>({
   const fetchAndCache = useCallback(async (isBackground = false) => {
     // Prevent concurrent fetches
     if (fetchInProgressRef.current) return;
-    
+
     fetchInProgressRef.current = true;
-    
+
     if (!isBackground) {
       setIsLoading(true);
     } else {
       setIsRevalidating(true);
     }
-    
+
     setError(null);
 
     try {
       const freshData = await fetcher();
-      
+
       if (!isMountedRef.current) return;
 
       // Update cache
-      await db.setCache(cacheKey, freshData, ttl);
+      try {
+        await withTimeout(
+          db.setCache(cacheKey, freshData, ttl),
+          DEFAULT_CACHE_OP_TIMEOUT_MS,
+          `db.setCache:${cacheKey}`,
+        );
+      } catch (cacheErr) {
+        // Cache is best-effort. If IndexedDB is blocked/unavailable (notably on some iOS PWA scenarios),
+        // we still want the UI to proceed with fresh data.
+        console.warn('Failed to write cache:', cacheErr);
+      }
 
       // Update state
       setData(freshData);
@@ -174,12 +204,12 @@ export function useCachedQuery<T>({
       onSuccess?.(freshData);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      
+
       if (!isMountedRef.current) return;
-      
+
       setError(error);
       onError?.(error);
-      
+
       console.error('Failed to fetch data:', error);
     } finally {
       if (isMountedRef.current) {

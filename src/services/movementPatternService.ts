@@ -2,6 +2,8 @@
 import { supabase, useMock } from '../lib/supabase';
 import type { MovementPattern } from '../types/database.types';
 
+export type MovementPatternLite = Pick<MovementPattern, 'id' | 'name'>;
+
 // Mock data para desenvolvimento
 const mockMovementPatterns: MovementPattern[] = [
   {
@@ -77,6 +79,29 @@ const mockMovementPatterns: MovementPattern[] = [
 ];
 
 class MovementPatternService {
+  async getAllMovementPatternsLite(): Promise<MovementPatternLite[]> {
+    if (useMock) {
+      return mockMovementPatterns.map((mp) => ({ id: mp.id, name: mp.name }));
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('movement_patterns')
+        .select('id,name')
+        .order('name')
+        .overrideTypes<MovementPatternLite[], { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (error: any) {
+      console.error('Erro ao buscar padrões (lite):', error);
+      throw error;
+    }
+  }
+
   async getAllMovementPatterns(): Promise<MovementPattern[]> {
     if (useMock) {
       return mockMovementPatterns;

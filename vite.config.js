@@ -29,5 +29,16 @@ export default defineConfig(({ mode }) => {
             host: '0.0.0.0',
             port: 3000,
         },
+        test: {
+            environment: 'jsdom',
+            globals: true,
+            setupFiles: ['./src/test/setupTests.ts'],
+            env: {
+                // Prevent any accidental real Supabase initialization/health-check.
+                VITE_USE_MOCK: 'true',
+                VITE_SUPABASE_URL: 'https://placeholder.supabase.co',
+                VITE_SUPABASE_ANON_KEY: 'placeholder-key',
+            },
+        },
     };
 });

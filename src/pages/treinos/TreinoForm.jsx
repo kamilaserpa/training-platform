@@ -1,13 +1,14 @@
 // Formulário de Treino - Criar/Editar
 import { yupResolver } from '@hookform/resolvers/yup'
 import dayjs from 'dayjs'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import * as yup from 'yup'
 
 // Imports dos componentes
 import { AddExerciseModal } from '../../components/treinos/AddExerciseModal'
+import { TrainingBlockSection } from '../../components/treinos/TrainingBlockSection'
 
 // Imports dos serviços
 import logoImage from '../../assets/images/logo-main.png'
@@ -36,9 +37,6 @@ import {
   Divider,
   Grid,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
   Paper,
   Snackbar,
   Stack,
@@ -52,8 +50,6 @@ import {
   ArrowBack as ArrowBackIcon,
   CheckCircle as CheckCircleIcon,
   ContentCopy as CopyIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
   Link as LinkIcon,
   PictureAsPdf as PdfIcon,
   Save as SaveIcon,
@@ -86,6 +82,15 @@ function TreinoForm() {
   const searchParams = new URLSearchParams(location.search)
   const isEditMode = !!editingTrainingId
 
+  const isDev =
+    !!import.meta.env?.DEV &&
+    import.meta.env?.MODE !== 'test' &&
+    // Vitest sets import.meta.env.VITEST; keep test output clean.
+    !import.meta.env?.VITEST
+  const devLog = (...args) => {
+    if (isDev) console.log(...args)
+  }
+
   // Estados para cada seção do treino
   const [mobilidadeItems, setMobilidadeItems] = useState([])
   const [coreItems, setCoreItems] = useState([])
@@ -100,6 +105,9 @@ function TreinoForm() {
   const [trainingBlocks, setTrainingBlocks] = useState([])
   const [editingModalIndex, setEditingModalIndex] = useState(null)
   const [editingModalData, setEditingModalData] = useState(null)
+  const [exerciseModalEditMode, setExerciseModalEditMode] = useState(false)
+  const editModalFetchIdRef = useRef(0)
+  const exercisesLiteCacheRef = useRef(null)
 
   // Confirmação ao sair para criação de semana
   const [confirmLeaveSemanasOpen, setConfirmLeaveSemanasOpen] = useState(false)
@@ -114,23 +122,47 @@ function TreinoForm() {
   const [confirmDeleteExerciseOpen, setConfirmDeleteExerciseOpen] = useState(false)
   const [pendingDeleteExercise, setPendingDeleteExercise] = useState(null)
 
-  const getSectionLabel = (section) => {
-    switch (section) {
-      case 'mobilidade':
-        return 'Mobilidade Articular'
-      case 'core':
-        return 'Ativação de Core'
-      case 'neural':
-        return 'Ativação Neural'
-      case 'treino1':
-        return 'Treino Bloco 01'
-      case 'treino2':
-        return 'Treino Bloco 02'
-      case 'condicionamento':
-        return 'Condicionamento Físico'
-      default:
-        return 'Bloco'
+  const sectionRegistry = {
+    mobilidade: {
+      label: 'Mobilidade Articular',
+      items: mobilidadeItems,
+      setItems: setMobilidadeItems
+    },
+    core: {
+      label: 'Ativação de Core',
+      items: coreItems,
+      setItems: setCoreItems
+    },
+    neural: {
+      label: 'Ativação Neural',
+      items: neuralItems,
+      setItems: setNeuralItems
+    },
+    treino1: {
+      label: 'Treino Bloco 01',
+      items: treinoBloco1,
+      setItems: setTreinoBloco1
+    },
+    treino2: {
+      label: 'Treino Bloco 02',
+      items: treinoBloco2,
+      setItems: setTreinoBloco2
+    },
+    condicionamento: {
+      label: 'Condicionamento Físico',
+      items: condicionamentoItems,
+      setItems: setCondicionamentoItems
     }
+  }
+
+  const updateSectionItems = (section, updater) => {
+    const entry = sectionRegistry[section]
+    if (!entry) return
+    entry.setItems((prev) => updater(prev))
+  }
+
+  const getSectionLabel = (section) => {
+    return sectionRegistry[section]?.label || 'Bloco'
   }
 
   const getExerciseDisplayName = (item) => {
@@ -164,7 +196,6 @@ function TreinoForm() {
   const [semanasOptions, setSemanasOptions] = useState([])
   const [semanasCompletas, setSemanasCompletas] = useState([]) // Semanas com todas as informações
   const [padroesMovimentoOptions, setPadroesMovimentoOptions] = useState([])
-  const [exerciciosOptions, setExerciciosOptions] = useState([])
 
   // Estados para destacar dias da semana no date picker
   const [weekStartDate, setWeekStartDate] = useState(null)
@@ -232,7 +263,7 @@ function TreinoForm() {
     const [data, semana] = watchedValues
     if (data && semana && semanasOptions.length > 0) {
       const newName = generateTrainingName(semana, data)
-      console.log('🔄 Nome do treino atualizado automaticamente:', newName)
+      devLog('🔄 Nome do treino atualizado automaticamente:', newName)
     }
   }, [watchedValues, semanasOptions, loading, loadingTrainingData])
 
@@ -246,19 +277,13 @@ function TreinoForm() {
 
   // Função para gerar nome do treino baseado na semana e data
   const generateTrainingName = (weekId, date) => {
-    console.log('🏷️ Gerando nome do treino:', { weekId, date, semanasOptions: semanasOptions.length })
-
     if (!weekId || !date) {
-      console.log('⚠️ Dados insuficientes para gerar nome')
       return 'Treino'
     }
 
     // Encontrar a semana selecionada
     const selectedWeek = semanasOptions.find(w => w.id === weekId)
-    console.log('📅 Semana selecionada:', selectedWeek)
-
     if (!selectedWeek) {
-      console.log('⚠️ Semana não encontrada')
       return 'Treino'
     }
 
@@ -271,7 +296,6 @@ function TreinoForm() {
     const dayNumber = dayOfWeek.toString().padStart(2, '0')
 
     const finalName = `Treino S${weekNumber}-${dayNumber}`
-    console.log('✨ Nome do treino gerado:', finalName, { weekNumber, dayNumber, dayOfWeek })
 
     // Atualizar estado
     setTrainingName(finalName)
@@ -292,32 +316,22 @@ function TreinoForm() {
         setLoadError(null)
 
         // Buscar semanas de treino
-        const semanas = await weekService.getAllTrainingWeeks()
+        const semanas = await weekService.getAllTrainingWeeksLite()
         const semanasFormatted = semanas.map(semana => ({
           id: semana.id,
           label: `${semana.name} - ${semana.week_focus?.name || 'Sem foco'}`
         }))
 
         // Buscar padrões de movimento
-        const padroes = await movementPatternService.getAllMovementPatterns()
+        const padroes = await movementPatternService.getAllMovementPatternsLite()
         const padroesFormatted = padroes.map(padrao => ({
           id: padrao.id,
           label: padrao.name
         }))
 
-        // Buscar exercícios
-        const exercicios = await exerciseService.getAllExercises()
-        const exerciciosFormatted = exercicios.map(exercicio => ({
-          id: exercicio.id,
-          label: exercicio.name,
-          movement_pattern: exercicio.movement_pattern?.name || 'Sem padrão',
-          tags: exercicio.tags || [] // Incluir tags
-        }))
-
         setSemanasOptions(semanasFormatted)
         setSemanasCompletas(semanas) // Armazenar semanas completas com datas
         setPadroesMovimentoOptions(padroesFormatted)
-        setExerciciosOptions(exerciciosFormatted)
 
         // Criar opções de training blocks baseadas nas seções disponíveis
         const blocks = [
@@ -330,9 +344,8 @@ function TreinoForm() {
         ]
         setTrainingBlocks(blocks)
 
-        console.log('🔍 Debug - Opções de semanas:', semanasFormatted)
-        console.log('🔍 Debug - Opções de padrões:', padroesFormatted)
-        console.log('🔍 Debug - Exercícios com tags:', exerciciosFormatted.slice(0, 3)) // Log dos primeiros 3 para verificar tags
+        devLog('🔍 Debug - Opções de semanas:', semanasFormatted)
+        devLog('🔍 Debug - Opções de padrões:', padroesFormatted)
 
       } catch (error) {
         console.error('❌ Erro ao carregar dados dos selects:', error)
@@ -344,9 +357,6 @@ function TreinoForm() {
         ])
         setPadroesMovimentoOptions([
           { id: 'erro', label: 'Erro ao carregar padrões' }
-        ])
-        setExerciciosOptions([
-          { id: 'erro', label: 'Erro ao carregar exercícios' }
         ])
       } finally {
         setLoading(false)
@@ -365,7 +375,7 @@ function TreinoForm() {
       const semanaValida = semanasOptions.find(s => s.id === semanaParam)
 
       if (semanaValida) {
-        console.log('✅ Preenchendo semana automaticamente:', semanaValida.label)
+        devLog('✅ Preenchendo semana automaticamente:', semanaValida.label)
         setValue('semana', semanaParam, { shouldValidate: false, shouldDirty: false })
       } else {
         console.warn('⚠️ Semana não encontrada nas opções:', semanaParam)
@@ -380,11 +390,11 @@ function TreinoForm() {
       const semanaCompleta = semanasCompletas.find(s => s.id === watchedSemana)
 
       if (semanaCompleta && semanaCompleta.start_date && semanaCompleta.end_date) {
-        console.log('📅 Destacando dias da semana:', semanaCompleta.start_date, '-', semanaCompleta.end_date)
+        devLog('📅 Destacando dias da semana:', semanaCompleta.start_date, '-', semanaCompleta.end_date)
         setWeekStartDate(semanaCompleta.start_date)
         setWeekEndDate(semanaCompleta.end_date)
       } else {
-        console.log('⚠️ Semana sem datas definidas, não destacando dias')
+        devLog('⚠️ Semana sem datas definidas, não destacando dias')
         setWeekStartDate(null)
         setWeekEndDate(null)
       }
@@ -406,7 +416,7 @@ function TreinoForm() {
 
       try {
         setLoadingTrainingData(true)
-        console.log('🔄 Carregando dados do treino:', editingTrainingId)
+        devLog('🔄 Carregando dados do treino:', editingTrainingId)
 
         const trainingData = await trainingService.getTrainingById(editingTrainingId)
 
@@ -449,8 +459,8 @@ function TreinoForm() {
         setTrainingName(currentName)
         sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, currentName)
 
-        console.log('🔍 Dados formatados para o formulário:', formData)
-        console.log('📊 Opções válidas - Semanas:', semanasOptions.length, 'Padrões:', padroesMovimentoOptions.length)
+        devLog('🔍 Dados formatados para o formulário:', formData)
+        devLog('📊 Opções válidas - Semanas:', semanasOptions.length, 'Padrões:', padroesMovimentoOptions.length)
 
         // Carregar dados de compartilhamento se existirem
         if (trainingData.share_token) {
@@ -589,16 +599,16 @@ function TreinoForm() {
           // Verificar pelo nome do bloco ou ordem para saber qual bloco é
           if (block.name === 'Bloco Principal 1' || block.order_index === 4) {
             setTreinoBloco1(principalItems)
-            console.log('📦 [DEBUG] Carregando exercícios para Bloco Principal 1:', principalItems.length, 'itens')
+            devLog('📦 [DEBUG] Carregando exercícios para Bloco Principal 1:', principalItems.length, 'itens')
           } else if (block.name === 'Bloco Principal 2' || block.order_index === 5) {
             setTreinoBloco2(principalItems)
-            console.log('📦 [DEBUG] Carregando exercícios para Bloco Principal 2:', principalItems.length, 'itens')
+            devLog('📦 [DEBUG] Carregando exercícios para Bloco Principal 2:', principalItems.length, 'itens')
           } else {
             // Fallback: se não conseguir identificar, dividir pela metade (comportamento antigo)
             const midPoint = Math.ceil(principalItems.length / 2)
             setTreinoBloco1(principalItems.slice(0, midPoint))
             setTreinoBloco2(principalItems.slice(midPoint))
-            console.log('📦 [DEBUG] Dividindo exercícios principal (fallback) - Bloco 1:', midPoint, '- Bloco 2:', principalItems.length - midPoint)
+            devLog('📦 [DEBUG] Dividindo exercícios principal (fallback) - Bloco 1:', midPoint, '- Bloco 2:', principalItems.length - midPoint)
           }
           break
         case 'CONDICIONAMENTO_FISICO':
@@ -621,79 +631,80 @@ function TreinoForm() {
 
   // Handler para abrir modal de edição
   const handleOpenEditExerciseModal = async (section, index, item) => {
-    try {
-      setEditingModalIndex(index)
-      setAddExerciseModalSection(section)
+    const fetchId = ++editModalFetchIdRef.current
 
-      // Buscar exercício completo se temos o ID
-      let exerciseData = null
-      if (item.exercicioId) {
-        const exercises = await exerciseService.getAllExercises()
-        exerciseData = exercises.find(ex => ex.id === item.exercicioId)
-      }
+    setEditingModalIndex(index)
+    setAddExerciseModalSection(section)
 
-      // Buscar vídeo completo se temos o ID
-      let videoData = null
-      if (item.videoId) {
-        const videos = await videoService.getVideos()
-        videoData = videos.find(v => v.id === item.videoId)
-      }
+    const configData = {
+      series: item?.series || 3,
+      repetitions: item?.repeticoes || '12',
+      weight_kg: item?.carga ? item.carga.toString().replace('kg', '').trim() : '',
+      duration_seconds: item?.tempoSegundos || null,
+      rest_seconds: item?.intervaloSegundos || 60,
+      notes: item?.observacoes || ''
+    }
 
-      // Preparar dados de configuração
-      const configData = {
-        series: item.series || 3,
-        repetitions: item.repeticoes || '12',
-        weight_kg: item.carga ? item.carga.toString().replace('kg', '').trim() : '',
-        duration_seconds: item.tempoSegundos || null,
-        rest_seconds: item.intervaloSegundos || 60,
-        notes: item.observacoes || ''
-      }
+    const fallbackExercise = item?.exercicioId
+      ? { id: item.exercicioId, name: item?.nome || 'Exercício' }
+      : null
 
-      const modalData = {
-        exercise: exerciseData,
-        video: videoData,
-        config: configData
-      }
+    const fallbackVideo = item?.videoId
+      ? { id: item.videoId, title: item?.videoName || '' }
+      : null
 
-      // Definir dados primeiro
-      setEditingModalData(modalData)
+    // Se não temos exercicioId, abrir no fluxo de seleção (mais resiliente)
+    setExerciseModalEditMode(!!item?.exercicioId)
 
-      // Aguardar próximo ciclo de renderização antes de abrir o modal
-      // Isso garante que editingModalData está atualizado quando o modal abre
-      setTimeout(() => {
-        setAddExerciseModalOpen(true)
-      }, 0)
-    } catch (error) {
-      console.error('❌ Erro ao carregar dados para edição:', error)
+    // Abrir imediatamente com dados mínimos; enriquecer em background.
+    setEditingModalData({
+      exercise: fallbackExercise,
+      video: fallbackVideo,
+      config: configData,
+    })
+    setAddExerciseModalOpen(true)
+
+    const results = await Promise.allSettled([
+      item?.exercicioId ? exerciseService.getExerciseById(item.exercicioId) : Promise.resolve(null),
+      item?.videoId ? videoService.getVideoById(item.videoId) : Promise.resolve(null),
+    ])
+
+    if (editModalFetchIdRef.current !== fetchId) return
+
+    const exerciseResult = results[0]
+    const videoResult = results[1]
+
+    const exerciseData = exerciseResult.status === 'fulfilled' ? exerciseResult.value : null
+    const videoData = videoResult.status === 'fulfilled' ? videoResult.value : null
+
+    const failedExercise = !!item?.exercicioId && (!exerciseData || exerciseResult.status === 'rejected')
+    const failedVideo = !!item?.videoId && (!videoData || videoResult.status === 'rejected')
+
+    if (failedExercise || failedVideo) {
+      console.error('❌ Erro ao carregar detalhes para edição:', {
+        failedExercise,
+        failedVideo,
+        exerciseError: exerciseResult.status === 'rejected' ? exerciseResult.reason : null,
+        videoError: videoResult.status === 'rejected' ? videoResult.reason : null,
+      })
+
       setSnackbar({
         open: true,
-        message: 'Erro ao carregar dados do exercício',
-        severity: 'error'
+        message: 'Não foi possível carregar detalhes do exercício/vídeo. Você ainda pode editar.',
+        severity: 'warning'
       })
     }
+
+    setEditingModalData((prev) => ({
+      ...(prev || {}),
+      exercise: exerciseData || prev?.exercise || null,
+      video: videoData || prev?.video || null,
+      config: prev?.config || configData,
+    }))
   }
 
   const removeItemFromSection = (section, index) => {
-    switch (section) {
-      case 'mobilidade':
-        setMobilidadeItems(mobilidadeItems.filter((_, i) => i !== index))
-        break
-      case 'core':
-        setCoreItems(coreItems.filter((_, i) => i !== index))
-        break
-      case 'neural':
-        setNeuralItems(neuralItems.filter((_, i) => i !== index))
-        break
-      case 'treino1':
-        setTreinoBloco1(treinoBloco1.filter((_, i) => i !== index))
-        break
-      case 'treino2':
-        setTreinoBloco2(treinoBloco2.filter((_, i) => i !== index))
-        break
-      case 'condicionamento':
-        setCondicionamentoItems(condicionamentoItems.filter((_, i) => i !== index))
-        break
-    }
+    updateSectionItems(section, (items) => items.filter((_, i) => i !== index))
   }
 
   // Handlers para remover itens (com confirmação)
@@ -717,19 +728,25 @@ function TreinoForm() {
 
   // Handlers para o novo modal de exercício com vídeo
   const handleOpenAddExerciseModal = (section) => {
+    editModalFetchIdRef.current++
+    setExerciseModalEditMode(false)
+    setEditingModalIndex(null)
+    setEditingModalData(null)
     setAddExerciseModalSection(section)
     setAddExerciseModalOpen(true)
   }
 
   const handleCloseAddExerciseModal = () => {
+    editModalFetchIdRef.current++
     setAddExerciseModalOpen(false)
     setAddExerciseModalSection('')
     setEditingModalIndex(null)
     setEditingModalData(null)
+    setExerciseModalEditMode(false)
   }
 
   const handleSaveExerciseWithVideo = (data) => {
-    console.log('💾 Salvando exercício com vídeo:', data)
+    devLog('💾 Salvando exercício com vídeo:', data)
 
     const { exercise, video, config } = data
 
@@ -747,87 +764,29 @@ function TreinoForm() {
       observacoes: config.notes || ''
     }
 
-    // Se está editando, atualizar item existente
-    if (editingModalIndex !== null) {
-      switch (addExerciseModalSection) {
-        case 'mobilidade':
-          const newMobItems = [...mobilidadeItems]
-          newMobItems[editingModalIndex] = exerciseItem
-          setMobilidadeItems(newMobItems)
-          console.log('✏️ Exercício atualizado na Mobilidade')
-          break
-        case 'core':
-          const newCoreItems = [...coreItems]
-          newCoreItems[editingModalIndex] = exerciseItem
-          setCoreItems(newCoreItems)
-          console.log('✏️ Exercício atualizado no Core')
-          break
-        case 'neural':
-          const newNeuralItems = [...neuralItems]
-          newNeuralItems[editingModalIndex] = exerciseItem
-          setNeuralItems(newNeuralItems)
-          console.log('✏️ Exercício atualizado no Neural')
-          break
-        case 'treino1':
-          const newTreino1 = [...treinoBloco1]
-          newTreino1[editingModalIndex] = exerciseItem
-          setTreinoBloco1(newTreino1)
-          console.log('✏️ Exercício atualizado no Bloco 1')
-          break
-        case 'treino2':
-          const newTreino2 = [...treinoBloco2]
-          newTreino2[editingModalIndex] = exerciseItem
-          setTreinoBloco2(newTreino2)
-          console.log('✏️ Exercício atualizado no Bloco 2')
-          break
-        case 'condicionamento':
-          const newCondItems = [...condicionamentoItems]
-          newCondItems[editingModalIndex] = exerciseItem
-          setCondicionamentoItems(newCondItems)
-          console.log('✏️ Exercício atualizado no Condicionamento')
-          break
-      }
+    const activeSection = addExerciseModalSection
+    const isEditing = editingModalIndex !== null
 
-      setSnackbar({
-        open: true,
-        message: `Exercício "${exercise.name}" atualizado com sucesso!`,
-        severity: 'success'
-      })
-    } else {
-      // Adicionar novo item ao array da seção correspondente
-      switch (addExerciseModalSection) {
-        case 'mobilidade':
-          setMobilidadeItems([...mobilidadeItems, exerciseItem])
-          console.log('➕ Exercício adicionado à Mobilidade')
-          break
-        case 'core':
-          setCoreItems([...coreItems, exerciseItem])
-          console.log('➕ Exercício adicionado ao Core')
-          break
-        case 'neural':
-          setNeuralItems([...neuralItems, exerciseItem])
-          console.log('➕ Exercício adicionado ao Neural')
-          break
-        case 'treino1':
-          setTreinoBloco1([...treinoBloco1, exerciseItem])
-          console.log('➕ Exercício adicionado ao Bloco 1')
-          break
-        case 'treino2':
-          setTreinoBloco2([...treinoBloco2, exerciseItem])
-          console.log('➕ Exercício adicionado ao Bloco 2')
-          break
-        case 'condicionamento':
-          setCondicionamentoItems([...condicionamentoItems, exerciseItem])
-          console.log('➕ Exercício adicionado ao Condicionamento')
-          break
-      }
+    updateSectionItems(activeSection, (items) => {
+      if (!isEditing) return [...items, exerciseItem]
+      const next = [...items]
+      next[editingModalIndex] = exerciseItem
+      return next
+    })
 
-      setSnackbar({
-        open: true,
-        message: `Exercício "${exercise.name}" adicionado com sucesso!`,
-        severity: 'success'
-      })
-    }
+    devLog(
+      isEditing
+        ? `✏️ Exercício atualizado em "${getSectionLabel(activeSection)}"`
+        : `➕ Exercício adicionado em "${getSectionLabel(activeSection)}"`
+    )
+
+    setSnackbar({
+      open: true,
+      message: isEditing
+        ? `Exercício "${exercise.name}" atualizado com sucesso!`
+        : `Exercício "${exercise.name}" adicionado com sucesso!`,
+      severity: 'success'
+    })
 
     handleCloseAddExerciseModal()
   }
@@ -840,66 +799,100 @@ function TreinoForm() {
     return `${minutos}min ${segundos}s`
   }
 
-  // Função para criar os blocos do treino no banco
-  const createTrainingBlocks = async (trainingId) => {
-    const blocksToCreate = [
-      {
-        name: 'Mobilidade Articular',
-        type: 'MOBILIDADE_ARTICULAR',
-        items: mobilidadeItems,
-        order: 1
-      },
-      {
-        name: 'Ativação de Core',
-        type: 'ATIVACAO_CORE',
-        items: coreItems,
-        order: 2
-      },
-      {
-        name: 'Ativação Neural',
-        type: 'ATIVACAO_NEURAL',
-        items: neuralItems,
-        order: 3
-      },
-      {
-        name: 'Bloco Principal 1',
-        type: 'TREINO_PRINCIPAL',
-        items: treinoBloco1,
-        order: 4
-      },
-      {
-        name: 'Bloco Principal 2',
-        type: 'TREINO_PRINCIPAL',
-        items: treinoBloco2,
-        order: 5
-      },
-      {
-        name: 'Condicionamento Físico',
-        type: 'CONDICIONAMENTO_FISICO',
-        items: condicionamentoItems,
-        order: 6
-      }
-    ]
+  const getTrainingBlockDrafts = () => [
+    {
+      name: 'Mobilidade Articular',
+      type: 'MOBILIDADE_ARTICULAR',
+      items: mobilidadeItems,
+      order: 1
+    },
+    {
+      name: 'Ativação de Core',
+      type: 'ATIVACAO_CORE',
+      items: coreItems,
+      order: 2
+    },
+    {
+      name: 'Ativação Neural',
+      type: 'ATIVACAO_NEURAL',
+      items: neuralItems,
+      order: 3
+    },
+    {
+      name: 'Bloco Principal 1',
+      type: 'TREINO_PRINCIPAL',
+      items: treinoBloco1,
+      order: 4
+    },
+    {
+      name: 'Bloco Principal 2',
+      type: 'TREINO_PRINCIPAL',
+      items: treinoBloco2,
+      order: 5
+    },
+    {
+      name: 'Condicionamento Físico',
+      type: 'CONDICIONAMENTO_FISICO',
+      items: condicionamentoItems,
+      order: 6
+    }
+  ]
 
-    console.log('🔍 [DEBUG] Estados dos blocos antes do filtro:')
-    console.log('- Mobilidade:', mobilidadeItems.length, 'itens')
-    console.log('- Core:', coreItems.length, 'itens')
-    console.log('- Neural:', neuralItems.length, 'itens')
-    console.log('- Bloco 1:', treinoBloco1.length, 'itens')
-    console.log('- Bloco 2:', treinoBloco2.length, 'itens')
-    console.log('- Condicionamento:', condicionamentoItems.length, 'itens')
-
-    // Filtrar apenas blocos que têm itens
-    const blocksWithItems = blocksToCreate.filter(block =>
-      block.items && block.items.length > 0
+  const trainingBlockItemHasProtocol = (item) => {
+    return !!(
+      item?.series ||
+      item?.tempoSegundos ||
+      item?.intervaloSegundos ||
+      item?.repeticoes ||
+      item?.duracao ||
+      item?.observacoes
     )
+  }
 
-    console.log('📊 Criando', blocksWithItems.length, 'blocos com exercícios')
-    console.log('🔍 [DEBUG] Blocos que serão criados:', blocksWithItems.map(b => `${b.name}: ${b.items.length} itens`))
+  const persistTrainingBlockItem = async ({ mode, blockId, blockType, item, orderIndex }) => {
+    if (typeof item === 'string') {
+      await createExerciseFromString(blockId, item, orderIndex, blockType)
+      return
+    }
 
-    for (const blockConfig of blocksWithItems) {
+    if (!item) return
+
+    if (mode === 'create') {
+      if (item?.nome) {
+        await createExerciseFromObject(blockId, item, orderIndex)
+      }
+      return
+    }
+
+    // mode === 'update' (preserva a lógica atual mais defensiva)
+    if (item?.nome && trainingBlockItemHasProtocol(item)) {
+      await createExerciseFromObject(blockId, item, orderIndex)
+    } else if (item?.nome && item?.exercicioId) {
+      await createExerciseFromId(blockId, item.exercicioId, orderIndex, blockType, item)
+    } else if (item?.nome) {
+      await createExerciseFromString(blockId, item.nome, orderIndex, blockType)
+    }
+  }
+
+  const persistTrainingBlocks = async ({
+    trainingId,
+    blockDrafts,
+    mode,
+    onProgressMessage
+  }) => {
+    const blocksWithItems = blockDrafts.filter((block) => block.items && block.items.length > 0)
+
+    devLog('📊 Criando', blocksWithItems.length, 'blocos com exercícios')
+
+    for (let blockIndex = 0; blockIndex < blocksWithItems.length; blockIndex++) {
+      const blockConfig = blocksWithItems[blockIndex]
       try {
-        // Criar o bloco
+        if (onProgressMessage) {
+          onProgressMessage(
+            `🛠️ Criando bloco ${blockIndex + 1}/${blocksWithItems.length}: ${blockConfig.name}`
+          )
+        }
+
         const blockData = {
           training_id: trainingId,
           name: blockConfig.name,
@@ -908,38 +901,58 @@ function TreinoForm() {
           rest_between_exercises_seconds: 60
         }
 
-        console.log('🛠️ Criando bloco:', blockData.name)
+        devLog('🛠️ Criando bloco:', blockData.name)
         const createdBlock = await trainingService.createTrainingBlock(blockData)
 
-        // Adicionar exercícios ao bloco
         for (let i = 0; i < blockConfig.items.length; i++) {
-          const item = blockConfig.items[i]
-
-          // Se o item é uma string (mobilidade), buscar exercício existente
-          if (typeof item === 'string') {
-            await createExerciseFromString(createdBlock.id, item, i + 1, blockConfig.type)
-          } else if (item.nome) {
-            // Se o item tem estrutura de exercício
-            await createExerciseFromObject(createdBlock.id, item, i + 1)
-          }
+          await persistTrainingBlockItem({
+            mode,
+            blockId: createdBlock.id,
+            blockType: blockConfig.type,
+            item: blockConfig.items[i],
+            orderIndex: i + 1
+          })
         }
 
-        console.log('✅ Bloco', blockData.name, 'criado com', blockConfig.items.length, 'exercícios')
-
+        devLog('✅ Bloco', blockData.name, 'criado com', blockConfig.items.length, 'exercícios')
       } catch (error) {
         console.error('❌ Erro ao criar bloco', blockConfig.name, ':', error)
+        throw error
       }
     }
+  }
+
+  // Função para criar os blocos do treino no banco
+  const createTrainingBlocks = async (trainingId) => {
+    const blockDrafts = getTrainingBlockDrafts()
+
+    devLog('🔍 [DEBUG] Estados dos blocos antes do filtro:')
+    devLog('- Mobilidade:', mobilidadeItems.length, 'itens')
+    devLog('- Core:', coreItems.length, 'itens')
+    devLog('- Neural:', neuralItems.length, 'itens')
+    devLog('- Bloco 1:', treinoBloco1.length, 'itens')
+    devLog('- Bloco 2:', treinoBloco2.length, 'itens')
+    devLog('- Condicionamento:', condicionamentoItems.length, 'itens')
+
+    await persistTrainingBlocks({
+      trainingId,
+      blockDrafts,
+      mode: 'create',
+      onProgressMessage: setSubmittingMessage
+    })
   }
 
   // Função auxiliar para criar exercício a partir de string
   const createExerciseFromString = async (blockId, exerciseName, order, blockType) => {
     try {
-      // Buscar exercícios existentes
-      const exercises = await exerciseService.getAllExercises()
+      // Buscar exercícios existentes (cache local para evitar várias requisições no mesmo salvamento)
+      if (!exercisesLiteCacheRef.current) {
+        exercisesLiteCacheRef.current = await exerciseService.getExercisesLiteForMatching()
+      }
+      const exercises = exercisesLiteCacheRef.current
       let exercise = null
 
-      console.log(`🔍 Buscando exercício '${exerciseName}' para bloco tipo '${blockType}'`)
+      devLog(`🔍 Buscando exercício '${exerciseName}' para bloco tipo '${blockType}'`)
 
       // Para mobilidade articular, priorizar exercícios com padrão "mobilidade"
       if (blockType === 'MOBILIDADE_ARTICULAR') {
@@ -969,7 +982,7 @@ function TreinoForm() {
           )
         }
 
-        console.log(`🎯 Exercício de mobilidade ${exercise ? 'encontrado' : 'não encontrado'}:`,
+        devLog(`🎯 Exercício de mobilidade ${exercise ? 'encontrado' : 'não encontrado'}:`,
           exercise ? exercise.name : 'N/A')
       } else {
         // Para outros tipos, buscar por nome exato primeiro
@@ -991,21 +1004,22 @@ function TreinoForm() {
           reps: blockType === 'MOBILIDADE_ARTICULAR' ? '30s' : '15',
           rest_seconds: blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 60
         })
-        console.log(`✅ Exercício '${exercise.name}' adicionado ao bloco com sucesso`)
+        devLog(`✅ Exercício '${exercise.name}' adicionado ao bloco com sucesso`)
       } else {
-        console.log(`⚠️ Exercício '${exerciseName}' não encontrado no banco, pulando...`)
+        devLog(`⚠️ Exercício '${exerciseName}' não encontrado no banco, pulando...`)
       }
 
     } catch (error) {
       console.error('❌ Erro ao processar exercício', exerciseName, ':', error)
+      throw error
     }
   }
 
   // Função auxiliar para criar exercício a partir de ID
   const createExerciseFromId = async (blockId, exerciseId, order, blockType, exerciseData = null) => {
     try {
-      console.log(`🔍 Adicionando exercício por ID '${exerciseId}' ao bloco tipo '${blockType}'`)
-      console.log(`🔍 Dados do exercício recebidos:`, exerciseData)
+      devLog(`🔍 Adicionando exercício por ID '${exerciseId}' ao bloco tipo '${blockType}'`)
+      devLog(`🔍 Dados do exercício recebidos:`, exerciseData)
 
       // Usar dados específicos se fornecidos, senão usar padrões
       const prescriptionData = {
@@ -1039,45 +1053,24 @@ function TreinoForm() {
         }
       }
 
-      console.log('💾 [DEBUG] Dados da prescrição que serão salvos (createExerciseFromId):', prescriptionData)
       await trainingService.addExerciseToBlock(prescriptionData)
 
-      console.log(`✅ Exercício ID '${exerciseId}' adicionado ao bloco com sucesso`)
+      devLog(`✅ Exercício ID '${exerciseId}' adicionado ao bloco com sucesso`)
 
     } catch (error) {
       console.error('❌ Erro ao processar exercício por ID', exerciseId, ':', error)
+      throw error
     }
   }
 
   // Função auxiliar para criar exercício a partir de objeto
   const createExerciseFromObject = async (blockId, exerciseObj, order) => {
     try {
-      console.log('🔍 [DEBUG] Dados do exercício recebidos:', exerciseObj)
-      console.log('🔍 [DEBUG] Campos relevantes:', {
-        nome: exerciseObj.nome,
-        series: exerciseObj.series,
-        tempoSegundos: exerciseObj.tempoSegundos,
-        intervaloSegundos: exerciseObj.intervaloSegundos,
-        tempo: exerciseObj.tempo,
-        intervalo: exerciseObj.intervalo
-      })
-
-      console.log('🔍 [DEBUG] Verificações de valores:')
-      console.log('- tempoSegundos !== undefined:', exerciseObj.tempoSegundos !== undefined)
-      console.log('- tempoSegundos !== "":', exerciseObj.tempoSegundos !== '')
-      console.log('- tempoSegundos !== null:', exerciseObj.tempoSegundos !== null)
-      console.log('- valor tempoSegundos:', exerciseObj.tempoSegundos)
-      console.log('- tipo tempoSegundos:', typeof exerciseObj.tempoSegundos)
-
-      console.log('- intervaloSegundos !== undefined:', exerciseObj.intervaloSegundos !== undefined)
-      console.log('- intervaloSegundos !== "":', exerciseObj.intervaloSegundos !== '')
-      console.log('- intervaloSegundos !== null:', exerciseObj.intervaloSegundos !== null)
-      console.log('- valor intervaloSegundos:', exerciseObj.intervaloSegundos)
-      console.log('- tipo intervaloSegundos:', typeof exerciseObj.intervaloSegundos)
+      devLog('🔍 [createExerciseFromObject] Exercício recebido:', exerciseObj)
 
       // Se já tem exercicioId, usar diretamente
       if (exerciseObj.exercicioId) {
-        console.log('🔍 Usando exercícioId diretamente:', exerciseObj.exercicioId)
+        devLog('🔍 Usando exercícioId diretamente:', exerciseObj.exercicioId)
 
         // Preparar dados de prescrição
         let prescriptionData = {
@@ -1096,7 +1089,7 @@ function TreinoForm() {
         // Adicionar video_id se disponível
         if (exerciseObj.videoId) {
           prescriptionData.video_id = exerciseObj.videoId
-          console.log('🎥 Adicionando vídeo ao exercício:', exerciseObj.videoName || exerciseObj.videoId)
+          devLog('🎥 Adicionando vídeo ao exercício:', exerciseObj.videoName || exerciseObj.videoId)
         }
 
         // Se tem tempo definido, usar duration_seconds
@@ -1138,14 +1131,13 @@ function TreinoForm() {
           prescriptionData.notes = exerciseObj.observacoes
         }
 
-        console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData)
         await trainingService.addExerciseToBlock(prescriptionData)
-        console.log(`✅ Exercício '${exerciseObj.nome}' adicionado ao bloco com protocolo:`, prescriptionData)
+        devLog(`✅ Exercício '${exerciseObj.nome}' adicionado ao bloco com protocolo`)
         return
       }
 
       // Se não tem exercicioId, buscar exercício por nome
-      const exercises = await exerciseService.getAllExercises()
+      const exercises = await exerciseService.getExercisesLiteForMatching()
       let exercise = exercises.find(ex => ex.name.toLowerCase() === exerciseObj.nome.toLowerCase())
 
       // Se não encontrou por nome exato, buscar por nome similar
@@ -1208,76 +1200,36 @@ function TreinoForm() {
           prescriptionData.notes = exerciseObj.observacoes
         }
 
-        console.log('💾 [DEBUG] Dados da prescrição que serão salvos no banco:', prescriptionData)
         await trainingService.addExerciseToBlock(prescriptionData)
-        console.log(`✅ Exercício '${exercise.name}' adicionado ao bloco com protocolo:`, prescriptionData)
+        devLog(`✅ Exercício '${exercise.name}' adicionado ao bloco com protocolo`)
       } else {
-        console.log(`⚠️ Exercício '${exerciseObj.nome}' não encontrado, pulando...`)
+        devLog(`⚠️ Exercício '${exerciseObj.nome}' não encontrado, pulando...`)
       }
 
     } catch (error) {
       console.error('❌ Erro ao processar exercício', exerciseObj.nome, ':', error)
+      throw error
     }
   }
 
   // Função para atualizar os blocos do treino existente
   const updateTrainingBlocks = async (trainingId) => {
     try {
-      console.log('🔄 Iniciando atualização de blocos para treino:', trainingId)
 
       // Primeiro, carregar os blocos existentes do banco
       const existingTraining = await trainingService.getTrainingById(trainingId)
       const existingBlocks = existingTraining.training_blocks || []
 
-      console.log('📊 Blocos existentes encontrados:', existingBlocks.length)
 
-      // Definir novos blocos baseados no estado atual
-      const newBlocks = [
-        {
-          name: 'Mobilidade Articular',
-          type: 'MOBILIDADE_ARTICULAR',
-          items: mobilidadeItems,
-          order: 1
-        },
-        {
-          name: 'Ativação de Core',
-          type: 'ATIVACAO_CORE',
-          items: coreItems,
-          order: 2
-        },
-        {
-          name: 'Ativação Neural',
-          type: 'ATIVACAO_NEURAL',
-          items: neuralItems,
-          order: 3
-        },
-        {
-          name: 'Bloco Principal 1',
-          type: 'TREINO_PRINCIPAL',
-          items: treinoBloco1,
-          order: 4
-        },
-        {
-          name: 'Bloco Principal 2',
-          type: 'TREINO_PRINCIPAL',
-          items: treinoBloco2,
-          order: 5
-        },
-        {
-          name: 'Condicionamento Físico',
-          type: 'CONDICIONAMENTO_FISICO',
-          items: condicionamentoItems,
-          order: 6
-        }
-      ]
+      const blockDrafts = getTrainingBlockDrafts()
 
       // Para simplicidade, vamos remover todos os blocos existentes e criar novos
       // TODO: Implementar lógica mais sofisticada para atualizar apenas os que mudaram
-      console.log('🗑️ Removendo blocos existentes...')
+      devLog('🗑️ Removendo blocos existentes...')
       setSubmittingMessage('🗑️ Removendo blocos existentes...')
       try {
         await trainingService.deleteAllTrainingBlocks(trainingId)
-        console.log('✅ Todos os blocos existentes foram removidos')
+        devLog('✅ Todos os blocos existentes foram removidos')
         setSubmittingMessage('✅ Blocos removidos, criando novos...')
       } catch (error) {
         console.warn('⚠️ Erro ao remover blocos existentes:', error)
@@ -1285,57 +1237,14 @@ function TreinoForm() {
         // Continue mesmo se houver erro na remoção
       }
 
-      // Agora criar os novos blocos (mesmo processo que createTrainingBlocks)
-      const blocksWithItems = newBlocks.filter(block =>
-        block.items && block.items.length > 0
-      )
+      await persistTrainingBlocks({
+        trainingId,
+        blockDrafts,
+        mode: 'update',
+        onProgressMessage: setSubmittingMessage
+      })
 
-      console.log('📊 Criando', blocksWithItems.length, 'blocos atualizados com exercícios')
-
-      for (let blockIndex = 0; blockIndex < blocksWithItems.length; blockIndex++) {
-        const blockConfig = blocksWithItems[blockIndex]
-        try {
-          setSubmittingMessage(`🛠️ Criando bloco ${blockIndex + 1}/${blocksWithItems.length}: ${blockConfig.name}`)
-
-          // Criar o bloco
-          const blockData = {
-            training_id: trainingId,
-            name: blockConfig.name,
-            block_type: blockConfig.type,
-            order_index: blockConfig.order,
-            rest_between_exercises_seconds: 60
-          }
-
-          console.log('🛠️ Criando bloco atualizado:', blockData.name)
-          const createdBlock = await trainingService.createTrainingBlock(blockData)
-
-          // Adicionar exercícios ao bloco
-          for (let i = 0; i < blockConfig.items.length; i++) {
-            const item = blockConfig.items[i]
-
-            // Se o item é uma string (mobilidade antiga), buscar exercício existente
-            if (typeof item === 'string') {
-              await createExerciseFromString(createdBlock.id, item, i + 1, blockConfig.type)
-            } else if (item && item.nome && (item.series || item.tempoSegundos || item.intervaloSegundos || item.repeticoes || item.duracao || item.observacoes)) {
-              // Se o item tem dados completos de protocolo (incluindo condicionamento com duracao/observacoes), usar função para objetos completos
-              await createExerciseFromObject(createdBlock.id, item, i + 1)
-            } else if (item && item.nome && item.exercicioId) {
-              // Se o item tem apenas ID e nome (sem protocolo específico), usar ID diretamente
-              await createExerciseFromId(createdBlock.id, item.exercicioId, i + 1, blockConfig.type, item)
-            } else if (item && item.nome) {
-              // Se o item tem apenas nome, buscar por nome
-              await createExerciseFromString(createdBlock.id, item.nome, i + 1, blockConfig.type)
-            }
-          }
-
-          console.log('✅ Bloco', blockData.name, 'atualizado com', blockConfig.items.length, 'exercícios')
-
-        } catch (error) {
-          console.error('❌ Erro ao atualizar bloco', blockConfig.name, ':', error)
-        }
-      }
-
-      console.log('✅ Todos os blocos foram atualizados!')
+      devLog('✅ Todos os blocos foram atualizados!')
       setSubmittingMessage('✅ Treino salvo com sucesso!')
 
       // Pequeno delay para mostrar mensagem de sucesso
@@ -1479,7 +1388,6 @@ function TreinoForm() {
     try {
       setSubmitting(true)
       setSubmittingMessage(isEditMode ? '🔄 Atualizando treino...' : '💾 Salvando treino...')
-      console.log('📋 Dados do formulário:', data)
 
       const scheduledDate = data?.data?.toDate ? data.data.toDate() : data.data
 
@@ -1505,13 +1413,12 @@ function TreinoForm() {
       let training
 
       if (isEditMode) {
-        console.log('🔄 Atualizando treino:', editingTrainingId, trainingData)
         training = await trainingService.updateTraining(editingTrainingId, trainingData)
-        console.log('✅ Treino atualizado com sucesso:', training)
+        devLog('✅ Treino atualizado com sucesso')
       } else {
-        console.log('🚀 Criando treino com dados:', trainingData)
+        devLog('🚀 Criando treino com dados:', trainingData)
         training = await trainingService.createTraining(trainingData)
-        console.log('✅ Treino criado com sucesso:', training)
+        devLog('✅ Treino criado com sucesso')
 
         // Após criar, se tem share_token retornado pelo banco, atualizar estado local
         if (training.share_token) {
@@ -1521,14 +1428,14 @@ function TreinoForm() {
       }
 
       // Criar/atualizar os blocos do treino com todos os exercícios
-      console.log('🛠️ Processando blocos do treino...')
+      devLog('🛠️ Processando blocos do treino...')
       if (isEditMode) {
-        console.log('🔄 Atualizando blocos do treino existente...')
+        devLog('🔄 Atualizando blocos do treino existente...')
         await updateTrainingBlocks(training.id)
       } else {
         await createTrainingBlocks(training.id)
       }
-      console.log('✅ Blocos processados com sucesso!')
+      devLog('✅ Blocos processados com sucesso!')
 
       // Mostrar feedback de sucesso
       const linkStatusMessage = data.link_ativo && training.share_token
@@ -1545,7 +1452,7 @@ function TreinoForm() {
 
       // Se for criação, redirecionar para o modo de edição do treino recém-criado
       if (!isEditMode) {
-        console.log('🔄 Redirecionando para modo de edição do treino:', training.id)
+        devLog('🔄 Redirecionando para modo de edição do treino:', training.id)
         setTimeout(() => {
           navigate(`/pages/treinos/${training.id}/editar`)
         }, 1500)
@@ -1569,6 +1476,147 @@ function TreinoForm() {
       setSubmittingMessage('')
     }
   }
+
+  const trainingBlockSections = [
+    {
+      key: 'mobilidade',
+      props: {
+        title: 'Mobilidade Articular',
+        items: mobilidadeItems,
+        dense: true,
+        emptyPrimary: 'Nenhum item adicionado',
+        emptySecondary: 'Clique em Adicionar para incluir',
+        addAriaLabel: 'Adicionar exercício - Mobilidade Articular',
+        onAdd: () => handleOpenAddExerciseModal('mobilidade'),
+        onEdit: (index, item) => handleOpenEditExerciseModal('mobilidade', index, item),
+        onDelete: (index, item) => handleRemoveItem('mobilidade', index, item),
+        disableAdd: submitting,
+        disableItemActions: submitting,
+        renderLeading: (item) =>
+          typeof item === 'object' && item?.videoId ? (
+            <VideoIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+          ) : null,
+        renderPrimary: (item) => (typeof item === 'string' ? item : item?.nome),
+        renderSecondary: (item) =>
+          typeof item === 'object' ? formatProtocol(item) : undefined,
+      },
+    },
+    {
+      key: 'core',
+      props: {
+        title: 'Ativação de Core',
+        items: coreItems,
+        dense: true,
+        emptyPrimary: 'Nenhum exercício adicionado',
+        emptySecondary: 'Clique em Adicionar para incluir',
+        addAriaLabel: 'Adicionar exercício - Ativação de Core',
+        onAdd: () => handleOpenAddExerciseModal('core'),
+        onEdit: (index, item) => handleOpenEditExerciseModal('core', index, item),
+        onDelete: (index, item) => handleRemoveItem('core', index, item),
+        disableAdd: submitting,
+        disableItemActions: submitting,
+        renderPrimary: (item) => item?.nome,
+        renderSecondary: (item) => formatProtocol(item),
+      },
+    },
+    {
+      key: 'neural',
+      props: {
+        title: 'Ativação Neural',
+        items: neuralItems,
+        dense: true,
+        emptyPrimary: 'Nenhum exercício adicionado',
+        emptySecondary: 'Clique em Adicionar para incluir',
+        addAriaLabel: 'Adicionar exercício - Ativação Neural',
+        onAdd: () => handleOpenAddExerciseModal('neural'),
+        onEdit: (index, item) => handleOpenEditExerciseModal('neural', index, item),
+        onDelete: (index, item) => handleRemoveItem('neural', index, item),
+        disableAdd: submitting,
+        renderPrimary: (item) => item?.nome,
+        renderSecondary: (item) => formatProtocol(item),
+      },
+    },
+    {
+      key: 'treino1',
+      props: {
+        headerLeft: (
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="subtitle1" fontWeight="600">
+              Treino Bloco 01
+            </Typography>
+            {treinoBloco1.length > 0 && (
+              <Chip
+                icon={<TimerIcon />}
+                label={`Tempo total: ${calcularTempoTotal(treinoBloco1)}`}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            )}
+          </Box>
+        ),
+        items: treinoBloco1,
+        emptyPrimary: 'Nenhum exercício adicionado',
+        emptySecondary: 'Clique em Adicionar para incluir exercícios',
+        addAriaLabel: 'Adicionar exercício - Treino Bloco 01',
+        onAdd: () => handleOpenAddExerciseModal('treino1'),
+        onEdit: (index, item) => handleOpenEditExerciseModal('treino1', index, item),
+        onDelete: (index, item) => handleRemoveItem('treino1', index, item),
+        renderPrimary: (item, index) => `${index + 1}. ${item?.nome}`,
+        renderSecondary: (item) => formatProtocol(item),
+      },
+    },
+    {
+      key: 'treino2',
+      props: {
+        headerLeft: (
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="subtitle1" fontWeight="600">
+              Treino Bloco 02 <Chip label="Opcional" size="small" />
+            </Typography>
+            {treinoBloco2.length > 0 && (
+              <Chip
+                icon={<TimerIcon />}
+                label={`Tempo total: ${calcularTempoTotal(treinoBloco2)}`}
+                size="small"
+                color="secondary"
+                variant="outlined"
+              />
+            )}
+          </Box>
+        ),
+        items: treinoBloco2,
+        emptyPrimary: 'Bloco opcional vazio',
+        emptySecondary: 'Adicione exercícios se necessário',
+        addAriaLabel: 'Adicionar exercício - Treino Bloco 02',
+        onAdd: () => handleOpenAddExerciseModal('treino2'),
+        onEdit: (index, item) => handleOpenEditExerciseModal('treino2', index, item),
+        onDelete: (index, item) => handleRemoveItem('treino2', index, item),
+        renderPrimary: (item, index) => `${index + 1}. ${item?.nome}`,
+        renderSecondary: (item) => formatProtocol(item),
+      },
+    },
+    {
+      key: 'condicionamento',
+      props: {
+        title: (
+          <Typography variant="subtitle1" fontWeight="600">
+            Condicionamento Físico <Chip label="Opcional" size="small" />
+          </Typography>
+        ),
+        items: condicionamentoItems,
+        dense: true,
+        emptyPrimary: 'Nenhum exercício adicionado',
+        emptySecondary: 'Clique em Adicionar para incluir',
+        addAriaLabel: 'Adicionar exercício - Condicionamento Físico',
+        onAdd: () => handleOpenAddExerciseModal('condicionamento'),
+        onEdit: (index, item) => handleOpenEditExerciseModal('condicionamento', index, item),
+        onDelete: (index, item) => handleRemoveItem('condicionamento', index, item),
+        renderPrimary: (item) => item?.nome,
+        renderSecondary: (item) => formatProtocol(item),
+      },
+    },
+  ]
 
   return (
     <Container maxWidth="xl" sx={{ pb: 4, px: 0 }}>
@@ -1660,7 +1708,7 @@ function TreinoForm() {
                     <Divider sx={{ mb: 3 }} />
 
                     <Grid container spacing={4.5}>
-                      {/* Primeira linha: 3 campos lado a lado (responsivo) */}
+                      {/* Padrão de movimento */}
                       <Grid item xs={12} md={4}>
                         <FormSelect
                           name="padrao_movimento"
@@ -1692,16 +1740,19 @@ function TreinoForm() {
                               </Typography>
                             )}
                           </Box>
+
+                          {/* Criar Semana */}
                           <Tooltip title="Criar Semana" arrow>
                             <Button
+                              size="small"
                               variant="contained"
                               color="secondary"
                               onClick={handleOpenConfirmSemanas}
                               disabled={submitting}
                               sx={{
-                                minWidth: 'auto',
-                                width: '40px',
-                                height: '40px',
+                                width: { xs: 44 },
+                                height: { xs: 44 },
+                                minWidth: { xs: 44 },
                                 p: 0,
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1750,477 +1801,11 @@ function TreinoForm() {
                     <Divider sx={{ mb: 3 }} />
 
                     <Grid container spacing={3}>
-                      {/* Mobilidade Articular */}
-                      <Grid item md={6} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Typography variant="subtitle1" fontWeight="600">
-                            Mobilidade Articular
-                          </Typography>
-                          <Stack
-                            direction={{ xs: "row", sm: "row" }}
-                            spacing={1}
-                            sx={{ flexWrap: "nowrap" }}
-                          >
-                            <Tooltip title="Adicionar Exercício" arrow>
-                              <Button
-                                size="small"
-                                onClick={() => handleOpenAddExerciseModal('mobilidade')}
-                                disabled={submitting}
-                                variant="contained"
-                                color="primary"
-                                sx={{
-                                  minWidth: 'auto',
-                                  width: '40px',
-                                  height: '40px',
-                                  p: 0,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <AddIcon fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                        <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                          {mobilidadeItems.length === 0 ? (
-                            <ListItem>
-                              <ListItemText
-                                primary="Nenhum item adicionado"
-                                secondary="Clique em Adicionar para incluir"
-                              />
-                            </ListItem>
-                          ) : (
-                            mobilidadeItems.map((item, index) => (
-                              <ListItem
-                                key={index}
-                                secondaryAction={
-                                  <Stack direction="row" spacing={0.5}>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleOpenEditExerciseModal('mobilidade', index, item)}
-                                      disabled={submitting}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleRemoveItem('mobilidade', index, item)}
-                                      disabled={submitting}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>
-                                }
-                              >
-                                {typeof item === 'object' && item.videoId && (
-                                  <VideoIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
-                                )}
-                                <ListItemText
-                                  primary={typeof item === 'string' ? item : item.nome}
-                                  secondary={
-                                    typeof item === 'object'
-                                      ? formatProtocol(item)
-                                      : undefined
-                                  }
-                                />
-                              </ListItem>
-                            ))
-                          )}
-                        </List>
-                      </Grid>
-
-                      {/* Ativação de Core */}
-                      <Grid item md={6} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Typography variant="subtitle1" fontWeight="600">
-                            Ativação de Core
-                          </Typography>
-                          <Stack
-                            direction={{ xs: "row", sm: "row" }}
-                            spacing={1}
-                            sx={{ flexWrap: "nowrap" }}
-                          >
-                            <Tooltip title="Adicionar Exercício" arrow>
-                              <Button
-                                size="small"
-                                onClick={() => handleOpenAddExerciseModal('core')}
-                                disabled={submitting}
-                                variant="contained"
-                                color="primary"
-                                sx={{
-                                  minWidth: 'auto',
-                                  width: '40px',
-                                  height: '40px',
-                                  p: 0,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <AddIcon fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                        <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                          {coreItems.length === 0 ? (
-                            <ListItem>
-                              <ListItemText
-                                primary="Nenhum exercício adicionado"
-                                secondary="Clique em Adicionar para incluir"
-                              />
-                            </ListItem>
-                          ) : (
-                            coreItems.map((item, index) => (
-                              <ListItem
-                                key={index}
-                                secondaryAction={
-                                  <Stack direction="row" spacing={0.5}>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleOpenEditExerciseModal('core', index, item)}
-                                      disabled={submitting}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleRemoveItem('core', index, item)}
-                                      disabled={submitting}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>
-                                }
-                              >
-                                <ListItemText
-                                  primary={item.nome}
-                                  secondary={formatProtocol(item)}
-                                />
-                              </ListItem>
-                            ))
-                          )}
-                        </List>
-                      </Grid>
-
-                      {/* Ativação Neural */}
-                      <Grid item md={6} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Typography variant="subtitle1" fontWeight="600">
-                            Ativação Neural
-                          </Typography>
-                          <Stack
-                            direction={{ xs: "row", sm: "row" }}
-                            spacing={1}
-                            sx={{ flexWrap: "nowrap" }}
-                          >
-                            <Tooltip title="Adicionar Exercício" arrow>
-                              <Button
-                                size="small"
-                                onClick={() => handleOpenAddExerciseModal('neural')}
-                                disabled={submitting}
-                                variant="contained"
-                                color="primary"
-                                sx={{
-                                  minWidth: 'auto',
-                                  width: '40px',
-                                  height: '40px',
-                                  p: 0,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <AddIcon fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                        <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                          {neuralItems.length === 0 ? (
-                            <ListItem>
-                              <ListItemText
-                                primary="Nenhum exercício adicionado"
-                                secondary="Clique em Adicionar para incluir"
-                              />
-                            </ListItem>
-                          ) : (
-                            neuralItems.map((item, index) => (
-                              <ListItem
-                                key={index}
-                                secondaryAction={
-                                  <Stack direction="row" spacing={0.5}>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleOpenEditExerciseModal('neural', index, item)}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleRemoveItem('neural', index, item)}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>
-                                }
-                              >
-                                <ListItemText
-                                  primary={item.nome}
-                                  secondary={formatProtocol(item)}
-                                />
-                              </ListItem>
-                            ))
-                          )}
-                        </List>
-                      </Grid>
-
-                      {/* Treino Bloco 01 */}
-                      <Grid item md={6} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="subtitle1" fontWeight="600">
-                              Treino Bloco 01
-                            </Typography>
-                            {treinoBloco1.length > 0 && (
-                              <Chip
-                                icon={<TimerIcon />}
-                                label={`Tempo total: ${calcularTempoTotal(treinoBloco1)}`}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                              />
-                            )}
-                          </Box>
-                          <Stack
-                            direction={{ xs: "row", sm: "row" }}
-                            spacing={1}
-                            sx={{ flexWrap: "nowrap" }}
-                          >
-                            <Tooltip title="Adicionar Exercício" arrow>
-                              <Button
-                                size="small"
-                                onClick={() => handleOpenAddExerciseModal('treino1')}
-                                variant="contained"
-                                color="primary"
-                                sx={{
-                                  minWidth: 'auto',
-                                  width: '40px',
-                                  height: '40px',
-                                  p: 0,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <AddIcon fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                        <List sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                          {treinoBloco1.length === 0 ? (
-                            <ListItem>
-                              <ListItemText
-                                primary="Nenhum exercício adicionado"
-                                secondary="Clique em Adicionar para incluir exercícios"
-                              />
-                            </ListItem>
-                          ) : (
-                            treinoBloco1.map((item, index) => (
-                              <ListItem
-                                key={index}
-                                secondaryAction={
-                                  <Stack direction="row" spacing={0.5}>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleOpenEditExerciseModal('treino1', index, item)}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleRemoveItem('treino1', index, item)}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>
-                                }
-                              >
-                                <ListItemText
-                                  primary={`${index + 1}. ${item.nome}`}
-                                  secondary={formatProtocol(item)}
-                                />
-                              </ListItem>
-                            ))
-                          )}
-                        </List>
-                      </Grid>
-
-                      {/* Treino Bloco 02 (Opcional) */}
-                      <Grid item md={6} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="subtitle1" fontWeight="600">
-                              Treino Bloco 02 <Chip label="Opcional" size="small" />
-                            </Typography>
-                            {treinoBloco2.length > 0 && (
-                              <Chip
-                                icon={<TimerIcon />}
-                                label={`Tempo total: ${calcularTempoTotal(treinoBloco2)}`}
-                                size="small"
-                                color="secondary"
-                                variant="outlined"
-                              />
-                            )}
-                          </Box>
-                          <Stack
-                            direction={{ xs: "row", sm: "row" }}
-                            spacing={1}
-                            sx={{ flexWrap: "nowrap" }}
-                          >
-                            <Tooltip title="Adicionar Exercício" arrow>
-                              <Button
-                                size="small"
-                                onClick={() => handleOpenAddExerciseModal('treino2')}
-                                variant="contained"
-                                color="primary"
-                                sx={{
-                                  minWidth: 'auto',
-                                  width: '40px',
-                                  height: '40px',
-                                  p: 0,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <AddIcon fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                        <List sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                          {treinoBloco2.length === 0 ? (
-                            <ListItem>
-                              <ListItemText
-                                primary="Bloco opcional vazio"
-                                secondary="Adicione exercícios se necessário"
-                              />
-                            </ListItem>
-                          ) : (
-                            treinoBloco2.map((item, index) => (
-                              <ListItem
-                                key={index}
-                                secondaryAction={
-                                  <Stack direction="row" spacing={0.5}>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleOpenEditExerciseModal('treino2', index, item)}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleRemoveItem('treino2', index, item)}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>}                          >
-                                <ListItemText
-                                  primary={`${index + 1}. ${item.nome}`}
-                                  secondary={formatProtocol(item)}
-                                />
-                              </ListItem>
-                            ))
-                          )}
-                        </List>
-                      </Grid>
-
-                      {/* Condicionamento Físico */}
-                      <Grid item md={6} xs={12}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Typography variant="subtitle1" fontWeight="600">
-                            Condicionamento Físico <Chip label="Opcional" size="small" />
-                          </Typography>
-                          <Stack
-                            direction={{ xs: "row", sm: "row" }}
-                            spacing={1}
-                            sx={{ flexWrap: "nowrap" }}
-                          >
-                            <Tooltip title="Adicionar Exercício" arrow>
-                              <Button
-                                size="small"
-                                onClick={() => handleOpenAddExerciseModal('condicionamento')}
-                                variant="contained"
-                                color="primary"
-                                sx={{
-                                  minWidth: 'auto',
-                                  width: '40px',
-                                  height: '40px',
-                                  p: 0,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <AddIcon fontSize="small" />
-                              </Button>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                        <List dense sx={{ bgcolor: 'grey.50', borderRadius: 1 }}>
-                          {condicionamentoItems.length === 0 ? (
-                            <ListItem>
-                              <ListItemText
-                                primary="Nenhum exercício adicionado"
-                                secondary="Clique em Adicionar para incluir"
-                              />
-                            </ListItem>
-                          ) : (
-                            condicionamentoItems.map((item, index) => (
-                              <ListItem
-                                key={index}
-                                secondaryAction={
-                                  <Stack direction="row" spacing={0.5}>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleOpenEditExerciseModal('condicionamento', index, item)}
-                                    >
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      edge="end"
-                                      size="small"
-                                      onClick={() => handleRemoveItem('condicionamento', index, item)}
-                                    >
-                                      <DeleteIcon fontSize="small" />
-                                    </IconButton>
-                                  </Stack>
-                                }
-                              >
-                                <ListItemText
-                                  primary={item.nome}
-                                  secondary={formatProtocol(item)}
-                                />
-                              </ListItem>
-                            ))
-                          )}
-                        </List>
-                      </Grid>
+                      {trainingBlockSections.map((section) => (
+                        <Grid item md={6} xs={12} key={section.key}>
+                          <TrainingBlockSection {...section.props} />
+                        </Grid>
+                      ))}
                     </Grid>
                   </CardContent>
                 </Card>
@@ -2431,7 +2016,8 @@ function TreinoForm() {
         open={addExerciseModalOpen}
         onClose={handleCloseAddExerciseModal}
         onSave={handleSaveExerciseWithVideo}
-        editMode={editingModalIndex !== null}
+        initialStep={exerciseModalEditMode ? 'config' : undefined}
+        editMode={exerciseModalEditMode}
         initialExercise={editingModalData?.exercise || null}
         initialVideo={editingModalData?.video || null}
         initialConfig={editingModalData?.config || null}
@@ -2507,7 +2093,7 @@ function TreinoForm() {
             }
           }}
         >
-          <Button onClick={handleCloseConfirmSemanas} variant="outlined" color="secondary">
+          <Button onClick={handleCloseConfirmSemanas} variant="outlined" color="error">
             Cancelar
           </Button>
           <Button onClick={handleConfirmNavigateToSemanas} variant="contained" color="secondary">
@@ -2537,5 +2123,3 @@ function TreinoForm() {
 }
 
 export default TreinoForm;
-
-
