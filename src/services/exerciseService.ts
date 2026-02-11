@@ -6,6 +6,10 @@ export type ExerciseLiteForMatching = Pick<Exercise, 'id' | 'name'> & {
   movement_pattern?: { name: string } | null;
 };
 
+export type ExerciseLiteForSelector = Pick<Exercise, 'id' | 'name' | 'tags'> & {
+  movement_pattern?: { name: string } | null;
+};
+
 // Mock data para desenvolvimento
 const mockExercises: Exercise[] = [
   {
@@ -107,6 +111,39 @@ class ExerciseService {
       return data || [];
     } catch (error: any) {
       console.error('Erro ao buscar exercícios (lite):', error);
+      throw error;
+    }
+  }
+
+  async getExercisesLiteForSelector(): Promise<ExerciseLiteForSelector[]> {
+    if (useMock) {
+      return mockExercises.map((ex) => ({
+        id: ex.id,
+        name: ex.name,
+        tags: ex.tags ?? undefined,
+        movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
+      }));
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          movement_pattern:movement_patterns(name)
+        `,
+        )
+        .order('name')
+        .overrideTypes<ExerciseLiteForSelector[], { merge: false }>();
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error: any) {
+      console.error('Erro ao buscar exercícios (selector lite):', error);
       throw error;
     }
   }

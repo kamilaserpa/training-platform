@@ -13,23 +13,28 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useCachedQuery } from '../../hooks/useCachedQuery';
+import { db } from '../../lib/db';
+import type { ExerciseLiteForSelector } from '../../services/exerciseService';
 import { exerciseService } from '../../services/exerciseService';
-import type { CreateExerciseDTO, Exercise } from '../../types/database.types';
+import type { CreateExerciseDTO } from '../../types/database.types';
 import { NoTranslate } from '../common/NoTranslate';
 
 interface ExerciseSelectorProps {
-  onSelect: (exercise: Exercise) => void;
+  onSelect: (exercise: ExerciseSelectorItem) => void;
   section?: string;
 }
 
+export type ExerciseSelectorItem = ExerciseLiteForSelector;
+
+const EXERCISES_SELECTOR_CACHE_KEY = 'exercises:selector-lite';
+const EXERCISES_SELECTOR_TTL_MS = 10 * 60 * 1000; // 10 min
+
 export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) => {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const deferredSearch = useDeferredValue(search);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Criação rápida inline
   const [showQuickCreateInline, setShowQuickCreateInline] = useState(false);
@@ -37,22 +42,23 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
   const [quickExerciseName, setQuickExerciseName] = useState('');
   const createAreaRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    loadExercises();
-  }, []);
+  const [optimisticAdded, setOptimisticAdded] = useState<ExerciseSelectorItem[]>([]);
 
-  useEffect(() => {
-    if (search.trim()) {
-      const filtered = exercises.filter((ex: Exercise) =>
-        ex.name.toLowerCase().includes(search.toLowerCase())
-      );
-      setFilteredExercises(prioritizeExercisesBySection(filtered));
-    } else {
-      setFilteredExercises(prioritizeExercisesBySection(exercises));
-    }
-  }, [search, exercises, section]);
+  const {
+    data: cachedExercises,
+    isLoading,
+    isRevalidating,
+    error: loadError,
+    refetch,
+  } = useCachedQuery<ExerciseSelectorItem[]>({
+    cacheKey: EXERCISES_SELECTOR_CACHE_KEY,
+    fetcher: () => exerciseService.getExercisesLiteForSelector(),
+    ttl: EXERCISES_SELECTOR_TTL_MS,
+    revalidateOnMount: true,
+    revalidateOnFocus: false,
+  });
 
-  const prioritizeExercisesBySection = (exercisesList: Exercise[]) => {
+  const prioritizeExercisesBySection = (exercisesList: ExerciseSelectorItem[]) => {
     let relevantTags: string[] = [];
 
     switch (section) {
@@ -87,25 +93,25 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
     return [...taggedExercises, ...otherExercises];
   };
 
-  const loadExercises = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('exercises')
-        .select('*')
-        .order('name')
-        .overrideTypes<Exercise[], { merge: false }>();
+  const exercises = useMemo(() => {
+    const base = cachedExercises ?? [];
+    if (optimisticAdded.length === 0) return base;
 
-      if (error) throw error;
-      setExercises(data || []);
-      setFilteredExercises(data || []);
-    } catch (err: any) {
-      console.error('Erro ao carregar exercícios:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    const byId = new Map<string, ExerciseSelectorItem>();
+    for (const ex of [...optimisticAdded, ...base]) {
+      byId.set(ex.id, ex);
     }
-  };
+    return Array.from(byId.values());
+  }, [cachedExercises, optimisticAdded]);
+
+  const filteredExercises = useMemo(() => {
+    const q = deferredSearch.trim().toLowerCase();
+    const filtered = q
+      ? exercises.filter((ex) => ex.name.toLowerCase().includes(q))
+      : exercises;
+
+    return prioritizeExercisesBySection(filtered);
+  }, [deferredSearch, exercises, section]);
 
   const openQuickCreateInline = () => {
     setQuickExerciseName(search.trim() || '');
@@ -121,33 +127,57 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
     setShowQuickCreateInline(false);
   };
 
+  const upsertExerciseInSelectorCache = async (exercise: ExerciseSelectorItem) => {
+    try {
+      const current = await db.getCache<ExerciseSelectorItem[]>(EXERCISES_SELECTOR_CACHE_KEY);
+      const list = current?.data ?? [];
+
+      const byId = new Map<string, ExerciseSelectorItem>();
+      for (const ex of [exercise, ...list]) byId.set(ex.id, ex);
+
+      await db.setCache(EXERCISES_SELECTOR_CACHE_KEY, Array.from(byId.values()), EXERCISES_SELECTOR_TTL_MS);
+    } catch (e) {
+      // Cache é best-effort; falha aqui não deve bloquear o fluxo do usuário
+      console.warn('Falha ao atualizar cache de exercícios do selector:', e);
+    }
+  };
+
   const handleCreateExercise = async () => {
     const name = quickExerciseName.trim();
     if (!name) return;
 
     try {
       setCreatingExercise(true);
+      setLocalError(null);
 
       const exerciseData: CreateExerciseDTO = {
         name,
       };
 
       const newExercise = await exerciseService.createExercise(exerciseData);
+      const selectorItem: ExerciseSelectorItem = {
+        id: newExercise.id,
+        name: newExercise.name,
+        tags: newExercise.tags ?? undefined,
+        movement_pattern: newExercise.movement_pattern?.name
+          ? { name: newExercise.movement_pattern.name }
+          : null,
+      };
 
-      setExercises((prev) => [newExercise, ...prev]);
-      setFilteredExercises((prev) => [newExercise, ...prev]);
+      setOptimisticAdded((prev) => [selectorItem, ...prev]);
+      await upsertExerciseInSelectorCache(selectorItem);
 
       cancelQuickCreateInline();
-      onSelect(newExercise);
+      onSelect(selectorItem);
     } catch (err: any) {
       console.error('Erro ao criar exercício:', err);
-      setError(err.message);
+      setLocalError(err.message);
     } finally {
       setCreatingExercise(false);
     }
   };
 
-  if (loading) {
+  if (isLoading && !cachedExercises) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={300}>
         <CircularProgress />
@@ -155,10 +185,20 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
     );
   }
 
-  if (error) {
+  if (loadError || localError) {
     return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        {error}
+      <Alert
+        severity="error"
+        sx={{ m: 2 }}
+        action={
+          loadError ? (
+            <Button color="inherit" size="small" onClick={() => refetch()}>
+              Tentar novamente
+            </Button>
+          ) : undefined
+        }
+      >
+        {localError || loadError?.message}
       </Alert>
     );
   }
@@ -175,6 +215,12 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
         inputProps={{ translate: 'no', className: 'notranslate' }}
         sx={{ mb: 2 }}
       />
+
+      {isRevalidating && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          Atualizando lista de exercícios...
+        </Typography>
+      )}
 
       {/* Área de criação movida para o rodapé abaixo da lista */}
 

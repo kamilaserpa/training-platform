@@ -6,7 +6,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-// 
+//
 import { useEffect, useState } from 'react';
 import { ExerciseVideo } from '../../components/ExerciseVideo';
 import { supabase } from '../../lib/supabase';
@@ -227,8 +227,8 @@ export const ExerciseConfigForm = ({
                     <TextField
                         label="Intervalo (seg)"
                         type="number"
-                        value={config.rest_seconds || ''}
-                        onChange={(e) => handleChange('rest_seconds', parseInt(e.target.value) || 0)}
+                        value={config.rest_seconds ?? ''}
+                        onChange={(e) => handleChange('rest_seconds', e.target.value ? parseInt(e.target.value) : 0)}
                         fullWidth
                         helperText="Descanso entre séries em segundos"
                         inputProps={{ min: 0 }}
