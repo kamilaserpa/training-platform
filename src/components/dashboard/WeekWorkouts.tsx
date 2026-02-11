@@ -32,7 +32,7 @@ const WeekWorkouts = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<any[]>([]);
@@ -49,7 +49,7 @@ const WeekWorkouts = () => {
 
       // Buscar todas as semanas com treinos
       const weeks = await trainingService.getWeeksWithTrainings();
-      
+
       // Encontrar a semana atual
       const today = dayjs();
       const currentWeek = weeks.find(week => {
@@ -60,7 +60,7 @@ const WeekWorkouts = () => {
 
       if (currentWeek && currentWeek.trainings) {
         // Ordenar treinos por data
-        const sortedWorkouts = currentWeek.trainings.sort((a: any, b: any) => 
+        const sortedWorkouts = currentWeek.trainings.sort((a: any, b: any) =>
           dayjs(a.scheduled_date).diff(dayjs(b.scheduled_date))
         );
         setWorkouts(sortedWorkouts);
@@ -97,10 +97,10 @@ const WeekWorkouts = () => {
     const container = document.getElementById('workouts-scroll-container');
     if (container) {
       const scrollAmount = 300;
-      const newPosition = direction === 'left' 
-        ? scrollPosition - scrollAmount 
+      const newPosition = direction === 'left'
+        ? scrollPosition - scrollAmount
         : scrollPosition + scrollAmount;
-      
+
       container.scrollTo({ left: newPosition, behavior: 'smooth' });
       setScrollPosition(newPosition);
     }
@@ -142,29 +142,40 @@ const WeekWorkouts = () => {
             </Typography>
           </Box>
           <Button
-            variant="contained"
+            variant="outlined"
             startIcon={<AddIcon />}
             onClick={handleAddWorkout}
             size="small"
             sx={{
-              minWidth: { xs: 40, sm: 'auto' },
-              px: { xs: 1, sm: 2 },
-              '& .MuiButton-startIcon': {
-                margin: { xs: 0, sm: '0 8px 0 -4px' },
-              },
+              display: { xs: 'none', sm: 'inline' }
             }}
           >
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
               Novo Treino
-            </Box>
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleAddWorkout}
+            size="small"
+             sx={{
+                display: { xs: 'flex', sm: 'none' },
+                width: { xs: 40 },
+                height: { xs: 40 },
+                minWidth: { xs: 40 },
+                p: 0,
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+          >
+             <AddIcon fontSize="small" />
           </Button>
         </Stack>
 
         {/* Workouts List */}
         {workouts.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
+          <Box
+            sx={{
+              textAlign: 'center',
               py: 6,
               bgcolor: 'action.hover',
               borderRadius: 2,

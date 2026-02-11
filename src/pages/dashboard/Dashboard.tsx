@@ -18,7 +18,8 @@ import { useExportData } from '../../hooks/useExportData';
 
 // Componentes originais do template (mantidos para referência)
 import Calendar from 'components/sections/dashboard/calendar';
-import Analytics from 'components/sections/dashboard/analytics';
+import Shortcuts from 'src/components/sections/dashboard/shortcuts';
+
 import TotalSpent from 'components/sections/dashboard/total-spent';
 import CardSecurity from 'components/sections/dashboard/card-security';
 import ComplexTable from 'components/sections/dashboard/complex-table';
@@ -48,6 +49,16 @@ const Dashboard = () => {
       </Box>
 
       <Grid container spacing={3}>
+
+        <Grid item xs={12}>
+          <Shortcuts />
+        </Grid>
+
+        {/* Instalação PWA (apenas mobile) */}
+        <Grid item xs={12}>
+          <PWAInstallCard />
+        </Grid>
+
         {/* Hero Section - Semana Atual */}
         <Grid item xs={12}>
           <CurrentWeek />
@@ -66,6 +77,10 @@ const Dashboard = () => {
         {/* Alertas e Notificações */}
         <Grid item xs={12}>
           <AlertsAndPendencies />
+        </Grid>
+
+        <Grid item xs={12} md={6} lg={4} xl={3}>
+          <Calendar />
         </Grid>
 
         {/* Componentes originais do template (comentados para futuro uso) */}

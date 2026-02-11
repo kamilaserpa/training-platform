@@ -47,12 +47,12 @@ const RecentWeeks = () => {
 
       // Buscar todas as semanas
       const allWeeks = await trainingService.getWeeksWithTrainings();
-      
+
       // Ordenar por data de início (mais recente primeiro) e pegar as 5 primeiras
       const sortedWeeks = allWeeks
         .sort((a, b) => dayjs(b.start_date).diff(dayjs(a.start_date)))
         .slice(0, 5);
-      
+
       setWeeks(sortedWeeks);
     } catch (err) {
       console.error('Erro ao carregar semanas recentes:', err);
@@ -142,16 +142,36 @@ const RecentWeeks = () => {
             startIcon={<AddIcon />}
             onClick={handleCreateWeek}
             size="small"
+            sx={{
+              display: { xs: 'none', sm: 'inline' }
+            }}
           >
             Nova Semana
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleCreateWeek}
+            size="small"
+              sx={{
+                display: { xs: 'flex', sm: 'none' },
+                width: { xs: 40 },
+                height: { xs: 40 },
+                minWidth: { xs: 40 },
+                p: 0,
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+          >
+              <AddIcon fontSize="small" />
           </Button>
         </Stack>
 
         {/* Table */}
         {weeks.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
+          <Box
+            sx={{
+              textAlign: 'center',
               py: 6,
               bgcolor: 'action.hover',
               borderRadius: 2,
@@ -187,11 +207,11 @@ const RecentWeeks = () => {
                       Período
                     </Typography>
                   </TableCell>
-                  <TableCell align="center">
+                  {/* <TableCell align="center">
                     <Typography variant="subtitle2" fontWeight="600">
                       Status
                     </Typography>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell align="center">
                     <Typography variant="subtitle2" fontWeight="600">
                       Treinos
@@ -232,14 +252,14 @@ const RecentWeeks = () => {
                     </TableCell>
 
                     {/* Status */}
-                    <TableCell align="center">
+                    {/* <TableCell align="center">
                       <Chip
                         label={getStatusLabel(week.status)}
                         color={getStatusColor(week.status)}
                         size="small"
                         sx={{ minWidth: 80 }}
                       />
-                    </TableCell>
+                    </TableCell> */}
 
                     {/* Nº de Treinos */}
                     <TableCell align="center">
