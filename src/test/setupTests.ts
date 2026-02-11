@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom/vitest'
 
+// setupTests loaded
+
+// Dexie (IndexedDB) is used for cache-first queries. Vitest/jsdom doesn't provide IndexedDB,
+// so we polyfill it for all tests.
+import 'fake-indexeddb/auto'
+
 // In Node (Vitest), active timers can keep the process running.
 // Some UI libraries (e.g., Snackbar auto-hide) schedule timeouts; we don't want that
 // to make `vitest run` hang. Unref timers when possible.

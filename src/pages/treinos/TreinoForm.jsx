@@ -1750,9 +1750,9 @@ function TreinoForm() {
                               onClick={handleOpenConfirmSemanas}
                               disabled={submitting}
                               sx={{
-                                width: { xs: 44, sm: 48 },
-                                height: { xs: 44, sm: 48 },
-                                minWidth: { xs: 44, sm: 48 },
+                                width: { xs: 44 },
+                                height: { xs: 44 },
+                                minWidth: { xs: 44 },
                                 p: 0,
                                 display: 'flex',
                                 alignItems: 'center',

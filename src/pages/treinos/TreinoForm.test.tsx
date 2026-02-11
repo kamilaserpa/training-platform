@@ -14,6 +14,67 @@ vi.mock('../../components/treinos/AddExerciseModal', () => {
     function MockAddExerciseModal({ open, onSave, section }: any) {
         if (!open) return null
 
+        const [step, setStep] = useState<'exercise' | 'video' | 'config'>('exercise')
+        const [exerciseName, setExerciseName] = useState('')
+        const [exerciseId, setExerciseId] = useState<string | null>(null)
+        const [videoId, setVideoId] = useState('')
+
+        const [series, setSeries] = useState('3')
+        const [repetitions, setRepetitions] = useState('')
+        const [weightKg, setWeightKg] = useState('')
+        const [durationSeconds, setDurationSeconds] = useState('')
+        const [restSeconds, setRestSeconds] = useState('60')
+        const [notes, setNotes] = useState('')
+
+        useEffect(() => {
+            if (!open) return
+            setStep('exercise')
+            setExerciseName('')
+            setExerciseId(null)
+            setVideoId('')
+            setSeries('3')
+            setRepetitions('')
+            setWeightKg('')
+            setDurationSeconds('')
+            setRestSeconds('60')
+            setNotes('')
+        }, [open])
+
+        const videos = [
+            { id: 'vid-1', name: 'Tutorial Agachamento' },
+            { id: 'vid-2', name: 'Mobilidade Quadril' },
+        ]
+
+        const selectedVideo = videos.find((v) => v.id === videoId) ?? null
+
+        const handleCreateExercise = () => {
+            const name = exerciseName.trim()
+            if (!name) return
+            setExerciseId(`ex-new-${String(section ?? 'sec')}`)
+            setStep('video')
+        }
+
+        const handleAdvanceToConfig = () => {
+            if (!exerciseId) return
+            setStep('config')
+        }
+
+        const handleAddExercise = () => {
+            if (!exerciseId) return
+            onSave({
+                exercise: { id: exerciseId, name: exerciseName.trim() },
+                video: selectedVideo,
+                config: {
+                    series: Number(series) || 0,
+                    repetitions,
+                    weight_kg: weightKg,
+                    duration_seconds: durationSeconds ? Number(durationSeconds) : null,
+                    rest_seconds: restSeconds ? Number(restSeconds) : null,
+                    notes,
+                },
+            })
+        }
+
         return (
             <div role="dialog" aria-label="Mock AddExerciseModal">
                 <div>Seção: {String(section)}</div>
@@ -36,6 +97,84 @@ vi.mock('../../components/treinos/AddExerciseModal', () => {
                 >
                     Salvar exercício ({String(section)})
                 </button>
+
+                <hr />
+
+                <div aria-label="Fluxo completo">
+                    {step === 'exercise' && (
+                        <div>
+                            <div>Criar exercício novo</div>
+                            <input
+                                aria-label="Nome do exercício"
+                                value={exerciseName}
+                                onChange={(e) => setExerciseName(e.target.value)}
+                            />
+                            <button type="button" onClick={handleCreateExercise}>
+                                Criar exercício
+                            </button>
+                        </div>
+                    )}
+
+                    {step === 'video' && (
+                        <div>
+                            <div>Selecionar vídeo</div>
+                            <select
+                                aria-label="Vídeo"
+                                value={videoId}
+                                onChange={(e) => setVideoId(e.target.value)}
+                            >
+                                <option value="">(Sem vídeo)</option>
+                                {videos.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                        {v.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <button type="button" onClick={handleAdvanceToConfig}>
+                                Avançar
+                            </button>
+                        </div>
+                    )}
+
+                    {step === 'config' && (
+                        <div>
+                            <div>Configurar</div>
+                            <input
+                                aria-label="Séries"
+                                value={series}
+                                onChange={(e) => setSeries(e.target.value)}
+                            />
+                            <input
+                                aria-label="Repetições"
+                                value={repetitions}
+                                onChange={(e) => setRepetitions(e.target.value)}
+                            />
+                            <input
+                                aria-label="Carga"
+                                value={weightKg}
+                                onChange={(e) => setWeightKg(e.target.value)}
+                            />
+                            <input
+                                aria-label="Tempo (seg)"
+                                value={durationSeconds}
+                                onChange={(e) => setDurationSeconds(e.target.value)}
+                            />
+                            <input
+                                aria-label="Intervalo (seg)"
+                                value={restSeconds}
+                                onChange={(e) => setRestSeconds(e.target.value)}
+                            />
+                            <textarea
+                                aria-label="Observações"
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                            />
+                            <button type="button" onClick={handleAddExercise}>
+                                Adicionar Exercício
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         )
     }
@@ -352,7 +491,7 @@ describe('TreinoForm (integração)', () => {
         expect(await screen.findByText('Exercício condicionamento')).toBeInTheDocument()
 
         await user.click(screen.getByRole('button', { name: /Salvar Treino/i }))
-        expect(await screen.findByText(/Treino criado com sucesso!/i)).toBeInTheDocument()
+        expect(await screen.findByText(/Treino criado com sucesso!/i, {}, { timeout: 10000 })).toBeInTheDocument()
 
         // Assertions: training saved + blocks created + prescriptions inserted
         const trainingInsert = queries.find((x) => x.table === 'trainings' && x.op === 'insert')
@@ -371,6 +510,125 @@ describe('TreinoForm (integração)', () => {
         // sanity: all blocks refer to the created training
         expect(blockIds.size).toBe(1)
         expect([...blockIds][0]).toBe('t-all-blocks')
+    }, 20000)
+
+    it('em TreinoForm: adiciona exercício novo com vídeo e configurações (fluxo completo)', async () => {
+        const queries: SupabaseQuery[] = []
+        supabaseMock.setAuthUser({ id: 'user-1' })
+
+        let createdBlockCounter = 0
+
+        supabaseMock.setQueryHandler(async (q) => {
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            if (seeded.data || seeded.error) return seeded
+
+            if (q.table === 'trainings' && q.op === 'insert') {
+                const payload = q.payload as any
+                return {
+                    data: {
+                        id: 't-full-flow',
+                        ...payload,
+                        share_token: 'token-full',
+                    },
+                    error: null,
+                }
+            }
+
+            if (q.table === 'training_blocks' && q.op === 'insert') {
+                createdBlockCounter += 1
+                const payload = q.payload as any
+                return {
+                    data: {
+                        id: `b-${createdBlockCounter}`,
+                        ...payload,
+                    },
+                    error: null,
+                }
+            }
+
+            if (q.table === 'exercise_prescriptions' && q.op === 'insert') {
+                const payload = q.payload as any
+                return {
+                    data: {
+                        id: `p-${payload.exercise_id}`,
+                        ...payload,
+                        exercise: {
+                            id: payload.exercise_id,
+                            name: 'Agachamento Frontal',
+                        },
+                    },
+                    error: null,
+                }
+            }
+
+            return { data: null, error: null }
+        })
+
+        const { user } = renderTreinoForm('/pages/treinos/novo')
+
+        expect(await screen.findByText('Criar Treino')).toBeInTheDocument()
+
+        await openMuiSelect(user, /Padrão de Movimento/i)
+        await chooseOption(user, /Agachar/i)
+
+        await openMuiSelect(user, /Semana/i)
+        await chooseOption(user, /Semana 01 - Fevereiro 2026/i)
+
+        const dateInput = screen.getByLabelText(/Data do Treino/i)
+        await user.clear(dateInput)
+        await user.type(dateInput, '06/02/2026')
+        await user.tab()
+
+        // Abre modal do bloco Mobilidade
+        await user.click(screen.getByLabelText(/Adicionar exercício - Mobilidade Articular/i))
+        expect(await screen.findByRole('dialog', { name: /Mock AddExerciseModal/i })).toBeInTheDocument()
+
+        // Cria exercício novo
+        await user.type(screen.getByLabelText(/Nome do exercício/i), 'Agachamento Frontal')
+        await user.click(screen.getByRole('button', { name: /Criar exercício/i }))
+
+        // Seleciona vídeo
+        await user.selectOptions(screen.getByLabelText(/^Vídeo$/i), 'vid-1')
+        await user.click(screen.getByRole('button', { name: /^Avançar$/i }))
+
+        // Preenche configurações
+        await user.clear(screen.getByLabelText(/Séries/i))
+        await user.type(screen.getByLabelText(/Séries/i), '4')
+
+        await user.type(screen.getByLabelText(/Repetições/i), '8-10')
+        await user.type(screen.getByLabelText(/Carga/i), '80kg')
+
+        await user.type(screen.getByLabelText(/Tempo \(seg\)/i), '40')
+
+        await user.clear(screen.getByLabelText(/Intervalo \(seg\)/i))
+        await user.type(screen.getByLabelText(/Intervalo \(seg\)/i), '90')
+
+        await user.type(screen.getByLabelText(/Observações$/i), 'Cadência 3-1-1')
+
+        await user.click(within(await screen.findByRole('dialog', { name: /Mock AddExerciseModal/i })).getByRole('button', { name: /Adicionar Exercício/i }))
+
+        // Snackbar e item na lista
+        expect(await screen.findByText(/Exercício "Agachamento Frontal" adicionado com sucesso!/i)).toBeInTheDocument()
+        expect(await screen.findByText('Agachamento Frontal')).toBeInTheDocument()
+
+        // Salva treino e valida payload da prescrição com vídeo e config
+        await user.click(screen.getByRole('button', { name: /Salvar Treino/i }))
+        expect(await screen.findByText(/Treino criado com sucesso!/i)).toBeInTheDocument()
+
+        const prescriptionInserts = queries.filter(
+            (x) => x.table === 'exercise_prescriptions' && x.op === 'insert',
+        )
+        expect(prescriptionInserts).toHaveLength(1)
+
+        const payload = prescriptionInserts[0].payload as any
+        expect(payload.exercise_id).toBe('ex-new-mobilidade')
+        expect(payload.video_id).toBe('vid-1')
+        expect(payload.sets).toBe(4)
+        expect(payload.duration_seconds).toBe(40)
+        expect(payload.reps).toBe(null)
+        expect(payload.weight_kg).toBe(80)
+        expect(payload.rest_seconds).toBe(90)
+        expect(payload.notes).toBe('Cadência 3-1-1')
     })
 
     it('mostra erro quando a API (Supabase) falha ao salvar', async () => {

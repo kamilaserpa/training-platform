@@ -17,10 +17,10 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
-import type { Exercise, Video } from '../../types/database.types';
+import type { Video } from '../../types/database.types';
 import { NoTranslate } from '../common/NoTranslate';
 import { ExerciseConfig, ExerciseConfigForm } from './ExerciseConfigForm';
-import { ExerciseSelector } from './ExerciseSelector';
+import { ExerciseSelector, type ExerciseSelectorItem } from './ExerciseSelector';
 import { VideoSelector } from './VideoSelector';
 
 type Step = 'exercise' | 'video' | 'config';
@@ -29,14 +29,14 @@ interface AddExerciseModalProps {
   open: boolean;
   onClose: () => void;
   onSave: (data: {
-    exercise: Exercise;
+    exercise: ExerciseSelectorItem;
     video: Video | null;
     config: ExerciseConfig;
   }) => void;
   initialStep?: Step;
   // Modo de edição
   editMode?: boolean;
-  initialExercise?: Exercise | null;
+  initialExercise?: ExerciseSelectorItem | null;
   initialVideo?: Video | null;
   initialConfig?: ExerciseConfig | null;
   // Seção do treino para priorização por tags
@@ -55,7 +55,7 @@ export const AddExerciseModal = ({
   section,
 }: AddExerciseModalProps) => {
   const [step, setStep] = useState<Step>(initialStep ?? (editMode ? 'video' : 'exercise'));
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(initialExercise);
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseSelectorItem | null>(initialExercise);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(initialVideo);
   const [exerciseConfig, setExerciseConfig] = useState<ExerciseConfig>(initialConfig || {
     series: 3,
@@ -99,7 +99,7 @@ export const AddExerciseModal = ({
     onClose();
   };
 
-  const handleExerciseSelect = (exercise: Exercise) => {
+  const handleExerciseSelect = (exercise: ExerciseSelectorItem) => {
     setSelectedExercise(exercise);
     setStep('video');
   };
@@ -250,7 +250,7 @@ export const AddExerciseModal = ({
 
         {step === 'config' && selectedExercise && (
           <ExerciseConfigForm
-            exercise={selectedExercise}
+            exercise={{ id: selectedExercise.id, name: selectedExercise.name } as any}
             video={selectedVideo}
             initialValues={exerciseConfig}
             onChange={setExerciseConfig}
