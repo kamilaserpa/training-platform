@@ -27,8 +27,10 @@ import {
   Stack,
   TextField,
   Tooltip,
-  Typography
+  Typography,
+  useMediaQuery
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { useEffect, useState } from 'react';
 import PageHeader from '../../components/PageHeader';
@@ -39,6 +41,8 @@ import { videoService } from '../../services/videoService';
 import type { Video, VideoFilters } from '../../types/database.types';
 
 const VideoLibrary = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, loading: authLoading, isAdmin } = useAuth();
   const canSelectSource = !authLoading && (isAdmin || user?.role === 'admin');
   const [videos, setVideos] = useState<Video[]>([]);
@@ -278,14 +282,6 @@ const VideoLibrary = () => {
           />
         );
       },
-    },
-    {
-      field: 'source',
-      headerName: 'Origem',
-      width: 130,
-      renderCell: (params: GridRenderCellParams<Video>) => (
-        <Chip label={params.row.source === 'platform' ? 'Plataforma' : 'Pessoal'} size="small" />
-      ),
     },
     {
       field: 'plane',
@@ -586,6 +582,20 @@ const VideoLibrary = () => {
           loading={loadingVideos}
           autoHeight
           disableRowSelectionOnClick
+          density={isMobile ? 'compact' : 'standard'}
+          columnVisibilityModel={
+            isMobile
+              ? {
+                plane: false,
+                type: false,
+                file_size_kb: false,
+              }
+              : {
+                plane: true,
+                type: true,
+                file_size_kb: true,
+              }
+          }
           initialState={{
             pagination: {
               paginationModel: { pageSize: 25 },
@@ -596,6 +606,19 @@ const VideoLibrary = () => {
             '& .MuiDataGrid-cell:focus': {
               outline: 'none',
             },
+            ...(isMobile
+              ? {
+                '& .MuiDataGrid-columnHeaders': {
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'background.paper',
+                  zIndex: 1,
+                },
+                '& .MuiDataGrid-cell': {
+                  py: 1,
+                },
+              }
+              : null),
           }}
         />
       </Card>

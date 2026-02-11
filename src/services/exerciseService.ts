@@ -1,6 +1,10 @@
 // Serviço para gerenciar exercícios
 import { supabase, useMock } from '../lib/supabase';
-import type { Exercise, CreateExerciseDTO } from '../types/database.types';
+import type { CreateExerciseDTO, Exercise } from '../types/database.types';
+
+export type ExerciseLiteForMatching = Pick<Exercise, 'id' | 'name'> & {
+  movement_pattern?: { name: string } | null;
+};
 
 // Mock data para desenvolvimento
 const mockExercises: Exercise[] = [
@@ -58,6 +62,55 @@ const mockExercises: Exercise[] = [
 ];
 
 class ExerciseService {
+  private withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, operationName: string): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`Tempo esgotado (${operationName}). Verifique sua conexão e tente novamente.`));
+      }, timeoutMs);
+    });
+
+    const wrapped = Promise.resolve(promise);
+
+    return Promise.race([wrapped, timeoutPromise]).finally(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    });
+  }
+
+  async getExercisesLiteForMatching(): Promise<ExerciseLiteForMatching[]> {
+    if (useMock) {
+      return mockExercises.map((ex) => ({
+        id: ex.id,
+        name: ex.name,
+        movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
+      }));
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          movement_pattern:movement_patterns(name)
+        `,
+        )
+        .order('name')
+        .overrideTypes<ExerciseLiteForMatching[], { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (error: any) {
+      console.error('Erro ao buscar exercícios (lite):', error);
+      throw error;
+    }
+  }
+
   async getAllExercises(): Promise<Exercise[]> {
     if (useMock) {
       return mockExercises;
@@ -125,28 +178,55 @@ class ExerciseService {
     }
 
     try {
-      // Buscar o usuário atual
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
+      // Preferir sessão local (evita request extra, mais resiliente em PWA standalone)
+      const {
+        data: { session },
+        error: sessionError,
+      } = await this.withTimeout(supabase.auth.getSession(), 5000, 'obtendo sessão');
+
+      const sessionUser = session?.user;
+      if (sessionError) {
+        console.warn('Aviso ao obter sessão (createExercise):', sessionError);
+      }
+
+      // Fallback: buscar usuário via API (pode falhar/hangar em iOS PWA; protegido por timeout)
+      const resolvedUser =
+        sessionUser ??
+        (
+          await this.withTimeout(
+            supabase.auth.getUser().then((r) => {
+              if (r.error) throw r.error;
+              return r.data.user;
+            }),
+            10000,
+            'obtendo usuário'
+          )
+        );
+
+      if (!resolvedUser) {
         throw new Error('Usuário não autenticado');
       }
 
       // Incluir o created_by no exercício
       const exerciseWithOwner = {
         ...exerciseData,
-        created_by: user.id
+        created_by: resolvedUser.id
       };
 
-      const { data, error } = await supabase
-        .from('exercises')
-        .insert(exerciseWithOwner)
-        .select(
-          `
-          *,
-          movement_pattern:movement_patterns(*)
-        `,
-        )
-        .single();
+      const { data, error } = await this.withTimeout(
+        supabase
+          .from('exercises')
+          .insert(exerciseWithOwner)
+          .select(
+            `
+            *,
+            movement_pattern:movement_patterns(*)
+          `,
+          )
+          .single(),
+        20000,
+        'criando exercício'
+      );
 
       if (error) throw error;
 

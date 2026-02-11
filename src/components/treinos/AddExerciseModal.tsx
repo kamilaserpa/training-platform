@@ -33,6 +33,7 @@ interface AddExerciseModalProps {
     video: Video | null;
     config: ExerciseConfig;
   }) => void;
+  initialStep?: Step;
   // Modo de edição
   editMode?: boolean;
   initialExercise?: Exercise | null;
@@ -46,13 +47,14 @@ export const AddExerciseModal = ({
   open,
   onClose,
   onSave,
+  initialStep,
   editMode = false,
   initialExercise = null,
   initialVideo = null,
   initialConfig = null,
   section,
 }: AddExerciseModalProps) => {
-  const [step, setStep] = useState<Step>(editMode ? 'video' : 'exercise');
+  const [step, setStep] = useState<Step>(initialStep ?? (editMode ? 'video' : 'exercise'));
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(initialExercise);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(initialVideo);
   const [exerciseConfig, setExerciseConfig] = useState<ExerciseConfig>(initialConfig || {
@@ -67,7 +69,7 @@ export const AddExerciseModal = ({
   // Atualizar estados quando props mudarem (modo de edição)
   useEffect(() => {
     if (open) {
-      setStep(editMode ? 'video' : 'exercise');
+      setStep(initialStep ?? (editMode ? 'video' : 'exercise'));
       setSelectedExercise(initialExercise);
       setSelectedVideo(initialVideo);
       setExerciseConfig(initialConfig || {
@@ -79,7 +81,7 @@ export const AddExerciseModal = ({
         notes: '',
       });
     }
-  }, [open, editMode, initialExercise, initialVideo, initialConfig]);
+  }, [open, editMode, initialStep, initialExercise, initialVideo, initialConfig]);
 
   const handleClose = () => {
     // Reset state
@@ -228,7 +230,11 @@ export const AddExerciseModal = ({
         {step === 'video' && selectedExercise && (
           <Box>
             {editMode && (
-              <Box mb={2} pb={{ xs: 0, sm: 2 }} bgcolor="info.lighter" borderRadius={1}>
+              <Box
+                bgcolor="info.lighter"
+                borderRadius={1}
+                sx={{ display: { xs: 'none', sm: 'block' }, p: 1, mb: 2 }}
+              >
                 <Typography variant="body2">
                   Selecione um vídeo e clique em "Avançar". Você também pode seguir sem vídeo.
                 </Typography>
@@ -238,7 +244,6 @@ export const AddExerciseModal = ({
               exerciseId={selectedExercise.id}
               onSelect={handleVideoSelect}
               selectedVideoId={selectedVideo?.id}
-              onRemove={selectedVideo ? handleRemoveVideo : undefined}
             />
           </Box>
         )}
@@ -253,10 +258,11 @@ export const AddExerciseModal = ({
         )}
       </DialogContent>
 
+      {/* Dialog actions bottom */}
       <DialogActions
         sx={{
           flexDirection: { xs: 'column', sm: 'row' },
-          gap: { xs: 1, sm: 0 },
+          gap: { xs: 1, sm: 1 },
           px: 3,
           py: 2,
           '& > button': {
@@ -266,12 +272,23 @@ export const AddExerciseModal = ({
         }}
       >
         {step === 'video' && (
-          <Button
-            onClick={() => setStep('config')}
-            variant="contained"
-          >
-            Avançar
-          </Button>
+          <>
+            {selectedVideo && (
+              <Button
+                onClick={handleRemoveVideo}
+                variant="outlined"
+                color="inherit"
+              >
+                Remover vídeo
+              </Button>
+            )}
+            <Button
+              onClick={() => setStep('config')}
+              variant="contained"
+            >
+              Avançar
+            </Button>
+          </>
         )}
 
         {step === 'config' && (

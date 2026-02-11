@@ -6,6 +6,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
+// 
 import { useEffect, useState } from 'react';
 import { ExerciseVideo } from '../../components/ExerciseVideo';
 import { supabase } from '../../lib/supabase';
