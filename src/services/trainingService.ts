@@ -478,7 +478,9 @@ class TrainingService {
     try {
       // Primeiro buscar todos os blocos do treino
       const { data: blocks, error: blocksError } = await this.withTimeout(
-        supabase.from('training_blocks').select('id').eq('training_id', trainingId),
+        supabase.from('training_blocks')
+        .select('id')
+        .eq('training_id', trainingId),
         20000,
         'listando blocos do treino'
       );
