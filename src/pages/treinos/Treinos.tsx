@@ -1,47 +1,47 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { trainingService } from '../../services/trainingService';
-import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
-import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
-import { imageToBase64 } from '../../utils/pdf/pdfUtils';
-import logoImage from '../../assets/images/logo-main.png';
 import {
-  Container,
-  Typography,
-  Button,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  FitnessCenter as FitnessCenterIcon,
+  PictureAsPdf as PdfIcon,
+  PlayArrow as PlayArrowIcon
+} from '@mui/icons-material';
+import {
+  Alert,
   Box,
+  Button,
+  ButtonBase,
   Card,
-  CardContent,
   CardActions,
-  TextField,
+  CardContent,
+  Checkbox,
+  Chip,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Fab,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Grid,
   IconButton,
-  Tooltip,
-  Stack,
-  Fab,
-  Chip,
-  Divider,
-  Checkbox,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  InputLabel,
+  MenuItem,
+  Select,
   Snackbar,
-  Alert,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  FitnessCenter as FitnessCenterIcon,
-  PlayArrow as PlayArrowIcon,
-  FilterList as FilterListIcon,
-  PictureAsPdf as PdfIcon,
-} from '@mui/icons-material';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import logoImage from '../../assets/images/logo-main.png';
+import { trainingService } from '../../services/trainingService';
+import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
+import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
+import { imageToBase64 } from '../../utils/pdf/pdfUtils';
 
 // Tipos TypeScript
 interface Exercicio {
@@ -410,48 +410,48 @@ const Treinos = () => {
           {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
 
-    {/* Dialog de confirmação de exclusão do treino */}
-    <Dialog
-      open={deleteDialog.open}
-      onClose={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
-      maxWidth="xs"
-      fullWidth
-    >
-      <DialogTitle>Confirmar Exclusão</DialogTitle>
-      <DialogContent>
-        <Typography>
-          Tem certeza que deseja excluir <strong>{deleteDialog.treinoNome}</strong>?
-        </Typography>
-        <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-          ⚠️ Esta ação não pode ser desfeita.
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}>
-          Cancelar
-        </Button>
-        <Button onClick={confirmDeleteTraining} variant="contained" color="error">
-          Excluir
-        </Button>
-      </DialogActions>
-    </Dialog>
+            {/* Dialog de confirmação de exclusão do treino */}
+            <Dialog
+              open={deleteDialog.open}
+              onClose={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
+              maxWidth="xs"
+              fullWidth
+            >
+              <DialogTitle>Confirmar Exclusão</DialogTitle>
+              <DialogContent>
+                <Typography>
+                  Tem certeza que deseja excluir <strong>{deleteDialog.treinoNome}</strong>?
+                </Typography>
+                <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+                  ⚠️ Esta ação não pode ser desfeita.
+                </Typography>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}>
+                  Cancelar
+                </Button>
+                <Button onClick={confirmDeleteTraining} variant="contained" color="error">
+                  Excluir
+                </Button>
+              </DialogActions>
+            </Dialog>
 
-    {/* Snackbar para feedback */}
-    <Snackbar
-      open={snackbar.open}
-      autoHideDuration={6000}
-      onClose={() => setSnackbar({ ...snackbar, open: false })}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-    >
-      <Alert
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        severity={snackbar.severity}
-        variant="filled"
-        sx={{ width: '100%' }}
-      >
-        {snackbar.message}
-      </Alert>
-    </Snackbar>
+            {/* Snackbar para feedback */}
+            <Snackbar
+              open={snackbar.open}
+              autoHideDuration={6000}
+              onClose={() => setSnackbar({ ...snackbar, open: false })}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+              <Alert
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                severity={snackbar.severity}
+                variant="filled"
+                sx={{ width: '100%' }}
+              >
+                {snackbar.message}
+              </Alert>
+            </Snackbar>
             <Typography variant="h4" fontWeight="700">
               Treinos
             </Typography>
@@ -608,7 +608,26 @@ const Treinos = () => {
                               mb: 1,
                             }}
                           >
-                            {treino.name}
+                            <ButtonBase
+                              onClick={() => handleEdit(treino.id)}
+                              aria-label={`Abrir treino ${treino.name}`}
+                              sx={{
+                                display: 'block',
+                                textAlign: 'left',
+                                width: '100%',
+                                color: 'inherit',
+                                borderRadius: 1,
+                                '&:hover': {
+                                  textDecoration: 'underline',
+                                },
+                                '&:focus-visible': {
+                                  outline: '2px solid rgba(255,255,255,0.9)',
+                                  outlineOffset: 2,
+                                },
+                              }}
+                            >
+                              {treino.name}
+                            </ButtonBase>
                           </Typography>
 
                           {/* Padrão de Movimento */}

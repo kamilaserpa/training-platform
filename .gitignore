@@ -29,6 +29,11 @@ supabase/studio/
 # Test/coverage
 coverage/
 
+# Vitest local artifacts (should not be committed)
+vitest-*.log
+vitest-*.exit
+vitest-results.json
+
 # IDE temp files
 *.swp
 *.swo

@@ -90,18 +90,55 @@ const mockTrainingBlocks: TrainingBlock[] = [
 ];
 
 class TrainingService {
+  private withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, operationName: string): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`Tempo esgotado (${operationName}). Verifique sua conexão e tente novamente.`));
+      }, timeoutMs);
+    });
+
+    const wrapped = Promise.resolve(promise);
+
+    return Promise.race([wrapped, timeoutPromise]).finally(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    });
+  }
+
+  private async getCurrentUserId(): Promise<string> {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await this.withTimeout(supabase.auth.getSession(), 5000, 'obtendo sessão');
+
+    if (sessionError) {
+      console.warn('Aviso ao obter sessão (trainingService):', sessionError);
+    }
+
+    const sessionUser = session?.user;
+    if (sessionUser?.id) return sessionUser.id;
+
+    const user = await this.withTimeout(
+      supabase.auth.getUser().then((r) => {
+        if (r.error) throw r.error;
+        return r.data.user;
+      }),
+      10000,
+      'obtendo usuário'
+    );
+
+    if (!user?.id) throw new Error('Usuário não autenticado');
+    return user.id;
+  }
+
   async getAllTrainings(): Promise<Training[]> {
     if (useMock) {
       return mockTrainings;
     }
 
     try {
-      // Obter usuário autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
+      const userId = await this.getCurrentUserId();
 
       const { data, error } = await supabase
         .from('trainings')
@@ -122,7 +159,7 @@ class TrainingService {
           )
         `,
         )
-        .eq('created_by', user.id)
+        .eq('created_by', userId)
         .order('scheduled_date');
 
       if (error) throw error;
@@ -140,12 +177,7 @@ class TrainingService {
     }
 
     try {
-      // Obter usuário autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
+      const userId = await this.getCurrentUserId();
 
       const { data, error } = await supabase
         .from('trainings')
@@ -167,7 +199,7 @@ class TrainingService {
         `,
         )
         .eq('training_week_id', weekId)
-        .eq('created_by', user.id)
+        .eq('created_by', userId)
         .order('scheduled_date');
 
       if (error) throw error;
@@ -192,27 +224,31 @@ class TrainingService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('trainings')
-        .select(
-          `
-          *,
-          training_week:training_weeks(
+      const { data, error } = await this.withTimeout(
+        supabase
+          .from('trainings')
+          .select(
+            `
             *,
-            week_focus:week_focuses(*)
-          ),
-          movement_pattern:movement_patterns(*),
-          training_blocks(
-            *,
-            exercise_prescriptions(
+            training_week:training_weeks(
               *,
-              exercise:exercises(*)
+              week_focus:week_focuses(*)
+            ),
+            movement_pattern:movement_patterns(*),
+            training_blocks(
+              *,
+              exercise_prescriptions(
+                *,
+                exercise:exercises(*)
+              )
             )
+          `,
           )
-        `,
-        )
-        .eq('id', id)
-        .single();
+          .eq('id', id)
+          .single(),
+        20000,
+        'buscando treino'
+      );
 
       if (error) throw error;
 
@@ -239,23 +275,27 @@ class TrainingService {
 
     try {
       // Obter usuário atual
-      const { data: { user } } = await supabase.auth.getUser()
+        const userId = await this.getCurrentUserId();
 
       const trainingWithUser = {
         ...trainingData,
-        created_by: user?.id
+          created_by: userId
       }
 
-      const { data, error } = await supabase
-        .from('trainings')
-        .insert(trainingWithUser)
-        .select(
-          `
-          *,
-          training_week:training_weeks(*)
-        `,
-        )
-        .single();
+        const { data, error } = await this.withTimeout(
+          supabase
+            .from('trainings')
+            .insert(trainingWithUser)
+            .select(
+              `
+              *,
+              training_week:training_weeks(*)
+            `,
+            )
+            .single(),
+          20000,
+          'criando treino'
+        );
 
       if (error) throw error;
 
@@ -281,20 +321,24 @@ class TrainingService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('trainings')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select(
-          `
-          *,
-          training_week:training_weeks(*)
-        `,
-        )
-        .single();
+      const { data, error } = await this.withTimeout(
+        supabase
+          .from('trainings')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+          .select(
+            `
+            *,
+            training_week:training_weeks(*)
+          `,
+          )
+          .single(),
+        20000,
+        'atualizando treino'
+      );
 
       if (error) throw error;
 
@@ -339,12 +383,16 @@ class TrainingService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('training_blocks')
-        .insert(blockData)
-        .select('*')
-        .single()
-        .overrideTypes<TrainingBlock, { merge: false }>();
+      const { data, error } = await this.withTimeout(
+        supabase
+          .from('training_blocks')
+          .insert(blockData)
+          .select('*')
+          .single()
+          .overrideTypes<TrainingBlock, { merge: false }>(),
+        20000,
+        'criando bloco'
+      );
 
       if (error) throw error;
 
@@ -369,16 +417,20 @@ class TrainingService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('exercise_prescriptions')
-        .insert(prescriptionData)
-        .select(
-          `
-          *,
-          exercise:exercises(*)
-        `,
-        )
-        .single();
+      const { data, error } = await this.withTimeout(
+        supabase
+          .from('exercise_prescriptions')
+          .insert(prescriptionData)
+          .select(
+            `
+            *,
+            exercise:exercises(*)
+          `,
+          )
+          .single(),
+        20000,
+        'adicionando exercício ao bloco'
+      );
 
       if (error) throw error;
 
@@ -425,10 +477,11 @@ class TrainingService {
 
     try {
       // Primeiro buscar todos os blocos do treino
-      const { data: blocks, error: blocksError } = await supabase
-        .from('training_blocks')
-        .select('id')
-        .eq('training_id', trainingId);
+      const { data: blocks, error: blocksError } = await this.withTimeout(
+        supabase.from('training_blocks').select('id').eq('training_id', trainingId),
+        20000,
+        'listando blocos do treino'
+      );
 
       if (blocksError) throw blocksError;
 
@@ -436,10 +489,11 @@ class TrainingService {
         const blockIds = blocks.map(block => block.id);
 
         // Deletar todas as prescrições de exercícios dos blocos
-        const { error: prescriptionsError } = await supabase
-          .from('exercise_prescriptions')
-          .delete()
-          .in('training_block_id', blockIds);
+        const { error: prescriptionsError } = await this.withTimeout(
+          supabase.from('exercise_prescriptions').delete().in('training_block_id', blockIds),
+          20000,
+          'removendo exercícios dos blocos'
+        );
 
         if (prescriptionsError) {
           // Continuar mesmo com erro
@@ -447,10 +501,11 @@ class TrainingService {
       }
 
       // Depois deletar todos os blocos do treino
-      const { error: blocksError2 } = await supabase
-        .from('training_blocks')
-        .delete()
-        .eq('training_id', trainingId);
+      const { error: blocksError2 } = await this.withTimeout(
+        supabase.from('training_blocks').delete().eq('training_id', trainingId),
+        20000,
+        'removendo blocos do treino'
+      );
 
       if (blocksError2) throw blocksError2;
     } catch (error) {
