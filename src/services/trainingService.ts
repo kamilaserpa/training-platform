@@ -8,7 +8,13 @@ import type {
   Training,
   TrainingBlock,
   TrainingWeek,
+  WeekFocus,
 } from '../types/database.types';
+
+export type CurrentWeekSummary = Pick<TrainingWeek, 'id' | 'name' | 'start_date' | 'end_date' | 'status'> & {
+  week_focus?: Pick<WeekFocus, 'name'> | null;
+  trainings: Array<Pick<Training, 'id' | 'scheduled_date'>>;
+};
 
 // Mock data para desenvolvimento
 const mockTrainings: Training[] = [
@@ -779,6 +785,50 @@ class TrainingService {
       return weeksWithTrainings;
     } catch (error) {
       console.error('Erro ao buscar semanas com treinos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca apenas a semana atual com dados mínimos para o dashboard
+   */
+  async getCurrentWeekSummary(dateISO?: string): Promise<CurrentWeekSummary | null> {
+    if (useMock) {
+      return null;
+    }
+
+    try {
+      const userId = await this.getCurrentUserId();
+      const today = dateISO ?? new Date().toISOString().slice(0, 10);
+
+      const query = supabase
+        .from('training_weeks')
+        .select(
+          `
+          id,
+          name,
+          start_date,
+          end_date,
+          status,
+          week_focus:week_focuses(name),
+          trainings(id, scheduled_date)
+        `,
+        )
+        .lte('start_date', today)
+        .gte('end_date', today)
+        .eq('created_by', userId)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .overrideTypes<CurrentWeekSummary, { merge: false }>();
+
+      const { data, error } = await this.withTimeout(query, 8000, 'buscando semana atual');
+
+      if (error) throw error;
+
+      return data ? { ...data, trainings: data.trainings ?? [] } : null;
+    } catch (error) {
+      console.error('Erro ao buscar semana atual (summary):', error);
       throw error;
     }
   }

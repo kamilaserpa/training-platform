@@ -52,7 +52,7 @@ export default {
   // ==========================================
   // Configurações (página única)
   // ==========================================
-  configuracoes: `/${rootPaths.pagesRoot}/configuracoes`,
+  parametros: `/${rootPaths.pagesRoot}/parametros`,
 
   // ==========================================
   // Usuários (apenas Owner e Admin)
