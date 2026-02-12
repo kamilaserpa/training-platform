@@ -6,6 +6,8 @@ export type TrainingWeekLite = Pick<TrainingWeek, 'id' | 'name' | 'start_date' |
   week_focus?: Pick<WeekFocus, 'name'> | null;
 };
 
+export type WeekFocusSummary = Pick<WeekFocus, 'id' | 'name' | 'description' | 'intensity_percentage'>;
+
 // Mock data para desenvolvimento
 const mockWeekFocuses: WeekFocus[] = [
   {
@@ -96,6 +98,32 @@ class WeekService {
   // ========================
   // Week Focuses CRUD
   // ========================
+  async getAllWeekFocusesSummary(): Promise<WeekFocusSummary[]> {
+    if (useMock) {
+      return mockWeekFocuses.map((focus) => ({
+        id: focus.id,
+        name: focus.name,
+        description: focus.description,
+        intensity_percentage: focus.intensity_percentage,
+      }));
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('week_focuses')
+        .select('id,name,description,intensity_percentage')
+        .order('name')
+        .overrideTypes<WeekFocusSummary[], { merge: false }>();
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar focos de semana (summary):', error);
+      throw error;
+    }
+  }
+
   async getAllWeekFocuses(): Promise<WeekFocus[]> {
     if (useMock) {
       return mockWeekFocuses;
