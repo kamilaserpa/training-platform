@@ -8,7 +8,7 @@ const CACHE_PREFIX = 'tp-pwa';
 // - Patch (x.x.1): Bug fixes, ajustes menores
 // - Minor (x.1.x): Novas features, mudanças compatíveis
 // - Major (1.x.x): Breaking changes, refatorações grandes
-const SW_VERSION = '1.0.3'; // Fix immutable asset detection under subpath (GitHub Pages)
+const SW_VERSION = '1.0.4'; // Avoid caching HTML for module assets
 const STATIC_CACHE = `${CACHE_PREFIX}-static-${SW_VERSION}`; // images, fonts, manifest
 const IMMUTABLE_CACHE = `${CACHE_PREFIX}-immutable-${SW_VERSION}`; // hashed build assets
 const CORE_CACHE = `${CACHE_PREFIX}-core-${SW_VERSION}`; // core assets (NO HTML)
@@ -240,15 +240,31 @@ async function handleNavigateNetworkOnly(request) {
 
 // Note: Removed findCachedHTML - we don't cache HTML anymore (iOS fix)
 
+function isHTMLResponse(response) {
+  const contentType = response?.headers?.get('content-type') || '';
+  return contentType.includes('text/html');
+}
+
 function shouldCacheResponse(response) {
-  // Cache only successful or opaque responses
-  return response && (response.status === 200 || response.type === 'opaqueredirect' || response.type === 'opaque');
+  // Cache only successful or opaque responses (never cache HTML)
+  if (!response) return false;
+  if (response.type === 'opaque' || response.type === 'opaqueredirect') return true;
+  if (response.status !== 200) return false;
+  if (isHTMLResponse(response)) return false;
+  return true;
 }
 
 async function cacheFirst(cacheName, request) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
-  if (cached) return cached;
+  if (cached) {
+    // Avoid serving HTML for module scripts/styles
+    if ((request.destination === 'script' || request.destination === 'style') && isHTMLResponse(cached)) {
+      await cache.delete(request);
+    } else {
+      return cached;
+    }
+  }
   const resp = await fetch(request);
   if (shouldCacheResponse(resp)) await cache.put(request, resp.clone());
   return resp;
@@ -265,5 +281,12 @@ async function staleWhileRevalidate(cacheName, request) {
     .catch(() => undefined);
 
   const cached = await cachedPromise;
-  return cached || (await networkPromise) || fetch(request);
+  if (cached) {
+    if ((request.destination === 'script' || request.destination === 'style') && isHTMLResponse(cached)) {
+      await cache.delete(request);
+    } else {
+      return cached;
+    }
+  }
+  return (await networkPromise) || fetch(request);
 }
