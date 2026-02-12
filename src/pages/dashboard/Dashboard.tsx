@@ -37,13 +37,13 @@ const Dashboard = () => {
 
       <Grid container spacing={3}>
 
-        <Grid item xs={12}>
-          <Shortcuts />
-        </Grid>
-
         {/* Hero Section - Semana Atual */}
         <Grid item xs={12}>
           <CurrentWeek />
+        </Grid>
+
+        <Grid item xs={12}>
+          <Shortcuts />
         </Grid>
 
         {/* Treinos da Semana Atual */}

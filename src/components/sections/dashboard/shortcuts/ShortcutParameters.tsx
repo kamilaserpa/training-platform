@@ -1,18 +1,17 @@
+import {
+  Settings as SettingsIcon,
+} from '@mui/icons-material';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import {
-  CalendarToday as CalendarIcon,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import paths from 'src/routes/paths';
-import IconifyIcon from 'src/components/base/IconifyIcon';
 
-const ShortcutTraining = () => {
+const ShortcutWeek = () => {
   const navigate = useNavigate();
 
   const handleNavigate = () => {
-    navigate(paths.treinos);
+    navigate(paths.parametros);
   };
 
   return (
@@ -54,20 +53,30 @@ const ShortcutTraining = () => {
         bgcolor="info.main"
         borderRadius="50%"
       >
-        <IconifyIcon
-          icon="ic:round-fitness-center" fontSize="h2.fontSize" color="primary.main"
-        />
+        <SettingsIcon fontSize="small" color="primary" />
       </Stack>
-      <div>
-        <Typography variant="caption" color="text.disabled">
+      <Stack direction="column" spacing={0.25} sx={{ width: 1 }}>
+        <Typography variant="caption" color="text.disabled" noWrap display="block">
           Ir para
         </Typography>
-        <Typography mt={0.25} style={{ fontWeight: 'bold' }} variant="subtitle1">
-          Treinos
+        <Typography
+          mt={0.25}
+          variant="subtitle1"
+          noWrap
+          display="block"
+          sx={{
+            fontWeight: 700,
+            maxWidth: '100%',
+            textOverflow: 'ellipsis',
+            overflow: 'hidden',
+            fontSize: { xs: '0.95rem', sm: '1rem' },
+          }}
+        >
+          Parâmetros
         </Typography>
-      </div>
+      </Stack>
     </Stack>
   );
 };
 
-export default ShortcutTraining;
+export default ShortcutWeek;

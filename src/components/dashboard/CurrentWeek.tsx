@@ -1,31 +1,27 @@
-import { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Chip,
-  Stack,
-  Button,
-  CircularProgress,
-  Alert,
-  Grid,
-  Divider,
-} from '@mui/material';
-import {
-  FitnessCenter as FitnessCenterIcon,
   CalendarToday as CalendarIcon,
-  TrendingUp as TrendingUpIcon,
   CheckCircle as CheckCircleIcon,
+  FitnessCenter as FitnessCenterIcon,
   RemoveCircle as RemoveCircleIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Divider,
+  Grid,
+  Stack,
+  Typography,
+} from '@mui/material';
 import dayjs from 'dayjs';
-import isBetween from 'dayjs/plugin/isBetween';
-import { trainingService } from '../../services/trainingService';
-
-dayjs.extend(isBetween);
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { trainingService, type CurrentWeekSummary } from '../../services/trainingService';
 
 interface CurrentWeekProps {
   // Pode receber props opcionais no futuro
@@ -33,11 +29,10 @@ interface CurrentWeekProps {
 
 const CurrentWeek = (props: CurrentWeekProps) => {
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [weekData, setWeekData] = useState<any>(null);
-  const [workoutsThisWeek, setWorkoutsThisWeek] = useState<any[]>([]);
+  const [weekData, setWeekData] = useState<CurrentWeekSummary | null>(null);
 
   useEffect(() => {
     loadCurrentWeek();
@@ -48,23 +43,10 @@ const CurrentWeek = (props: CurrentWeekProps) => {
       setLoading(true);
       setError(null);
 
-      // Buscar todas as semanas
-      const weeks = await trainingService.getWeeksWithTrainings();
-      
-      // Encontrar a semana atual (baseado na data)
-      const today = dayjs();
-      const currentWeek = weeks.find(week => {
-        const start = dayjs(week.start_date);
-        const end = dayjs(week.end_date);
-        return today.isBetween(start, end, 'day', '[]');
-      });
+      const currentWeek = await trainingService.getCurrentWeekSummary();
 
       if (currentWeek) {
         setWeekData(currentWeek);
-        
-        // Contar treinos por dia
-        const trainings = currentWeek.trainings || [];
-        setWorkoutsThisWeek(trainings);
       } else {
         setError('Nenhuma semana ativa encontrada');
       }
@@ -86,8 +68,9 @@ const CurrentWeek = (props: CurrentWeekProps) => {
     };
 
     const targetDay = dayMap[dayName.toLowerCase()];
-    
-    const hasWorkout = workoutsThisWeek.some(training => {
+
+    const trainings = weekData?.trainings ?? [];
+    const hasWorkout = trainings.some(training => {
       const trainingDay = dayjs(training.scheduled_date).day();
       return trainingDay === targetDay;
     });
@@ -170,8 +153,8 @@ const CurrentWeek = (props: CurrentWeekProps) => {
   ];
 
   return (
-    <Card 
-      sx={{ 
+    <Card
+      sx={{
         height: '100%',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
@@ -191,16 +174,18 @@ const CurrentWeek = (props: CurrentWeekProps) => {
               {weekData.week_focus?.name || 'Sem foco definido'}
             </Typography>
           </Box>
-          <Chip
+
+          {/* Status da semana */}
+          {/* <Chip
             label={getStatusLabel(weekData.status)}
             color={getStatusColor(weekData.status)}
-            sx={{ 
+            sx={{
               fontWeight: 600,
               bgcolor: 'rgba(255,255,255,0.2)',
               color: 'white',
               border: '1px solid rgba(255,255,255,0.3)',
             }}
-          />
+          /> */}
         </Stack>
 
         <Divider sx={{ borderColor: 'rgba(255,255,255,0.2)', mb: 3 }} />
@@ -229,7 +214,7 @@ const CurrentWeek = (props: CurrentWeekProps) => {
                 </Typography>
               </Stack>
               <Typography variant="body2" fontWeight="600">
-                {workoutsThisWeek.length} cadastrados
+                {(weekData?.trainings ?? []).length} cadastrados
               </Typography>
             </Box>
           </Grid>
