@@ -248,7 +248,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
                 <ListItemText
                   primary={
                     <Box>
-                      <Typography variant="body1" fontWeight={500}>
+                      <Typography variant="body1" fontWeight={500} color="text.primary">
                         <NoTranslate>{exercise.name}</NoTranslate>
                       </Typography>
                       {exercise.tags && exercise.tags.length > 0 && (

@@ -1,16 +1,15 @@
-import { useState } from 'react';
+import { Box, Container, Typography } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { Container, Typography, Box, Button } from '@mui/material';
-import { FileDownload as FileDownloadIcon } from '@mui/icons-material';
+import { useState } from 'react';
 
 // Alertas e Notificações
 import { DevModeAlert } from '../../components/DevModeAlert';
 
 // Novos componentes da plataforma de treinos
-import CurrentWeek from '../../components/dashboard/CurrentWeek';
-import WeekWorkouts from '../../components/dashboard/WeekWorkouts';
-import RecentWeeks from '../../components/dashboard/RecentWeeks';
 import AlertsAndPendencies from '../../components/dashboard/AlertsAndPendencies';
+import CurrentWeek from '../../components/dashboard/CurrentWeek';
+import RecentWeeks from '../../components/dashboard/RecentWeeks';
+import WeekWorkouts from '../../components/dashboard/WeekWorkouts';
 import ExportModal from '../../components/export/ExportModal';
 
 // Hook para dados de exportação
@@ -19,18 +18,6 @@ import { useExportData } from '../../hooks/useExportData';
 // Componentes originais do template (mantidos para referência)
 import Calendar from 'components/sections/dashboard/calendar';
 import Shortcuts from 'src/components/sections/dashboard/shortcuts';
-
-import TotalSpent from 'components/sections/dashboard/total-spent';
-import CardSecurity from 'components/sections/dashboard/card-security';
-import ComplexTable from 'components/sections/dashboard/complex-table';
-import PiChart from 'components/sections/dashboard/your-pi-chart';
-import History from 'components/sections/dashboard/history';
-import Revenue from 'components/sections/dashboard/revenue';
-import Tasks from 'components/sections/dashboard/tasks';
-import TeamMembers from 'components/sections/dashboard/team-members';
-import DailyTraffic from 'components/sections/dashboard/daily-traffic';
-import TrendingNFTs from 'components/sections/dashboard/trending-nfts';
-import BusinessDesign from 'components/sections/dashboard/business-design';
 
 const Dashboard = () => {
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -52,11 +39,6 @@ const Dashboard = () => {
 
         <Grid item xs={12}>
           <Shortcuts />
-        </Grid>
-
-        {/* Instalação PWA (apenas mobile) */}
-        <Grid item xs={12}>
-          <PWAInstallCard />
         </Grid>
 
         {/* Hero Section - Semana Atual */}
@@ -84,7 +66,7 @@ const Dashboard = () => {
         </Grid>
 
         {/* Componentes originais do template (comentados para futuro uso) */}
-        {/* 
+        {/*
         <Grid item xs={12}>
           <Analytics />
         </Grid>
