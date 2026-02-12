@@ -52,13 +52,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-// Register Service Worker (respects Vite base)
+// Register Service Worker (requires secure context)
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+  const isSecureContext =
+    window.location.protocol === 'https:' ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1';
 
-    // Flag para prevenir loop de reload (iOS Safari)
-    let refreshing = false;
+  if (isSecureContext) {
+    window.addEventListener('load', () => {
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+
+      // Flag para prevenir loop de reload (iOS Safari)
+      let refreshing = false;
 
     // Mostra um aviso simples de atualização disponível
     const showUpdateBanner = () => {
@@ -81,42 +87,43 @@ if ('serviceWorker' in navigator) {
       document.body.appendChild(banner);
     };
 
-    navigator.serviceWorker
-      .register(swUrl)
-      .then((registration) => {
-        // Force update check (timeout para iOS)
-        setTimeout(() => registration.update(), 1000);
+      navigator.serviceWorker
+        .register(swUrl)
+        .then((registration) => {
+          // Force update check (timeout para iOS)
+          setTimeout(() => registration.update(), 1000);
 
-        // Force update on waiting worker
-        if (registration.waiting) {
-          showUpdateBanner();
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        }
-
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Novo SW instalado, força ativação
-                showUpdateBanner();
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
+          // Force update on waiting worker
+          if (registration.waiting) {
+            showUpdateBanner();
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
-        });
 
-        // Detecta quando o controller muda (novo SW ativou)
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (refreshing) return;
-          refreshing = true;
-          window.location.reload();
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Novo SW instalado, força ativação
+                  showUpdateBanner();
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            }
+          });
+
+          // Detecta quando o controller muda (novo SW ativou)
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
+        })
+        .catch((error) => {
+          console.error('❌ SW registration failed:', error);
+          // App should still work without SW
         });
-      })
-      .catch((error) => {
-        console.error('❌ SW registration failed:', error);
-        // App should still work without SW
-      });
-  });
+    });
+  }
 }
