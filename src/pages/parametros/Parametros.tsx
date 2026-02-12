@@ -1,53 +1,54 @@
-import { useState, useEffect } from 'react';
 import {
-  Container,
-  Typography,
-  Button,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  DirectionsRun as DirectionsRunIcon,
+  Edit as EditIcon,
+  TrendingUp as TrendingUpIcon,
+} from '@mui/icons-material';
+import {
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
-  TextField,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  Paper,
+  Snackbar,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  IconButton,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  TextField,
   Tooltip,
-  CircularProgress,
-  Alert,
-  Grid,
-  Snackbar,
+  Typography,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  TrendingUp as TrendingUpIcon,
-  DirectionsRun as DirectionsRunIcon,
-} from '@mui/icons-material';
+import { useEffect, useRef, useState } from 'react';
 
 // Importar serviços
-import { movementPatternService } from '../../services/movementPatternService';
-import { weekService } from '../../services/weekService';
-import { useAuth } from '../../contexts/AuthContext';
-import type { MovementPattern, WeekFocus } from '../../types/database.types';
 import { DevModeAlert } from '../../components/DevModeAlert';
+import { useAuth } from '../../contexts/AuthContext';
+import type { MovementPatternSummary } from '../../services/movementPatternService';
+import { movementPatternService } from '../../services/movementPatternService';
+import type { WeekFocusSummary } from '../../services/weekService';
+import { weekService } from '../../services/weekService';
 
 // Tipos TypeScript - Usando estrutura direta do banco de dados
-type FocoSemana = WeekFocus; // Usando diretamente o tipo do banco
-type PadraoMovimento = MovementPattern; // Usando diretamente o tipo do banco
+type FocoSemana = WeekFocusSummary;
+type PadraoMovimento = MovementPatternSummary;
 
 // Tipos para criação (sem campos auto-gerados)
-type CreateFocoSemana = Omit<WeekFocus, 'id' | 'created_at' | 'updated_at' | 'color_hex'>;
-type CreatePadraoMovimento = Omit<MovementPattern, 'id' | 'created_at' | 'updated_at'>;
+type CreateFocoSemana = Omit<WeekFocusSummary, 'id'>;
+type CreatePadraoMovimento = Omit<MovementPatternSummary, 'id'>;
 
 interface FocoSemanaDialogProps {
   open: boolean;
@@ -242,12 +243,15 @@ function PadraoMovimentoDialog({ open, onClose, onSave, editingData }: PadraoMov
   );
 }
 
-const Configuracoes = () => {
+const Parametros = () => {
   const auth = useAuth();
+  const loadRequestIdRef = useRef(0);
+  const LOAD_TIMEOUT_MS = 15000;
   const [focosSemana, setFocosSemana] = useState<FocoSemana[]>([]);
   const [padroes, setPadroes] = useState<PadraoMovimento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadingTimeoutReached, setLoadingTimeoutReached] = useState(false);
 
   // Estado dos diálogos - Foco
   const [focoDialogOpen, setFocoDialogOpen] = useState(false);
@@ -271,20 +275,40 @@ const Configuracoes = () => {
   }, []);
 
   const loadInitialData = async () => {
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+    setLoadingTimeoutReached(false);
+
+    const timeoutId = window.setTimeout(() => {
+      if (loadRequestIdRef.current === requestId) {
+        setLoading(false);
+        setLoadingTimeoutReached(true);
+      }
+    }, LOAD_TIMEOUT_MS);
+
     try {
       setLoading(true);
       setError(null);
 
       const [movementPatterns, weekFocuses] = await Promise.all([
-        movementPatternService.getAllMovementPatterns(),
-        weekService.getAllWeekFocuses(),
+        movementPatternService.getAllMovementPatternsSummary(),
+        weekService.getAllWeekFocusesSummary(),
       ]);
+
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
 
       // Usar dados diretamente sem mapeamento
       setPadroes(movementPatterns);
       setFocosSemana(weekFocuses);
+      setLoadingTimeoutReached(false);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
+
+      if (loadRequestIdRef.current !== requestId) {
+        return;
+      }
 
       // Verificar se é erro de autenticação
       if (err?.message?.includes('Invalid Refresh Token') || err?.message?.includes('refresh_token_not_found')) {
@@ -295,7 +319,10 @@ const Configuracoes = () => {
         setError('Erro ao carregar dados. Tente novamente.');
       }
     } finally {
-      setLoading(false);
+      window.clearTimeout(timeoutId);
+      if (loadRequestIdRef.current === requestId) {
+        setLoading(false);
+      }
     }
   };
 
@@ -410,14 +437,21 @@ const Configuracoes = () => {
         setSuccessMessage(`Padrão de movimento "${novoPadrao.name}" atualizado com sucesso!`);
       } else {
         // Criar novo padrão
-        console.log('✨ [Configuracoes] Criando novo padrão');
+        console.log('✨ [Parametros] Criando novo padrão');
         const createdPattern = await movementPatternService.createMovementPattern(
           novoPadrao.name,
           novoPadrao.description
         );
-        // Usar o padrão retornado diretamente
-        setPadroes((padroes) => [...padroes, createdPattern]);
-        console.log('✅ [Configuracoes] Padrão criado com sucesso');
+        // Usar apenas os campos necessários para a tela
+        setPadroes((padroes) => [
+          ...padroes,
+          {
+            id: createdPattern.id,
+            name: createdPattern.name,
+            description: createdPattern.description,
+          },
+        ]);
+        console.log('✅ [Parametros] Padrão criado com sucesso');
 
         setSuccessMessage(`Padrão de movimento "${novoPadrao.name}" criado com sucesso!`);
       }
@@ -426,7 +460,7 @@ const Configuracoes = () => {
       setEditingPadrao(null);
       setShowSuccess(true);
     } catch (err) {
-      console.error('❌ [Configuracoes] Erro ao salvar padrão:', err);
+      console.error('❌ [Parametros] Erro ao salvar padrão:', err);
       setError('Erro ao salvar padrão de movimento. Tente novamente.');
     }
   };
@@ -466,6 +500,20 @@ const Configuracoes = () => {
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
+        </Alert>
+      )}
+
+      {loadingTimeoutReached && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 3 }}
+          action={(
+            <Button color="inherit" size="small" onClick={loadInitialData}>
+              Recarregar
+            </Button>
+          )}
+        >
+          O carregamento está demorando mais do que o esperado. Você pode tentar recarregar a listagem.
         </Alert>
       )}
 
@@ -777,4 +825,4 @@ const Configuracoes = () => {
   );
 };
 
-export default Configuracoes;
+export default Parametros;

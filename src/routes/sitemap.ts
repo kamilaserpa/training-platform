@@ -68,7 +68,7 @@ const sitemap: MenuItem[] = [
   {
     id: 5,
     subheader: 'Parâmetros da Semana',
-    path: paths.configuracoes,
+    path: paths.parametros,
     icon: 'ic:round-settings',
     requireAuth: true,
   },

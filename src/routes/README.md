@@ -65,9 +65,9 @@ Este projeto segue o **padrão RESTful** para URLs, garantindo uma estrutura int
 - ✅ Criar/Editar via Dialog (modal inline)
 - ✅ Não necessita rotas separadas
 
-### ⚙️ Configurações
+### ⚙️ Parâmetros
 ```typescript
-/pages/configuracoes        → Página de configurações
+/pages/parametros        → Página de parâmetros
 ```
 
 **Características:**

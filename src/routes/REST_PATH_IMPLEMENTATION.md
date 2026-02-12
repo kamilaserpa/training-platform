@@ -413,9 +413,9 @@ ____
 /pages/semanas                         → Lista + CRUD Modal
 
 // ==========================================
-// ⚙️ CONFIGURAÇÕES
+// ⚙️ PARÂMETROS
 // ==========================================
-/pages/configuracoes                   → Página única
+/pages/parametros                   → Página única
 
 // ==========================================
 // 🌐 PÚBLICO
@@ -451,7 +451,7 @@ import { useParams } from 'react-router-dom';
 function TreinoForm() {
   const { id } = useParams();
   const isEditMode = !!id;
-  
+
   return <h1>{isEditMode ? 'Editar' : 'Criar'} Treino</h1>;
 }
 ```
@@ -531,7 +531,7 @@ const { id } = useParams()
 | Editar treino | `/pages/treinos/abc123/editar` | `navigate(paths.treinoEditar('abc123'))` |
 | Ver exercícios | `/pages/exercicios` | `navigate(paths.exercicios)` |
 | Ver semanas | `/pages/semanas` | `navigate(paths.semanas)` |
-| Configurações | `/pages/configuracoes` | `navigate(paths.configuracoes)` |
+| Parâmetros | `/pages/parametros` | `navigate(paths.parametros)` |
 
 ---
 
@@ -583,6 +583,6 @@ const isEditMode = !!id;
 
 ---
 
-**Última atualização:** Janeiro 2026  
+**Última atualização:** Fevereiro 2026
 **Versão:** 2.0.0
 

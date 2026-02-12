@@ -19,7 +19,7 @@ const TreinoPublico = lazy(() => import('../pages/treinos/TreinoPublico.jsx'));
 const Semanas = lazy(() => import('../pages/semanas/Semanas'));
 const SemanasRefactored = lazy(() => import('../pages/semanas/SemanasRefactored'));
 const Treinos = lazy(() => import('../pages/treinos/Treinos'));
-const Configuracoes = lazy(() => import('../pages/configuracoes/Configuracoes'));
+const Parametros = lazy(() => import('../pages/parametros/Parametros.js'));
 const Exercicios = lazy(() => import('../pages/exercicios/Exercicios'));
 const VideoLibrary = lazy(() => import('../pages/videos/VideoLibrary'));
 const Usuarios = lazy(() => import('../pages/usuarios/Usuarios'));
@@ -111,8 +111,8 @@ export const routes = [
           // Parâmetros da Semana
           // ==========================================
           {
-            path: paths.configuracoes,
-            element: <Configuracoes />,
+            path: paths.parametros,
+            element: <Parametros />,
           },
 
           // ==========================================
