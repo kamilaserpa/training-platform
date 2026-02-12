@@ -10,7 +10,7 @@ const routeLabels: Record<string, string> = {
   'semanas': 'Semanas',
   'treinos': 'Treinos',
   'exercicios': 'Exercícios',
-  'configuracoes': 'Parâmetros da Semana',
+  'parametros': 'Parâmetros da Semana',
   'export-settings': 'Configurações de exportação',
   'novo': 'Novo',
   'editar': 'Editar',
@@ -19,7 +19,7 @@ const routeLabels: Record<string, string> = {
 
 export default function Breadcrumb() {
   const location = useLocation();
-  
+
   // Com hash router, usar location.pathname ao invés de hash
   // O React Router já gerencia isso corretamente
   const pathnames = location.pathname.split('/').filter((x) => x && x !== 'pages');
