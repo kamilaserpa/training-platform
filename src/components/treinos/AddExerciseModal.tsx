@@ -62,7 +62,7 @@ export const AddExerciseModal = ({
     repetitions: '',
     weight_kg: '',
     duration_seconds: 30,
-    rest_seconds: 15,
+    rest_seconds: 0,
     notes: '',
   });
 
@@ -77,7 +77,7 @@ export const AddExerciseModal = ({
         repetitions: '',
         weight_kg: '',
         duration_seconds: 30,
-        rest_seconds: 15,
+        rest_seconds: 0,
         notes: '',
       });
     }
@@ -93,7 +93,7 @@ export const AddExerciseModal = ({
       repetitions: '12',
       weight_kg: '',
       duration_seconds: null,
-      rest_seconds: 60,
+      rest_seconds: 0,
       notes: '',
     });
     onClose();
