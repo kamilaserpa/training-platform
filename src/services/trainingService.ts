@@ -101,7 +101,9 @@ class TrainingService {
 
     const timeoutPromise = new Promise<T>((_, reject) => {
       timeoutId = setTimeout(() => {
-        reject(new Error(`Tempo esgotado (${operationName}). Verifique sua conexão e tente novamente.`));
+        const err = new Error(`Tempo esgotado (${operationName}). Verifique sua conexão e tente novamente.`);
+        (err as Error & { name: string }).name = 'TimeoutError';
+        reject(err);
       }, timeoutMs);
     });
 
@@ -299,7 +301,7 @@ class TrainingService {
             `,
             )
             .single(),
-          20000,
+          60000,
           'criando treino'
         );
 
@@ -342,7 +344,7 @@ class TrainingService {
           `,
           )
           .single(),
-        20000,
+        60000,
         'atualizando treino'
       );
 
@@ -396,7 +398,7 @@ class TrainingService {
           .select('*')
           .single()
           .overrideTypes<TrainingBlock, { merge: false }>(),
-        20000,
+        60000,
         'criando bloco'
       );
 
@@ -434,7 +436,7 @@ class TrainingService {
           `,
           )
           .single(),
-        20000,
+        60000,
         'adicionando exercício ao bloco'
       );
 
@@ -487,7 +489,7 @@ class TrainingService {
         supabase.from('training_blocks')
         .select('id')
         .eq('training_id', trainingId),
-        20000,
+        60000,
         'listando blocos do treino'
       );
 
@@ -499,7 +501,7 @@ class TrainingService {
         // Deletar todas as prescrições de exercícios dos blocos
         const { error: prescriptionsError } = await this.withTimeout(
           supabase.from('exercise_prescriptions').delete().in('training_block_id', blockIds),
-          20000,
+          60000,
           'removendo exercícios dos blocos'
         );
 
@@ -511,7 +513,7 @@ class TrainingService {
       // Depois deletar todos os blocos do treino
       const { error: blocksError2 } = await this.withTimeout(
         supabase.from('training_blocks').delete().eq('training_id', trainingId),
-        20000,
+        60000,
         'removendo blocos do treino'
       );
 

@@ -108,6 +108,8 @@ function TreinoForm() {
   const [exerciseModalEditMode, setExerciseModalEditMode] = useState(false)
   const editModalFetchIdRef = useRef(0)
   const exercisesLiteCacheRef = useRef(null)
+  /** Quando criar treino mas falhar ao salvar blocos (ex.: timeout), guardamos o ID para retry sem duplicar treino */
+  const pendingCreatedTrainingIdRef = useRef(null)
 
   // Confirmação ao sair para criação de semana
   const [confirmLeaveSemanasOpen, setConfirmLeaveSemanasOpen] = useState(false)
@@ -266,6 +268,11 @@ function TreinoForm() {
       devLog('🔄 Nome do treino atualizado automaticamente:', newName)
     }
   }, [watchedValues, semanasOptions, loading, loadingTrainingData])
+
+  // Limpar ID de treino pendente ao entrar em modo edição (ex.: voltou da lista para editar outro)
+  useEffect(() => {
+    if (isEditMode) pendingCreatedTrainingIdRef.current = null
+  }, [isEditMode])
 
   // Estados para compartilhamento
   const [shareLink, setShareLink] = useState('')
@@ -641,7 +648,7 @@ function TreinoForm() {
       repetitions: item?.repeticoes || '12',
       weight_kg: item?.carga ? item.carga.toString().replace('kg', '').trim() : '',
       duration_seconds: item?.tempoSegundos || null,
-      rest_seconds: item?.intervaloSegundos || 60,
+      rest_seconds: item?.intervaloSegundos ?? 0,
       notes: item?.observacoes || ''
     }
 
@@ -760,7 +767,7 @@ function TreinoForm() {
       repeticoes: config.repetitions || '12',
       carga: config.weight_kg || '',
       tempoSegundos: config.duration_seconds || null,
-      intervaloSegundos: config.rest_seconds || 60,
+      intervaloSegundos: config.rest_seconds ?? 0,
       observacoes: config.notes || ''
     }
 
@@ -1002,7 +1009,7 @@ function TreinoForm() {
           order_index: order,
           sets: blockType === 'MOBILIDADE_ARTICULAR' ? 1 : 2,
           reps: blockType === 'MOBILIDADE_ARTICULAR' ? '30s' : '15',
-          rest_seconds: blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 60
+          rest_seconds: blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 0
         })
         devLog(`✅ Exercício '${exercise.name}' adicionado ao bloco com sucesso`)
       } else {
@@ -1027,9 +1034,9 @@ function TreinoForm() {
         exercise_id: exerciseId,
         order_index: order,
         sets: exerciseData?.series || (blockType === 'MOBILIDADE_ARTICULAR' ? 1 : 2),
-        rest_seconds: exerciseData?.intervaloSegundos !== undefined && exerciseData?.intervaloSegundos !== '' && exerciseData?.intervaloSegundos !== null ?
-          parseInt(exerciseData.intervaloSegundos) :
-          (blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 60)
+        rest_seconds: exerciseData?.intervaloSegundos !== undefined && exerciseData?.intervaloSegundos !== '' && exerciseData?.intervaloSegundos !== null
+          ? parseInt(exerciseData.intervaloSegundos)
+          : (blockType === 'MOBILIDADE_ARTICULAR' ? 30 : 0)
       }
 
       // Definir repetições ou tempo
@@ -1078,12 +1085,13 @@ function TreinoForm() {
           exercise_id: exerciseObj.exercicioId,
           order_index: order,
           sets: exerciseObj.series || 1,
-          rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null ?
-            parseInt(exerciseObj.intervaloSegundos) :
-            (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null ?
-              parseInt(exerciseObj.intervalo) :
-              (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null ?
-                parseInt(exerciseObj.rest_seconds) : 60))
+          rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null
+            ? parseInt(exerciseObj.intervaloSegundos)
+            : (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null
+              ? parseInt(exerciseObj.intervalo)
+              : (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null
+                ? parseInt(exerciseObj.rest_seconds)
+                : 0))
         }
 
         // Adicionar video_id se disponível
@@ -1153,12 +1161,13 @@ function TreinoForm() {
           exercise_id: exercise.id,
           order_index: order,
           sets: exerciseObj.series || 1,
-          rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null ?
-            parseInt(exerciseObj.intervaloSegundos) :
-            (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null ?
-              parseInt(exerciseObj.intervalo) :
-              (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null ?
-                parseInt(exerciseObj.rest_seconds) : 60))
+          rest_seconds: exerciseObj.intervaloSegundos !== undefined && exerciseObj.intervaloSegundos !== '' && exerciseObj.intervaloSegundos !== null
+            ? parseInt(exerciseObj.intervaloSegundos)
+            : (exerciseObj.intervalo !== undefined && exerciseObj.intervalo !== '' && exerciseObj.intervalo !== null
+              ? parseInt(exerciseObj.intervalo)
+              : (exerciseObj.rest_seconds !== undefined && exerciseObj.rest_seconds !== '' && exerciseObj.rest_seconds !== null
+                ? parseInt(exerciseObj.rest_seconds)
+                : 0))
         }
 
         // Se tem tempo definido, usar duration_seconds
@@ -1387,25 +1396,29 @@ function TreinoForm() {
   const onSubmit = async (data) => {
     try {
       setSubmitting(true)
-      setSubmittingMessage(isEditMode ? '🔄 Atualizando treino...' : '💾 Salvando treino...')
+      const isRetryAfterPartial = !isEditMode && !!pendingCreatedTrainingIdRef.current
+      setSubmittingMessage(
+        isEditMode
+          ? '🔄 Atualizando treino...'
+          : isRetryAfterPartial
+            ? '💾 Salvando blocos do treino...'
+            : '💾 Salvando treino...'
+      )
 
       const scheduledDate = data?.data?.toDate ? data.data.toDate() : data.data
 
-      // Preparar dados para o CreateTrainingDTO
       const trainingName = generateTrainingName(data.semana, data.data)
       const trainingData = {
         training_week_id: data.semana,
         name: trainingName,
-        scheduled_date: formatISODateOnlyLocal(scheduledDate), // Formato YYYY-MM-DD (local)
+        scheduled_date: formatISODateOnlyLocal(scheduledDate),
         description: data.observacoes || undefined,
         internal_notes: data.observacoes_internas || undefined,
-        estimated_duration_minutes: 90, // valor padrão, pode ser ajustado depois
-        movement_pattern_id: data.padrao_movimento || null, // Incluir padrão de movimento
-        // Sempre definir share_status baseado no checkbox link_ativo
+        estimated_duration_minutes: 90,
+        movement_pattern_id: data.padrao_movimento || null,
         share_status: data.link_ativo ? 'public' : 'private'
       }
 
-      // Se já tem token, incluir no payload
       if (linkToken) {
         trainingData.share_token = linkToken
       }
@@ -1415,29 +1428,39 @@ function TreinoForm() {
       if (isEditMode) {
         training = await trainingService.updateTraining(editingTrainingId, trainingData)
         devLog('✅ Treino atualizado com sucesso')
+      } else if (isRetryAfterPartial) {
+        const existingId = pendingCreatedTrainingIdRef.current
+        training = await trainingService.updateTraining(existingId, trainingData)
+        devLog('✅ Metadados do treino atualizados (retry), salvando blocos...')
       } else {
         devLog('🚀 Criando treino com dados:', trainingData)
         training = await trainingService.createTraining(trainingData)
         devLog('✅ Treino criado com sucesso')
-
-        // Após criar, se tem share_token retornado pelo banco, atualizar estado local
         if (training.share_token) {
           setLinkToken(training.share_token)
           setShareLink(generateShareLink(training.share_token))
         }
       }
 
-      // Criar/atualizar os blocos do treino com todos os exercícios
       devLog('🛠️ Processando blocos do treino...')
-      if (isEditMode) {
-        devLog('🔄 Atualizando blocos do treino existente...')
-        await updateTrainingBlocks(training.id)
-      } else {
-        await createTrainingBlocks(training.id)
+      try {
+        if (isEditMode || isRetryAfterPartial) {
+          await updateTrainingBlocks(training.id)
+        } else {
+          await createTrainingBlocks(training.id)
+        }
+      } catch (blocksError) {
+        if (!isEditMode && !isRetryAfterPartial && training?.id) {
+          pendingCreatedTrainingIdRef.current = training.id
+        }
+        throw blocksError
       }
       devLog('✅ Blocos processados com sucesso!')
 
-      // Mostrar feedback de sucesso
+      if (isRetryAfterPartial) {
+        pendingCreatedTrainingIdRef.current = null
+      }
+
       const linkStatusMessage = data.link_ativo && training.share_token
         ? ' Link de compartilhamento público gerado!'
         : (linkToken ? ' Link de compartilhamento desativado.' : '')
@@ -1450,21 +1473,30 @@ function TreinoForm() {
         severity: 'success'
       })
 
-      // Se for criação, redirecionar para o modo de edição do treino recém-criado
       if (!isEditMode) {
         devLog('🔄 Redirecionando para modo de edição do treino:', training.id)
         setTimeout(() => {
           navigate(`/pages/treinos/${training.id}/editar`)
         }, 1500)
       }
-
     } catch (error) {
       console.error('❌ Erro ao salvar treino:', error)
 
-      const isAbort = error?.name === 'AbortError'
-      const message = isAbort
-        ? 'Tempo esgotado ao salvar/atualizar o treino. Verifique sua conexão e tente novamente.'
-        : (error?.message || 'Erro ao salvar treino. Tente novamente.')
+      const isTimeout =
+        error?.name === 'AbortError' ||
+        error?.name === 'TimeoutError' ||
+        (error?.message && String(error.message).includes('Tempo esgotado'))
+
+      let message
+      if (pendingCreatedTrainingIdRef.current) {
+        message =
+          'Treino já foi criado, mas os blocos não foram salvos (ex.: tempo esgotado). Suas alterações estão preservadas. Clique em "Salvar Treino" novamente para concluir (não criará outro treino).'
+      } else if (isTimeout) {
+        message =
+          'Tempo esgotado ao salvar. Verifique sua conexão e tente novamente. Seus dados não foram perdidos.'
+      } else {
+        message = error?.message || 'Erro ao salvar treino. Tente novamente.'
+      }
 
       setSnackbar({
         open: true,
