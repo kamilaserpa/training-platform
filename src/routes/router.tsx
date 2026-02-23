@@ -21,6 +21,7 @@ const SemanasRefactored = lazy(() => import('../pages/semanas/SemanasRefactored'
 const Treinos = lazy(() => import('../pages/treinos/Treinos'));
 const Parametros = lazy(() => import('../pages/parametros/Parametros.js'));
 const Exercicios = lazy(() => import('../pages/exercicios/Exercicios'));
+const ExerciciosComVideos = lazy(() => import('../pages/exercicios/ExerciciosComVideos'));
 const VideoLibrary = lazy(() => import('../pages/videos/VideoLibrary'));
 const Usuarios = lazy(() => import('../pages/usuarios/Usuarios'));
 const Perfil = lazy(() => import('../pages/perfil/Perfil'));
@@ -81,6 +82,10 @@ export const routes = [
           {
             path: paths.exercicios,
             element: <Exercicios />,
+          },
+          {
+            path: paths.exerciciosComVideos,
+            element: <ExerciciosComVideos />,
           },
 
           // ==========================================

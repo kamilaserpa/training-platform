@@ -10,6 +10,7 @@ const routeLabels: Record<string, string> = {
   'semanas': 'Semanas',
   'treinos': 'Treinos',
   'exercicios': 'Exercícios',
+  'exercicios-com-videos': 'Exercícios com Vídeos',
   'parametros': 'Parâmetros da Semana',
   'export-settings': 'Configurações de exportação',
   'novo': 'Novo',

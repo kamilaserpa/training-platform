@@ -90,6 +90,18 @@ export interface Video {
   updated_at: string;
 }
 
+/** Relação N:N entre exercício e vídeo (vídeos vinculados ao exercício) */
+export interface ExerciseVideo {
+  id: string;
+  exercise_id: string;
+  video_id: string;
+  order_index?: number;
+  created_at: string;
+  // Relacionamentos
+  exercise?: Exercise;
+  video?: Video;
+}
+
 export interface TrainingWeek {
   id: string;
   name: string;
@@ -277,6 +289,12 @@ export type Database = {
       };
       videos: {
         Row: RowRecord<Video>;
+        Insert: any;
+        Update: any;
+        Relationships: SupabaseGenericRelationship[];
+      };
+      exercise_videos: {
+        Row: RowRecord<ExerciseVideo>;
         Insert: any;
         Update: any;
         Relationships: SupabaseGenericRelationship[];

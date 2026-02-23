@@ -38,6 +38,9 @@ export default {
   // ==========================================
   exercicios: `/${rootPaths.pagesRoot}/exercicios`,
 
+  // Exercícios com vídeos vinculados (CRUD da relação)
+  exerciciosComVideos: `/${rootPaths.pagesRoot}/exercicios-com-videos`,
+
   // ==========================================
   // Biblioteca de Vídeos
   // ==========================================

@@ -59,6 +59,13 @@ const sitemap: MenuItem[] = [
     requireAuth: true,
   },
   {
+    id: 4.3,
+    subheader: 'Exercícios com Vídeos',
+    path: paths.exerciciosComVideos,
+    icon: 'ic:round-link',
+    requireAuth: true,
+  },
+  {
     id: 4.5,
     subheader: 'Biblioteca de Vídeos',
     path: paths.videos,
