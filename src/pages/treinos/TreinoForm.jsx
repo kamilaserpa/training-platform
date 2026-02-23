@@ -762,7 +762,7 @@ function TreinoForm() {
       exercicioId: exercise.id,
       nome: exercise.name,
       videoId: video?.id || null,
-      videoName: video?.name || null,
+      videoName: video?.title || null,
       series: config.series || 3,
       repeticoes: config.repetitions || '12',
       carga: config.weight_kg || '',

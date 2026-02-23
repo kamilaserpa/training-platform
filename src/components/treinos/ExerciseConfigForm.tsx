@@ -167,7 +167,7 @@ export const ExerciseConfigForm = ({
                                         justifyContent: 'center',
                                         color: 'text.secondary',
                                     }}>
-                                        {video ? 'Carregando prévia do vídeo...' : 'Nenhum vídeo selecionado'}
+                                        {video ? 'Carregando prévia do vídeo...' : 'Nenhum vídeo vinculado ao exercício'}
                                     </Box>
                                 )}
                             </Box>

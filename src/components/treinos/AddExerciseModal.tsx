@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -18,12 +19,12 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import type { Video } from '../../types/database.types';
+import { exerciseVideoService } from '../../services/exerciseVideoService';
 import { NoTranslate } from '../common/NoTranslate';
 import { ExerciseConfig, ExerciseConfigForm } from './ExerciseConfigForm';
 import { ExerciseSelector, type ExerciseSelectorItem } from './ExerciseSelector';
-import { VideoSelector } from './VideoSelector';
 
-type Step = 'exercise' | 'video' | 'config';
+type Step = 'exercise' | 'config';
 
 interface AddExerciseModalProps {
   open: boolean;
@@ -54,9 +55,10 @@ export const AddExerciseModal = ({
   initialConfig = null,
   section,
 }: AddExerciseModalProps) => {
-  const [step, setStep] = useState<Step>(initialStep ?? (editMode ? 'video' : 'exercise'));
+  const [step, setStep] = useState<Step>(initialStep ?? (editMode ? 'config' : 'exercise'));
   const [selectedExercise, setSelectedExercise] = useState<ExerciseSelectorItem | null>(initialExercise);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(initialVideo);
+  const [loadingVideo, setLoadingVideo] = useState(false);
   const [exerciseConfig, setExerciseConfig] = useState<ExerciseConfig>(initialConfig || {
     series: 3,
     repetitions: '',
@@ -69,7 +71,7 @@ export const AddExerciseModal = ({
   // Atualizar estados quando props mudarem (modo de edição)
   useEffect(() => {
     if (open) {
-      setStep(initialStep ?? (editMode ? 'video' : 'exercise'));
+      setStep(initialStep ?? (editMode ? 'config' : 'exercise'));
       setSelectedExercise(initialExercise);
       setSelectedVideo(initialVideo);
       setExerciseConfig(initialConfig || {
@@ -99,31 +101,25 @@ export const AddExerciseModal = ({
     onClose();
   };
 
-  const handleExerciseSelect = (exercise: ExerciseSelectorItem) => {
+  const handleExerciseSelect = async (exercise: ExerciseSelectorItem) => {
     setSelectedExercise(exercise);
-    setStep('video');
-  };
-
-  const handleVideoSelect = (video: Video) => {
-    setSelectedVideo(video);
-  };
-
-  const handleBack = () => {
-    if (step === 'video') {
-      setStep('exercise');
-    } else if (step === 'config') {
-      setStep('video');
+    setLoadingVideo(true);
+    setSelectedVideo(null);
+    try {
+      const videos = await exerciseVideoService.getVideosByExerciseId(exercise.id);
+      setSelectedVideo(videos.length > 0 ? videos[0] : null);
+    } catch {
+      setSelectedVideo(null);
+    } finally {
+      setLoadingVideo(false);
+      setStep('config');
     }
   };
 
-  const handleSkipVideo = () => {
-    setSelectedVideo(null);
-    setStep('config');
-  };
-
-  const handleRemoveVideo = () => {
-    setSelectedVideo(null);
-    // Não avança o step, fica na seleção de vídeo para o usuário escolher outro ou pular
+  const handleBack = () => {
+    if (step === 'config') {
+      setStep('exercise');
+    }
   };
 
   const handleSave = () => {
@@ -142,8 +138,6 @@ export const AddExerciseModal = ({
     switch (step) {
       case 'exercise':
         return editMode ? 'Trocar Exercício' : 'Selecione o Exercício';
-      case 'video':
-        return editMode ? 'Alterar Vídeo (opcional)' : 'Selecione o Vídeo';
       case 'config':
         return editMode ? 'Editar Configuração' : 'Configure o Exercício';
       default:
@@ -151,13 +145,13 @@ export const AddExerciseModal = ({
     }
   };
 
-  const steps = ['Exercício', 'Vídeo', 'Configuração'];
-  const activeStep = step === 'exercise' ? 0 : step === 'video' ? 1 : 2;
+  const steps = ['Exercício', 'Configuração'];
+  const activeStep = step === 'exercise' ? 0 : 1;
 
   return (
     <Dialog
       open={open}
-      onClose={(_, reason) => {
+      onClose={(_: unknown, reason: string) => {
         // Previne fechar com ESC quando não está no primeiro step
         if (reason === 'escapeKeyDown' && step !== 'exercise') {
           return;
@@ -221,29 +215,26 @@ export const AddExerciseModal = ({
 
       <DialogContent dividers>
         {step === 'exercise' && (
-          <ExerciseSelector
-            onSelect={handleExerciseSelect}
-            section={section}
-          />
-        )}
-
-        {step === 'video' && selectedExercise && (
-          <Box>
-            {editMode && (
+          <Box position="relative">
+            {loadingVideo && (
               <Box
-                bgcolor="info.lighter"
-                borderRadius={1}
-                sx={{ display: { xs: 'none', sm: 'block' }, p: 1, mb: 2 }}
+                position="absolute"
+                top={0}
+                left={0}
+                right={0}
+                bottom={0}
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                bgcolor="rgba(255,255,255,0.8)"
+                zIndex={10}
               >
-                <Typography variant="body2">
-                  Selecione um vídeo e clique em "Avançar". Você também pode seguir sem vídeo.
-                </Typography>
+                <CircularProgress />
               </Box>
             )}
-            <VideoSelector
-              exerciseId={selectedExercise.id}
-              onSelect={handleVideoSelect}
-              selectedVideoId={selectedVideo?.id}
+            <ExerciseSelector
+              onSelect={handleExerciseSelect}
+              section={section}
             />
           </Box>
         )}
@@ -271,26 +262,6 @@ export const AddExerciseModal = ({
           },
         }}
       >
-        {step === 'video' && (
-          <>
-            {selectedVideo && (
-              <Button
-                onClick={handleRemoveVideo}
-                variant="outlined"
-                color="inherit"
-              >
-                Remover vídeo
-              </Button>
-            )}
-            <Button
-              onClick={() => setStep('config')}
-              variant="contained"
-            >
-              Avançar
-            </Button>
-          </>
-        )}
-
         {step === 'config' && (
           <>
             <Button onClick={handleClose} variant="outlined" color="inherit">
