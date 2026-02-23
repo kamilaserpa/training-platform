@@ -228,7 +228,13 @@ export const ExerciseConfigForm = ({
                         label="Intervalo (seg)"
                         type="number"
                         value={config.rest_seconds ?? ''}
-                        onChange={(e) => handleChange('rest_seconds', e.target.value ? parseInt(e.target.value) : 0)}
+                        onChange={(e) => {
+                            const raw = e.target.value;
+                            const next = raw === '' || raw === null || raw === undefined
+                                ? 0
+                                : parseInt(String(raw), 10);
+                            handleChange('rest_seconds', Number.isNaN(next) ? 0 : next);
+                        }}
                         fullWidth
                         helperText="Descanso entre séries em segundos"
                         inputProps={{ min: 0 }}
