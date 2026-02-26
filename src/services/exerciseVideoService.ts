@@ -48,6 +48,45 @@ class ExerciseVideoService {
   }
 
   /**
+   * Lista vínculos apenas dos exercícios cujos IDs são passados.
+   * Garante que os vídeos exibidos venham somente da tabela exercise_videos.
+   * (A regra de quais exercícios carregar — criados pelo usuário ou por owners — fica na página.)
+   */
+  async getGroupedByExerciseIds(exerciseIds: string[]): Promise<Record<string, ExerciseVideo[]>> {
+    if (exerciseIds.length === 0) return {};
+
+    const { data, error } = await supabase
+      .from('exercise_videos')
+      .select(
+        `
+        id,
+        exercise_id,
+        video_id,
+        order_index,
+        created_at,
+        video:videos(*)
+      `
+      )
+      .in('exercise_id', exerciseIds)
+      .order('order_index', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar vínculos exercício-vídeo:', error);
+      throw error;
+    }
+
+    const rows = (data || []) as ExerciseVideo[];
+    const grouped: Record<string, ExerciseVideo[]> = {};
+    for (const row of rows) {
+      const key = row.exercise_id;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(row);
+    }
+    return grouped;
+  }
+
+  /**
    * Lista todos os vínculos de um exercício, com o vídeo carregado.
    */
   async getByExerciseId(exerciseId: string): Promise<ExerciseVideo[]> {

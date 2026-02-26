@@ -2,8 +2,7 @@ import {
   Add as AddIcon,
   Close as CloseIcon,
   Delete as DeleteIcon,
-  PlayCircleOutline as PlayIcon,
-  VideoLibrary as VideoLibraryIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import {
   Alert,
@@ -17,53 +16,169 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Snackbar,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFetchExercises } from '../../hooks/useFetchExercises';
+import { useAuth } from '../../contexts/AuthContext';
+import { exerciseService } from '../../services/exerciseService';
 import { exerciseVideoService } from '../../services/exerciseVideoService';
+import { movementPatternService } from '../../services/movementPatternService';
 import { supabase } from '../../lib/supabase';
-import type { Exercise, ExerciseVideo, Video } from '../../types/database.types';
+import type { Exercise, ExerciseVideo, MovementPattern, Video } from '../../types/database.types';
 import { VideoSelector } from '../../components/treinos/VideoSelector';
+import { ExerciseWithVideoDialog } from '../../components/exercicios/ExerciseWithVideoDialog';
 import PageHeader from '../../components/PageHeader';
 
+/** Miniatura da mídia (vídeo ou imagem) para a listagem; carrega a URL assinada ao montar. */
+function MediaThumbnail({ video, onClick }: { video: Video; onClick?: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.storage
+      .from('exercise-videos')
+      .createSignedUrl(video.storage_path, 86400)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setUrl(data.signedUrl);
+      });
+    return () => { cancelled = true; };
+  }, [video.storage_path]);
+  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(video.storage_path);
+  const boxSx = {
+    width: 80,
+    height: 56,
+    minWidth: 80,
+    minHeight: 56,
+    borderRadius: 1,
+    overflow: 'hidden',
+    bgcolor: 'grey.900',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: onClick ? 'pointer' : 'default',
+    '&:hover': onClick ? { opacity: 0.9 } : {},
+  };
+  if (!url) {
+    return <Box sx={boxSx}><CircularProgress size={20} /></Box>;
+  }
+  return (
+    <Box component={onClick ? 'button' : 'div'} type={onClick ? 'button' : undefined} onClick={onClick} sx={{ ...boxSx, border: 0, p: 0 }}>
+      {isImage ? (
+        <img src={url} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <video src={url} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      )}
+    </Box>
+  );
+}
+
+/**
+ * Tela "Exercícios com Vídeos".
+ * Exibe apenas exercícios criados pelo usuário logado OU por usuários com role owner (query com join em users).
+ * Os vídeos vêm somente da tabela exercise_videos.
+ */
 export default function ExerciciosComVideos() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
 
-  const { data: exercisesFromCache, isLoading: loadingExercises } = useFetchExercises();
-  const exercises = exercisesFromCache || [];
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [loadingExercises, setLoadingExercises] = useState(true);
+  const [exerciseScope, setExerciseScope] = useState<'mine' | 'app'>('mine');
+  const [formMode, setFormMode] = useState<'create' | 'edit' | 'customize'>('create');
 
+  const fetchExercisesForScope = useCallback(async (scope: 'mine' | 'app') => {
+    if (!user?.id) return [];
+    return scope === 'mine'
+      ? await exerciseService.getExercisesCreatedByUser(user.id)
+      : await exerciseService.getExercisesCreatedByOwnersExceptUser(user.id);
+  }, [user?.id]);
+
+  const loadExercises = useCallback(async () => {
+    if (!user?.id) {
+      setExercises([]);
+      setLoadingExercises(false);
+      return;
+    }
+    setLoadingExercises(true);
+    try {
+      const data = await fetchExercisesForScope(exerciseScope);
+      setExercises(data);
+    } catch (err: any) {
+      console.error('Erro ao carregar exercícios:', err);
+      setExercises([]);
+    } finally {
+      setLoadingExercises(false);
+    }
+  }, [user?.id, exerciseScope, fetchExercisesForScope]);
+
+  useEffect(() => {
+    loadExercises();
+  }, [loadExercises]);
+
+  const [movementPatterns, setMovementPatterns] = useState<MovementPattern[]>([]);
+  const [loadingPatterns, setLoadingPatterns] = useState(true);
   const [linkedByExercise, setLinkedByExercise] = useState<Record<string, ExerciseVideo[]>>({});
   const [loadingLinks, setLoadingLinks] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorSeverity, setErrorSeverity] = useState<'error' | 'warning'>('error');
   const [searchTerm, setSearchTerm] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  // Modal: adicionar vídeo ao exercício
-  const [addVideoExercise, setAddVideoExercise] = useState<Exercise | null>(null);
-  const [linking, setLinking] = useState(false);
+  // Dialog: criar/editar exercício com vídeo
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [formEditingExercise, setFormEditingExercise] = useState<Exercise | null>(null);
 
   // Dialog: visualizar vídeo
   const [viewVideo, setViewVideo] = useState<Video | null>(null);
+  const [viewVideoExerciseName, setViewVideoExerciseName] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
 
+  // Modal: atalho para adicionar vídeo ao exercício (sem abrir formulário completo)
+  const [addVideoExercise, setAddVideoExercise] = useState<Exercise | null>(null);
+  const [linking, setLinking] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    movementPatternService.getAllMovementPatterns().then((data) => {
+      if (isMounted) setMovementPatterns(data);
+    }).catch(() => {}).finally(() => { if (isMounted) setLoadingPatterns(false); });
+    return () => { isMounted = false; };
+  }, []);
+
   const loadLinks = useCallback(async () => {
     setLoadingLinks(true);
+    setError(null);
     try {
-      const grouped = await exerciseVideoService.getAllGroupedByExerciseId();
+      const exerciseIds = exercises.map((ex) => ex.id);
+      const grouped = await exerciseVideoService.getGroupedByExerciseIds(exerciseIds);
       setLinkedByExercise(grouped);
     } catch (err: any) {
       console.error('Erro ao carregar vínculos:', err);
-      setError(err.message || 'Erro ao carregar vínculos exercício-vídeo.');
+      setLinkedByExercise({});
+      const msg = err?.message || '';
+      const isNetworkOrConfig =
+        msg.includes('Failed to fetch') ||
+        msg.includes('ERR_NAME_NOT_RESOLVED') ||
+        msg.includes('NetworkError');
+      setError(
+        isNetworkOrConfig
+          ? 'Conexão com o Supabase indisponível. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env e certifique-se de que a tabela exercise_videos existe no banco.'
+          : 'Não foi possível carregar os vínculos exercício-vídeo. Verifique a conexão. Os exercícios são exibidos abaixo.'
+      );
+      setErrorSeverity('warning');
     } finally {
       setLoadingLinks(false);
     }
-  }, []);
+  }, [exercises]);
 
   useEffect(() => {
     loadLinks();
@@ -93,6 +208,7 @@ export default function ExerciciosComVideos() {
       setAddVideoExercise(null);
     } catch (err: any) {
       setError(err.message || 'Erro ao vincular vídeo.');
+      setErrorSeverity('error');
     } finally {
       setLinking(false);
     }
@@ -105,11 +221,13 @@ export default function ExerciciosComVideos() {
       await loadLinks();
     } catch (err: any) {
       setError(err.message || 'Erro ao desvincular vídeo.');
+      setErrorSeverity('error');
     }
   };
 
-  const handleViewVideo = async (video: Video) => {
+  const handleViewVideo = async (video: Video, exerciseName?: string) => {
     setViewVideo(video);
+    setViewVideoExerciseName(exerciseName ?? null);
     setVideoUrl(null);
     setLoadingUrl(true);
     try {
@@ -121,6 +239,7 @@ export default function ExerciciosComVideos() {
     } catch (err) {
       console.error('Erro ao carregar mídia:', err);
       setError('Não foi possível carregar o vídeo.');
+      setErrorSeverity('error');
     } finally {
       setLoadingUrl(false);
     }
@@ -128,10 +247,69 @@ export default function ExerciciosComVideos() {
 
   const handleCloseViewDialog = () => {
     setViewVideo(null);
+    setViewVideoExerciseName(null);
     setVideoUrl(null);
   };
 
-  const isLoading = loadingExercises || loadingLinks;
+  const handleFormSuccess = useCallback(() => {
+    (async () => {
+      if (formMode === 'customize' && user?.id) {
+        // Após personalizar, trocar para "Meus exercícios" e recarregar a lista
+        const mine = await fetchExercisesForScope('mine');
+        setExerciseScope('mine');
+        setExercises(mine);
+        const grouped = await exerciseVideoService.getGroupedByExerciseIds(mine.map((ex) => ex.id));
+        setLinkedByExercise(grouped);
+        setSuccessMessage('Exercício personalizado criado em "Meus exercícios"!');
+      } else {
+        loadExercises();
+        loadLinks();
+        setSuccessMessage(formEditingExercise ? 'Exercício atualizado com sucesso!' : 'Exercício criado com sucesso!');
+      }
+    })();
+    setShowSuccess(true);
+    setFormDialogOpen(false);
+    setFormEditingExercise(null);
+    setFormMode('create');
+  }, [formEditingExercise, loadExercises, loadLinks, formMode, user?.id, fetchExercisesForScope]);
+
+  const handleNewExercise = () => {
+    setFormMode('create');
+    setFormEditingExercise(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleEditExercise = (exercise: Exercise) => {
+    setFormMode('edit');
+    setFormEditingExercise(exercise);
+    setFormDialogOpen(true);
+  };
+
+  const handleCustomizeExercise = (exercise: Exercise) => {
+    setFormMode('customize');
+    setFormEditingExercise(exercise);
+    setFormDialogOpen(true);
+  };
+
+  const handleDeleteExercise = async (exercise: Exercise) => {
+    if (!confirm(`Excluir o exercício "${exercise.name}"? O vídeo vinculado será desvinculado.`)) return;
+    try {
+      const links = linkedByExercise[exercise.id] || [];
+      for (const ev of links) {
+        await exerciseVideoService.unlinkById(ev.id);
+      }
+      await exerciseService.deleteExercise(exercise.id);
+      await loadExercises();
+      await loadLinks();
+      setSuccessMessage(`Exercício "${exercise.name}" excluído.`);
+      setShowSuccess(true);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao excluir exercício.');
+      setErrorSeverity('error');
+    }
+  };
+
+  const isLoading = loadingExercises || loadingLinks || loadingPatterns;
 
   if (isLoading && exercises.length === 0) {
     return (
@@ -142,44 +320,80 @@ export default function ExerciciosComVideos() {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100%' }}>
       <PageHeader
         title="Exercícios com Vídeos"
-        subtitle="Vincule vídeos aos exercícios e visualize-os aqui"
+        subtitle="Crie e edite exercícios e vincule a mídia (vídeo ou imagem) a cada um"
       />
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>
+        <ToggleButtonGroup
+          exclusive
+          value={exerciseScope}
+          onChange={(_, v) => {
+            if (!v) return;
+            setExerciseScope(v);
+          }}
+          size="small"
+          aria-label="Filtro de exercícios"
+        >
+          <ToggleButton value="mine" aria-label="Meus exercícios">
+            Meus exercícios
+          </ToggleButton>
+          <ToggleButton value="app" aria-label="Exercícios do app">
+            Exercícios do app
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={2} sx={{ mt: 4, mb: 2 }}>
         <TextField
-          fullWidth
           size="small"
           label="Buscar exercícios"
           placeholder="Nome, padrão ou tag..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ maxWidth: { sm: 320 } }}
+          sx={{ width: { xs: '100%', sm: 320 } }}
         />
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleNewExercise}
+          sx={{ flexShrink: 0 }}
+        >
+          Novo exercício
+        </Button>
       </Stack>
 
-      <Stack spacing={2}>
+      {error && (
+        <Alert severity={errorSeverity} sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <Stack
+        spacing={2}
+        direction="column"
+        sx={{ width: '100%' }}
+      >
         {exercisesFiltered.length === 0 ? (
-          <Card>
+          <Card sx={{ width: '100%' }}>
             <CardContent sx={{ py: 4, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                {searchTerm ? 'Nenhum exercício encontrado com o filtro.' : 'Nenhum exercício cadastrado.'}
+                {searchTerm
+                  ? 'Nenhum exercício encontrado com o filtro.'
+                  : exerciseScope === 'mine'
+                    ? 'Você ainda não tem exercícios.'
+                    : 'Nenhum exercício do app disponível.'}
               </Typography>
             </CardContent>
           </Card>
         ) : (
           exercisesFiltered.map((exercise) => {
             const links = linkedByExercise[exercise.id] || [];
+            const firstVideo = links[0]?.video as Video | undefined;
             return (
-              <Card key={exercise.id} sx={{ overflow: 'hidden' }}>
+              <Card key={exercise.id} sx={{ overflow: 'hidden', width: '100%' }}>
                 <CardContent>
                   <Stack
                     direction={{ xs: 'column', sm: 'row' }}
@@ -187,82 +401,50 @@ export default function ExerciciosComVideos() {
                     alignItems={{ xs: 'stretch', sm: 'flex-start' }}
                     justifyContent="space-between"
                   >
-                    <Box flex={1} minWidth={0}>
-                      <Typography variant="subtitle1" fontWeight={600}>
-                        {exercise.name}
-                      </Typography>
-                      <Stack direction="row" flexWrap="wrap" gap={0.5} mt={0.5}>
-                        {exercise.movement_pattern?.name && (
-                          <Chip label={exercise.movement_pattern.name} size="small" variant="outlined" />
-                        )}
-                        {exercise.tags?.slice(0, 3).map((tag) => (
-                          <Chip key={tag} label={tag} size="small" />
-                        ))}
-                      </Stack>
-                    </Box>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={() => handleAddVideoClick(exercise)}
-                    >
-                      {isMobile ? 'Vídeo' : 'Adicionar vídeo'}
-                    </Button>
+                    <Stack direction="row" spacing={2} flex={1} minWidth={0} alignItems="center">
+                      <Box minWidth={0} flex={1}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {exercise.name}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    <Stack direction="row" spacing={1} flexShrink={0} alignItems="center">
+                      {firstVideo && (
+                        <MediaThumbnail
+                          video={firstVideo}
+                          onClick={() => handleViewVideo(firstVideo, exercise.name)}
+                        />
+                      )}
+                      {exerciseScope === 'mine' ? (
+                        <>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<EditIcon />}
+                            onClick={() => handleEditExercise(exercise)}
+                          >
+                            Editar
+                          </Button>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteExercise(exercise)}
+                            aria-label="Excluir exercício"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </>
+                      ) : (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => handleCustomizeExercise(exercise)}
+                        >
+                          Personalizar
+                        </Button>
+                      )}
+                    </Stack>
                   </Stack>
-
-                  {/* Lista de vídeos vinculados */}
-                  {links.length > 0 && (
-                    <Box mt={2} pt={2} borderTop={1} borderColor="divider">
-                      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 1 }}>
-                        Vídeos vinculados ({links.length})
-                      </Typography>
-                      <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={1}
-                        flexWrap="wrap"
-                        useFlexGap
-                      >
-                        {links.map((ev) => {
-                          const video = ev.video as Video | undefined;
-                          if (!video) return null;
-                          return (
-                            <Box
-                              key={ev.id}
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                                flexWrap: 'wrap',
-                                p: 1,
-                                borderRadius: 1,
-                                bgcolor: 'action.hover',
-                              }}
-                            >
-                              <VideoLibraryIcon fontSize="small" color="action" />
-                              <Typography variant="body2" noWrap sx={{ maxWidth: { xs: 140, sm: 200 } }}>
-                                {video.title}
-                              </Typography>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleViewVideo(video)}
-                                aria-label="Assistir vídeo"
-                              >
-                                <PlayIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleUnlink(ev)}
-                                aria-label="Remover vínculo"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          );
-                        })}
-                      </Stack>
-                    </Box>
-                  )}
                 </CardContent>
               </Card>
             );
@@ -326,7 +508,7 @@ export default function ExerciciosComVideos() {
       >
         <DialogTitle id="view-video-dialog-title">
           <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6">{viewVideo?.title}</Typography>
+          <Typography variant="h6">{viewVideoExerciseName ?? viewVideo?.title}</Typography>
             <IconButton edge="end" onClick={handleCloseViewDialog} aria-label="fechar">
               <CloseIcon />
             </IconButton>
@@ -368,6 +550,27 @@ export default function ExerciciosComVideos() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ExerciseWithVideoDialog
+        open={formDialogOpen}
+        onClose={() => setFormDialogOpen(false)}
+        onSuccess={handleFormSuccess}
+        mode={formMode}
+        editingExercise={formEditingExercise}
+        movementPatterns={movementPatterns}
+        linkedExerciseVideo={formEditingExercise ? (linkedByExercise[formEditingExercise.id]?.[0] ?? null) : null}
+      />
+
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={6000}
+        onClose={() => setShowSuccess(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setShowSuccess(false)}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

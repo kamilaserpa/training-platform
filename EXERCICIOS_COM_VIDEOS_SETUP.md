@@ -8,6 +8,13 @@ Este documento descreve o que você precisa fazer para que a funcionalidade **Ex
 
 A relação exercício ↔ vídeo usa a tabela de junção `exercise_videos`. Ela ainda não existe no banco até você executar o SQL.
 
+### Verificação contra o schema atual
+
+- **exercises**: existe `id uuid PRIMARY KEY` → a FK `exercise_id REFERENCES public.exercises(id)` é válida.
+- **videos**: existe `id uuid PRIMARY KEY` → a FK `video_id REFERENCES public.videos(id)` é válida.
+- **ON DELETE CASCADE**: ao excluir um exercício ou um vídeo, os registros em `exercise_videos` que o referenciam são excluídos automaticamente (evita órfãos).
+- **RLS**: políticas para o role `authenticated` (Supabase Auth). Se o projeto usar RLS por tenant/`created_by`, ajuste as políticas conforme as de `exercises` e `videos`.
+
 ### Opção A: Usar a migration existente
 
 1. Abra o **Supabase Dashboard** do seu projeto.
@@ -19,7 +26,7 @@ A relação exercício ↔ vídeo usa a tabela de junção `exercise_videos`. El
 
 ### Opção B: Executar o SQL manualmente
 
-Execute no **SQL Editor** do Supabase:
+Execute no **SQL Editor** do Supabase **uma única vez** (se rodar de novo, as políticas podem dar erro de “já existem”):
 
 ```sql
 -- Tabela de relação N:N entre exercícios e vídeos
