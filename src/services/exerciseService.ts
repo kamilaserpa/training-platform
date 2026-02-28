@@ -159,7 +159,8 @@ class ExerciseService {
         .select(
           `
           *,
-          movement_pattern:movement_patterns(*)
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .order('name');
@@ -189,7 +190,8 @@ class ExerciseService {
         .select(
           `
           *,
-          movement_pattern:movement_patterns(*)
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .eq('created_by', userId)
@@ -222,7 +224,8 @@ class ExerciseService {
           `
           *,
           movement_pattern:movement_patterns(*),
-          creator:users!created_by(role, active)
+          creator:users!created_by(role, active),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .neq('created_by', userId)
@@ -269,7 +272,8 @@ class ExerciseService {
         .select(
           `
           *,
-          movement_pattern:movement_patterns(*)
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .eq('id', id)
@@ -346,7 +350,8 @@ class ExerciseService {
           .select(
             `
             *,
-            movement_pattern:movement_patterns(*)
+            movement_pattern:movement_patterns(*),
+            video:videos!exercises_video_id_fkey(*)
           `,
           )
           .single(),
@@ -390,7 +395,8 @@ class ExerciseService {
         .select(
           `
           *,
-          movement_pattern:movement_patterns(*)
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .single();

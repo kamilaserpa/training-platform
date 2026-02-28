@@ -28,9 +28,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { exerciseService } from '../../services/exerciseService';
-import { exerciseVideoService } from '../../services/exerciseVideoService';
 import { videoService } from '../../services/videoService';
-import type { CreateExerciseDTO, CreateVideoDTO, Exercise, ExerciseVideo, MovementPattern, Video } from '../../types/database.types';
+import type { CreateExerciseDTO, CreateVideoDTO, Exercise, MovementPattern, Video } from '../../types/database.types';
 
 const PREDEFINED_TAGS = [
   'mobilidade', 'core', 'ativacao', 'forca', 'condicionamento',
@@ -154,8 +153,8 @@ export interface ExerciseWithVideoDialogProps {
   mode?: 'create' | 'edit' | 'customize';
   editingExercise: Exercise | null;
   movementPatterns: MovementPattern[];
-  /** Vínculo atual (para edição); contém id do registro exercise_videos e o vídeo */
-  linkedExerciseVideo: ExerciseVideo | null;
+  /** Vídeo associado ao exercício (via exercises.video_id), para exibição no modo editar/personalizar */
+  linkedVideo: Video | null;
 }
 
 export function ExerciseWithVideoDialog({
@@ -165,11 +164,11 @@ export function ExerciseWithVideoDialog({
   mode = 'create',
   editingExercise,
   movementPatterns,
-  linkedExerciseVideo,
+  linkedVideo,
 }: ExerciseWithVideoDialogProps) {
   const isEdit = mode === 'edit' && !!editingExercise;
   const isCustomize = mode === 'customize' && !!editingExercise;
-  const linkedVideo = linkedExerciseVideo?.video as Video | undefined;
+  const linkedVideoOrNull = linkedVideo ?? null;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -245,7 +244,7 @@ export function ExerciseWithVideoDialog({
 
   // Carregar URL assinada do vídeo/imagem vinculado ao abrir em modo edição (não usar currentVideo aqui — é definido depois)
   useEffect(() => {
-    const videoToShow = linkedVideo && !removeCurrentVideo && !selectedFile ? linkedVideo : null;
+    const videoToShow = linkedVideoOrNull && !removeCurrentVideo && !selectedFile ? linkedVideoOrNull : null;
     if (!open || !videoToShow?.storage_path) {
       setLinkedVideoUrl(null);
       return;
@@ -270,7 +269,7 @@ export function ExerciseWithVideoDialog({
         if (!cancelled) setLoadingLinkedVideoUrl(false);
       });
     return () => { cancelled = true; };
-  }, [open, linkedVideo, removeCurrentVideo, selectedFile]);
+  }, [open, linkedVideoOrNull, removeCurrentVideo, selectedFile]);
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -346,14 +345,16 @@ export function ExerciseWithVideoDialog({
       let exerciseId: string;
 
       if (isEdit && editingExercise) {
-        await exerciseService.updateExercise(editingExercise.id, exercisePayload);
+        await exerciseService.updateExercise(editingExercise.id, {
+          ...exercisePayload,
+          video_id: removeCurrentVideo ? null : editingExercise.video_id ?? undefined,
+        });
         exerciseId = editingExercise.id;
-
-        if (removeCurrentVideo && linkedExerciseVideo) {
-          await exerciseVideoService.unlinkById(linkedExerciseVideo.id);
-        }
       } else {
-        const created = await exerciseService.createExercise(exercisePayload);
+        const created = await exerciseService.createExercise({
+          ...exercisePayload,
+          video_id: isCustomize && !selectedFile && !removeCurrentVideo ? linkedVideoOrNull?.id ?? null : undefined,
+        });
         exerciseId = created.id;
       }
 
@@ -389,10 +390,7 @@ export function ExerciseWithVideoDialog({
         };
         const video = await videoService.createVideo(videoData);
         setUploadProgress(90);
-        await exerciseVideoService.link(exerciseId, video.id);
-      } else if (isCustomize && linkedExerciseVideo && !removeCurrentVideo) {
-        // Personalização: manter o vídeo existente vinculando-o ao exercício recém-criado
-        await exerciseVideoService.link(exerciseId, linkedExerciseVideo.video_id);
+        await exerciseService.updateExercise(exerciseId, { video_id: video.id });
       }
 
       setUploadProgress(100);
@@ -417,7 +415,7 @@ export function ExerciseWithVideoDialog({
     if (!saving) onClose();
   };
 
-  const currentVideo = removeCurrentVideo ? null : (linkedVideo && !selectedFile ? linkedVideo : null);
+  const currentVideo = removeCurrentVideo ? null : (linkedVideoOrNull && !selectedFile ? linkedVideoOrNull : null);
 
   // Evita valor fora da lista no Select (MUI exige value presente nas opções)
   const movementPatternIds = useMemo(() => new Set(movementPatterns.map((p) => p.id)), [movementPatterns]);

@@ -59,6 +59,8 @@ export interface Exercise {
   equipment?: string[];
   difficulty_level?: number;
   instructions?: string;
+  /** Novo relacionamento 1:1 exercício → vídeo (substitui exercise_videos no app) */
+  video_id?: string | null;
   video_url?: string;
   image_url?: string;
   tags?: string[]; // Tags para categorizar exercícios
@@ -67,7 +69,10 @@ export interface Exercise {
   updated_at: string;
   // Relacionamentos
   movement_pattern?: MovementPattern;
-  videos?: Video[]; // Lista de vídeos disponíveis para este exercício
+  /** Vídeo associado ao exercício (via exercises.video_id) */
+  video?: Video | null;
+  /** Legado: lista de vídeos disponíveis para este exercício */
+  videos?: Video[];
 }
 
 // Nova interface: Video
@@ -374,6 +379,8 @@ export interface CreateExerciseDTO {
   description?: string;
   tags?: string[]; // Tags para categorizar exercícios
   muscle_groups?: string[];
+  /** Novo relacionamento 1:1 exercício → vídeo */
+  video_id?: string | null;
 }
 
 // DTOs para Videos

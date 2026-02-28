@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import type { Video } from '../../types/database.types';
-import { exerciseVideoService } from '../../services/exerciseVideoService';
+import { exerciseService } from '../../services/exerciseService';
 import { NoTranslate } from '../common/NoTranslate';
 import { ExerciseConfig, ExerciseConfigForm } from './ExerciseConfigForm';
 import { ExerciseSelector, type ExerciseSelectorItem } from './ExerciseSelector';
@@ -106,8 +106,9 @@ export const AddExerciseModal = ({
     setLoadingVideo(true);
     setSelectedVideo(null);
     try {
-      const videos = await exerciseVideoService.getVideosByExerciseId(exercise.id);
-      setSelectedVideo(videos.length > 0 ? videos[0] : null);
+      const fullExercise = await exerciseService.getExerciseById(exercise.id);
+      const video = fullExercise?.video ?? null;
+      setSelectedVideo(video);
     } catch {
       setSelectedVideo(null);
     } finally {
