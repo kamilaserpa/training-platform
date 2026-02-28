@@ -148,27 +148,53 @@ class TrainingService {
     try {
       const userId = await this.getCurrentUserId();
 
-      const { data, error } = await supabase
-        .from('trainings')
-        .select(
-          `
-          *,
-          training_week:training_weeks(
-            *,
-            week_focus:week_focuses(*)
-          ),
-          movement_pattern:movement_patterns(*),
-          training_blocks(
-            *,
-            exercise_prescriptions(
-              *,
-              exercise:exercises(*)
+      // Mobile perf: evite `*` em joins profundos (payload enorme).
+      const { data, error } = await this.withTimeout(
+        supabase
+          .from('trainings')
+          .select(
+            `
+            id,
+            name,
+            scheduled_date,
+            intensity_level,
+            description,
+            estimated_duration_minutes,
+            share_status,
+            training_week:training_weeks(
+              id,
+              name,
+              start_date,
+              end_date,
+              status,
+              week_focus:week_focuses(name)
+            ),
+            movement_pattern:movement_patterns(name),
+            training_blocks(
+              id,
+              training_id,
+              name,
+              block_type,
+              order_index,
+              instructions,
+              rest_between_exercises_seconds,
+              exercise_prescriptions(
+                id,
+                exercise_id,
+                sets,
+                reps,
+                duration_seconds,
+                rest_seconds,
+                exercise:exercises(name, muscle_groups)
+              )
             )
+          `,
           )
-        `,
-        )
-        .eq('created_by', userId)
-        .order('scheduled_date');
+          .eq('created_by', userId)
+          .order('scheduled_date'),
+        20000,
+        'carregando treinos'
+      );
 
       if (error) throw error;
 

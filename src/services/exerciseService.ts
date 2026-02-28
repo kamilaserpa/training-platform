@@ -6,7 +6,7 @@ export type ExerciseLiteForMatching = Pick<Exercise, 'id' | 'name'> & {
   movement_pattern?: { name: string } | null;
 };
 
-export type ExerciseLiteForSelector = Pick<Exercise, 'id' | 'name' | 'tags'> & {
+export type ExerciseLiteForSelector = Pick<Exercise, 'id' | 'name' | 'tags' | 'video_id'> & {
   movement_pattern?: { name: string } | null;
 };
 
@@ -121,6 +121,7 @@ class ExerciseService {
         id: ex.id,
         name: ex.name,
         tags: ex.tags ?? undefined,
+        video_id: (ex as any).video_id ?? null,
         movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
       }));
     }
@@ -133,6 +134,7 @@ class ExerciseService {
           id,
           name,
           tags,
+          video_id,
           movement_pattern:movement_patterns(name)
         `,
         )
@@ -146,6 +148,99 @@ class ExerciseService {
       console.error('Erro ao buscar exercícios (selector lite):', error);
       throw error;
     }
+  }
+
+  /**
+   * Versão lite (para selector): exercícios criados pelo usuário logado.
+   */
+  async getExercisesLiteForSelectorCreatedByUser(userId: string): Promise<ExerciseLiteForSelector[]> {
+    if (useMock) {
+      return (await this.getExercisesLiteForSelector()).filter((ex: any) => ex.created_by === userId);
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          movement_pattern:movement_patterns(name)
+        `,
+        )
+        .eq('created_by', userId)
+        .order('name')
+        .overrideTypes<ExerciseLiteForSelector[], { merge: false }>(),
+      12000,
+      'carregando exercícios (selector lite: meus)'
+    );
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Versão lite (para selector): exercícios do app (criadores owners ativos), excluindo os do usuário.
+   * Usa join com `users` via PostgREST para filtrar `role` e `active`.
+   */
+  async getExercisesLiteForSelectorCreatedByOwnersExceptUser(userId: string): Promise<ExerciseLiteForSelector[]> {
+    if (useMock) {
+      return (await this.getExercisesLiteForSelector()).filter((ex: any) => ex.created_by !== userId);
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          movement_pattern:movement_patterns(name),
+          creator:users!created_by(role, active)
+        `,
+        )
+        .neq('created_by', userId)
+        .eq('creator.role', 'owner')
+        .eq('creator.active', true)
+        .order('name')
+        .overrideTypes<any[], { merge: false }>(),
+      12000,
+      'carregando exercícios (selector lite: app)'
+    );
+
+    if (error) throw error;
+    return (data || []).map((row: any) => {
+      const { creator, ...exercise } = row;
+      return exercise;
+    }) as ExerciseLiteForSelector[];
+  }
+
+  /**
+   * Versão lite (para selector): união de "meus" + "exercícios do app (owners)".
+   * Útil para TreinoForm/AddExerciseModal sem duplicar lógica em componentes.
+   */
+  async getExercisesLiteForSelectorUserAndApp(userId: string): Promise<ExerciseLiteForSelector[]> {
+    const results = await Promise.allSettled([
+      this.getExercisesLiteForSelectorCreatedByUser(userId),
+      this.getExercisesLiteForSelectorCreatedByOwnersExceptUser(userId),
+    ]);
+
+    const mine = results[0].status === 'fulfilled' ? results[0].value : [];
+    const app = results[1].status === 'fulfilled' ? results[1].value : [];
+
+    if (results[0].status === 'rejected') {
+      console.warn('Falha ao carregar exercícios do usuário (selector lite).', results[0].reason);
+    }
+    if (results[1].status === 'rejected') {
+      console.warn('Falha ao carregar exercícios do app (selector lite).', results[1].reason);
+    }
+    const byId = new Map<string, ExerciseLiteForSelector>();
+    for (const ex of [...mine, ...app]) byId.set(ex.id, ex);
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getAllExercises(): Promise<Exercise[]> {

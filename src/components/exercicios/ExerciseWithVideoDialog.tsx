@@ -498,7 +498,7 @@ export function ExerciseWithVideoDialog({
               label="Instruções"
               value={formData.instructions}
               onChange={handleChange('instructions')}
-              placeholder="Como executar o exercício"
+              placeholder="Como executar o exercício, irá aparecer no treino do aluno"
               multiline
               rows={2}
               fullWidth

@@ -21,7 +21,6 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
-  useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -82,7 +81,6 @@ function MediaThumbnail({ video, onClick }: { video: Video; onClick?: () => void
  */
 export default function ExerciciosComVideos() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -245,8 +243,8 @@ export default function ExerciciosComVideos() {
   return (
     <Box sx={{ width: '100%', maxWidth: '100%' }}>
       <PageHeader
-        title="Exercícios com Vídeos"
-        subtitle="Crie e edite exercícios e vincule a mídia (vídeo ou imagem) a cada um"
+        title="Exercícios"
+        subtitle="Crie e edite exercícios e adicione mídia (vídeo ou imagem)"
       />
 
       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap" useFlexGap>

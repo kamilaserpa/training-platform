@@ -59,7 +59,7 @@ export interface Exercise {
   equipment?: string[];
   difficulty_level?: number;
   instructions?: string;
-  /** Novo relacionamento 1:1 exercício → vídeo (substitui exercise_videos no app) */
+  /** Relacionamento 1:1 exercício → vídeo */
   video_id?: string | null;
   video_url?: string;
   image_url?: string;
@@ -71,8 +71,6 @@ export interface Exercise {
   movement_pattern?: MovementPattern;
   /** Vídeo associado ao exercício (via exercises.video_id) */
   video?: Video | null;
-  /** Legado: lista de vídeos disponíveis para este exercício */
-  videos?: Video[];
 }
 
 // Nova interface: Video
@@ -93,18 +91,6 @@ export interface Video {
   created_by?: string;
   created_at: string;
   updated_at: string;
-}
-
-/** Relação N:N entre exercício e vídeo (vídeos vinculados ao exercício) */
-export interface ExerciseVideo {
-  id: string;
-  exercise_id: string;
-  video_id: string;
-  order_index?: number;
-  created_at: string;
-  // Relacionamentos
-  exercise?: Exercise;
-  video?: Video;
 }
 
 export interface TrainingWeek {
@@ -294,12 +280,6 @@ export type Database = {
       };
       videos: {
         Row: RowRecord<Video>;
-        Insert: any;
-        Update: any;
-        Relationships: SupabaseGenericRelationship[];
-      };
-      exercise_videos: {
-        Row: RowRecord<ExerciseVideo>;
         Insert: any;
         Update: any;
         Relationships: SupabaseGenericRelationship[];

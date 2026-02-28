@@ -197,6 +197,7 @@ const Treinos = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('data-desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [reloadSeq, setReloadSeq] = useState(0);
 
   // Carregar treinos do banco de dados
   useEffect(() => {
@@ -257,7 +258,7 @@ const Treinos = () => {
     return () => {
       isMounted = false;
     };
-  }, [])
+  }, [reloadSeq])
 
   // Filtros aplicados
   const treinosFiltrados = useMemo(() => {
@@ -391,16 +392,22 @@ const Treinos = () => {
       {/* Error State */}
       {error && !loading && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <Stack spacing={2} alignItems="center">
-            <Typography variant="h6" color="error">Erro ao carregar treinos</Typography>
-            <Typography color="text.secondary">{error}</Typography>
-            <Button
-              variant="outlined"
-              onClick={() => window.location.reload()}
-            >
-              Tentar Novamente
-            </Button>
-          </Stack>
+          <Grid container spacing={2} direction="column" alignItems="center" sx={{ width: '100%', maxWidth: 520 }}>
+            <Grid item>
+              <Typography variant="h6" color="error">Erro ao carregar treinos</Typography>
+            </Grid>
+            <Grid item>
+              <Typography color="text.secondary" align="center">{error}</Typography>
+            </Grid>
+            <Grid item>
+              <Button
+                variant="outlined"
+                onClick={() => setReloadSeq((s) => s + 1)}
+              >
+                Tentar Novamente
+              </Button>
+            </Grid>
+          </Grid>
         </Box>
       )}
 

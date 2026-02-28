@@ -1849,9 +1849,9 @@ function TreinoForm() {
                       <Typography variant="h6" fontWeight="600" gutterBottom>
                         Compartilhamento do Treino
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                      {/* <Typography variant="caption" color="text.secondary" display="block" mb={2}>
                         Gere um link para compartilhar este treino com seus alunos
-                      </Typography>
+                      </Typography> */}
                       <Divider sx={{ mb: 1 }} />
 
                       {shareLink ? (
@@ -1982,7 +1982,7 @@ function TreinoForm() {
 
                     <FormInput
                       name="observacoes_internas"
-                      label="Observações Internas (não visíveis no compartilhamento)"
+                      label="Observações Internas"
                       multiline
                       rows={4}
                       placeholder="Ex: Atenção especial ao joelho esquerdo, histórico de lesão..."

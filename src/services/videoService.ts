@@ -81,9 +81,10 @@ class VideoService {
   }
 
   /**
-   * Buscar vídeos usados em prescrições de um exercício específico.
+   * LEGADO: Buscar vídeos usados em prescrições de um exercício específico.
    * Fonte: exercise_prescriptions.video_id (vídeo escolhido ao adicionar exercício em um treino).
-   * Para a tela "Exercícios com Vídeos" use exerciseVideoService.getVideosByExerciseId(), que usa a tabela exercise_videos.
+   *
+   * O app migrou para `exercises.video_id` como fonte principal do vídeo do exercício.
    */
   async getVideosByExerciseId(exerciseId: string): Promise<Video[]> {
     try {

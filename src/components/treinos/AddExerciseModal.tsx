@@ -74,6 +74,8 @@ export const AddExerciseModal = ({
       setStep(initialStep ?? (editMode ? 'config' : 'exercise'));
       setSelectedExercise(initialExercise);
       setSelectedVideo(initialVideo);
+      // Evita loader "preso" quando uma requisição anterior não finalizou
+      setLoadingVideo(false);
       setExerciseConfig(initialConfig || {
         series: 3,
         repetitions: '',
@@ -90,6 +92,7 @@ export const AddExerciseModal = ({
     setStep('exercise');
     setSelectedExercise(null);
     setSelectedVideo(null);
+    setLoadingVideo(false);
     setExerciseConfig({
       series: 3,
       repetitions: '12',
@@ -106,10 +109,15 @@ export const AddExerciseModal = ({
     setLoadingVideo(true);
     setSelectedVideo(null);
     try {
-      const fullExercise = await exerciseService.getExerciseById(exercise.id);
+      const fullExercise = await Promise.race([
+        exerciseService.getExerciseById(exercise.id),
+        new Promise<null>((_, reject) =>
+          setTimeout(() => reject(new Error('Tempo esgotado ao carregar mídia do exercício.')), 8000)
+        ),
+      ]);
       const video = fullExercise?.video ?? null;
       setSelectedVideo(video);
-    } catch {
+    } catch (e) {
       setSelectedVideo(null);
     } finally {
       setLoadingVideo(false);
