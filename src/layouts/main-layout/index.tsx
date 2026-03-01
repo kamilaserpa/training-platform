@@ -25,9 +25,8 @@ const MainLayout = ({ children }: PropsWithChildren) => {
             backgroundColor: 'info.main',
             minHeight: '100vh',
           }}
-          px={2}
         >
-          <Topbar isClosing={isClosing} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+          <Topbar isClosing={isClosing} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}/>
           <Container
             maxWidth="xl"
             sx={{

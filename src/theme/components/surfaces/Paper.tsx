@@ -6,18 +6,19 @@ const Paper: Components<Omit<Theme, 'components'>>['MuiPaper'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       padding: theme.spacing(3.5),
-      backgroundColor: theme.palette.info.lighter,
-      borderRadius: theme.shape.borderRadius * 5,
+      backgroundColor: theme.palette.background.paper,
+      borderRadius: 8,
+      border: '1px solid',
+      borderColor: theme.palette.divider || '#ececec',
       boxShadow: 'none',
+      transition: 'box-shadow 0.2s ease',
 
-      // Menus não têm padding
       '&.MuiMenu-paper': {
         padding: 0,
-        boxShadow: customShadows[0],
-        borderRadius: theme.shape.borderRadius * 2.5,
+        boxShadow: customShadows[2],
+        borderRadius: 8,
       },
 
-      // Dialogs não devem herdar padding do Paper global
       '&.MuiDialog-paper': {
         padding: 0,
       },

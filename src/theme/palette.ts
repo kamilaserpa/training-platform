@@ -1,5 +1,19 @@
 import { PaletteColorOptions, PaletteOptions } from '@mui/material/styles';
-import { gray, red, green, blue, yellow, skyblue, purple, indigo, white } from './colors';
+import {
+  gray,
+  red,
+  green,
+  blue,
+  yellow,
+  skyblue,
+  purple,
+  indigo,
+  white,
+  primary,
+  neutral,
+  accent,
+  nude,
+} from './colors';
 
 declare module '@mui/material/styles' {
   interface PaletteOptions {
@@ -18,6 +32,9 @@ declare module '@mui/material/styles' {
     lighter?: string;
     darker?: string;
     state?: string;
+    hover?: string;
+    active?: string;
+    soft?: string;
   }
   interface Palette {
     neutral: PaletteColor;
@@ -32,9 +49,12 @@ declare module '@mui/material/styles' {
     };
   }
   interface PaletteColor {
-    lighter: string;
-    darker: string;
-    state: string;
+    lighter?: string;
+    darker?: string;
+    state?: string;
+    hover?: string;
+    active?: string;
+    soft?: string;
   }
 }
 
@@ -45,13 +65,20 @@ const palette: PaletteOptions = {
     dark: gray[900],
   },
   primary: {
-    light: purple[300],
-    main: purple[500],
+    light: primary.light,
+    lighter: primary.soft,
+    main: primary.main,
+    dark: primary.active,
+    hover: primary.hover,
+    active: primary.active,
+    soft: primary.soft,
+    contrastText: '#ffffff',
   },
   secondary: {
-    light: skyblue[300],
-    main: skyblue[500],
-    dark: indigo[300],
+    light: accent.light,
+    main: accent.main,
+    dark: accent.main,
+    contrastText: '#ffffff',
   },
   info: {
     lighter: white[100],
@@ -74,18 +101,23 @@ const palette: PaletteOptions = {
     dark: red[900],
   },
   text: {
-    primary: indigo[500],
-    secondary: gray[900],
+    primary: neutral.text,
+    secondary: neutral.textLight,
     disabled: gray[500],
   },
+  background: {
+    default: neutral.backgroundSoft,
+    paper: neutral.background,
+  },
+  divider: neutral.border,
   gradients: {
     primary: {
-      main: purple[500],
-      state: indigo[300],
+      main: primary.main,
+      state: primary.light,
     },
     secondary: {
-      main: blue[500],
-      state: skyblue[500],
+      main: accent.main,
+      state: accent.light,
     },
   },
 };

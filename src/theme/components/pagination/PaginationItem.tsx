@@ -7,9 +7,11 @@ const PaginationItem: Components<Omit<Theme, 'components'>>['MuiPaginationItem']
       color: theme.palette.text.primary,
       fontSize: theme.typography.body2.fontSize,
       '&.Mui-selected': {
-        color: theme.palette.info.lighter,
+        color: theme.palette.primary.contrastText,
         backgroundColor: theme.palette.primary.main,
-        '&:hover': { backgroundColor: theme.palette.primary.main },
+        '&:hover': {
+          backgroundColor: (theme.palette.primary as { hover?: string }).hover ?? theme.palette.primary.dark,
+        },
       },
     }),
   },

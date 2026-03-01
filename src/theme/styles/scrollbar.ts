@@ -2,7 +2,7 @@ import { Theme } from '@mui/material';
 
 const scrollbar = (theme: Theme) => ({
   '@supports (-moz-appearance:none)': {
-    scrollbarColor: `${theme.palette.grey[300]} transparent`,
+    scrollbarColor: `${theme.palette.neutral?.light ?? theme.palette.divider} transparent`,
   },
   '*::-webkit-scrollbar': {
     width: 5,

@@ -5,19 +5,22 @@ const Chip: Components<Omit<Theme, 'components'>>['MuiChip'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       margin: 0,
-      fontWeight: 700,
-      backgroundColor: theme.palette.info.main,
+      fontWeight: 600,
+      backgroundColor: theme.palette.background.default,
       color: theme.palette.text.primary,
+      borderRadius: 8,
+      transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
     }),
     sizeSmall: ({ theme }) => ({
-      height: 24,
-      padding: theme.spacing(0, 1),
+      height: 28,
+      padding: theme.spacing(0, 1.25),
       fontSize: theme.typography.caption.fontSize,
     }),
     sizeMedium: ({ theme }) => ({
-      height: 28,
-      padding: theme.spacing(0, 1.25),
+      height: 32,
+      padding: theme.spacing(0, 1.5),
       fontSize: theme.typography.body2.fontSize,
+      minHeight: 32,
     }),
     colorPrimary: ({ theme }) => ({
       backgroundColor: theme.palette.primary.main,
@@ -40,15 +43,18 @@ const Chip: Components<Omit<Theme, 'components'>>['MuiChip'] = {
       backgroundColor: theme.palette.info.main,
       color: theme.palette.text.primary,
     }),
+    outlined: ({ theme }) => ({
+      borderColor: theme.palette.divider || '#ececec',
+    }),
     outlinedPrimary: ({ theme }) => ({
-      backgroundColor: 'transparent',
+      backgroundColor: theme.palette.primary.soft ?? 'transparent',
       color: theme.palette.primary.main,
-      borderColor: 'rgba(67, 24, 255, 0.7)',
+      borderColor: theme.palette.primary.light,
     }),
     outlinedSecondary: ({ theme }) => ({
       backgroundColor: 'transparent',
       color: theme.palette.secondary.main,
-      borderColor: 'rgba(4, 190, 254, 0.7)',
+      borderColor: theme.palette.secondary.light,
     }),
     iconSmall: {
       width: 12,

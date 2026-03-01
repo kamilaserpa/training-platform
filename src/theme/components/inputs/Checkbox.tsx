@@ -10,7 +10,10 @@ const Checkbox: Components<Omit<Theme, 'components'>>['MuiCheckbox'] = {
   },
   styleOverrides: {
     root: ({ theme }) => ({
-      color: theme.palette.info.dark,
+      color: theme.palette.text.disabled,
+      '&.Mui-checked': {
+        color: theme.palette.primary.main,
+      },
     }),
     sizeMedium: ({ theme }) => ({
       padding: theme.spacing(0.75),

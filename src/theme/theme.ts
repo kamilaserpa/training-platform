@@ -48,6 +48,9 @@ export const theme = createTheme({
   palette,
   typography,
   customShadows,
+  shape: {
+    borderRadius: 8,
+  },
   mixins: {
     toolbar: {
       minHeight: 130,
