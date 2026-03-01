@@ -36,6 +36,9 @@ export default {
   // ==========================================
   // Exercícios (CRUD com modal inline)
   // ==========================================
+  // exercicios: `/${rootPaths.pagesRoot}/exercicios`,
+
+  // Exercícios com vídeos vinculados (CRUD da relação)
   exercicios: `/${rootPaths.pagesRoot}/exercicios`,
 
   // ==========================================

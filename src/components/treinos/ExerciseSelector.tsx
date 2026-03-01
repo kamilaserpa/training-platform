@@ -1,4 +1,4 @@
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, OndemandVideo as VideoIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { useCachedQuery } from '../../hooks/useCachedQuery';
 import { db } from '../../lib/db';
 import type { ExerciseLiteForSelector } from '../../services/exerciseService';
@@ -32,6 +33,7 @@ const EXERCISES_SELECTOR_CACHE_KEY = 'exercises:selector-lite';
 const EXERCISES_SELECTOR_TTL_MS = 10 * 60 * 1000; // 10 min
 
 export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) => {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -44,6 +46,11 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
 
   const [optimisticAdded, setOptimisticAdded] = useState<ExerciseSelectorItem[]>([]);
 
+  const cacheKey = useMemo(() => {
+    // A lista depende do usuário (meus + app owners), então cacheia por usuário.
+    return user?.id ? `${EXERCISES_SELECTOR_CACHE_KEY}:${user.id}` : EXERCISES_SELECTOR_CACHE_KEY;
+  }, [user?.id]);
+
   const {
     data: cachedExercises,
     isLoading,
@@ -51,8 +58,12 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
     error: loadError,
     refetch,
   } = useCachedQuery<ExerciseSelectorItem[]>({
-    cacheKey: EXERCISES_SELECTOR_CACHE_KEY,
-    fetcher: () => exerciseService.getExercisesLiteForSelector(),
+    cacheKey,
+    fetcher: async () => {
+      if (!user?.id) return await exerciseService.getExercisesLiteForSelector();
+      // Unifica: exercícios do usuário + exercícios do app (owners)
+      return await exerciseService.getExercisesLiteForSelectorUserAndApp(user.id);
+    },
     ttl: EXERCISES_SELECTOR_TTL_MS,
     revalidateOnMount: true,
     revalidateOnFocus: false,
@@ -129,13 +140,13 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
 
   const upsertExerciseInSelectorCache = async (exercise: ExerciseSelectorItem) => {
     try {
-      const current = await db.getCache<ExerciseSelectorItem[]>(EXERCISES_SELECTOR_CACHE_KEY);
+      const current = await db.getCache<ExerciseSelectorItem[]>(cacheKey);
       const list = current?.data ?? [];
 
       const byId = new Map<string, ExerciseSelectorItem>();
       for (const ex of [exercise, ...list]) byId.set(ex.id, ex);
 
-      await db.setCache(EXERCISES_SELECTOR_CACHE_KEY, Array.from(byId.values()), EXERCISES_SELECTOR_TTL_MS);
+      await db.setCache(cacheKey, Array.from(byId.values()), EXERCISES_SELECTOR_TTL_MS);
     } catch (e) {
       // Cache é best-effort; falha aqui não deve bloquear o fluxo do usuário
       console.warn('Falha ao atualizar cache de exercícios do selector:', e);
@@ -248,9 +259,18 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
                 <ListItemText
                   primary={
                     <Box>
-                      <Typography variant="body1" fontWeight={500} color="text.primary">
-                        <NoTranslate>{exercise.name}</NoTranslate>
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body1" fontWeight={500} color="text.primary">
+                          <NoTranslate>{exercise.name}</NoTranslate>
+                        </Typography>
+                        {exercise.video_id && (
+                          <VideoIcon
+                            fontSize="small"
+                            color="action"
+                            titleAccess="Tem mídia"
+                          />
+                        )}
+                      </Stack>
                       {exercise.tags && exercise.tags.length > 0 && (
                         <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: 'wrap' }}>
                           {exercise.tags.slice(0, 3).map((tag: string, index: number) => (

@@ -1,13 +1,21 @@
 // Serviço para gerenciar exercícios
 import { supabase, useMock } from '../lib/supabase';
-import type { CreateExerciseDTO, Exercise } from '../types/database.types';
+import type { CreateExerciseDTO, Exercise, Video } from '../types/database.types';
 
 export type ExerciseLiteForMatching = Pick<Exercise, 'id' | 'name'> & {
   movement_pattern?: { name: string } | null;
 };
 
-export type ExerciseLiteForSelector = Pick<Exercise, 'id' | 'name' | 'tags'> & {
+export type ExerciseLiteForSelector = Pick<Exercise, 'id' | 'name' | 'tags' | 'video_id'> & {
   movement_pattern?: { name: string } | null;
+};
+
+export type ExerciseForMediaList = Pick<
+  Exercise,
+  'id' | 'name' | 'tags' | 'video_id' | 'created_by' | 'created_at' | 'updated_at'
+> & {
+  movement_pattern?: { name: string } | null;
+  video?: Pick<Video, 'id' | 'title' | 'storage_path' | 'description' | 'thumbnail_path'> | null;
 };
 
 // Mock data para desenvolvimento
@@ -121,6 +129,7 @@ class ExerciseService {
         id: ex.id,
         name: ex.name,
         tags: ex.tags ?? undefined,
+        video_id: (ex as any).video_id ?? null,
         movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
       }));
     }
@@ -133,6 +142,7 @@ class ExerciseService {
           id,
           name,
           tags,
+          video_id,
           movement_pattern:movement_patterns(name)
         `,
         )
@@ -148,6 +158,99 @@ class ExerciseService {
     }
   }
 
+  /**
+   * Versão lite (para selector): exercícios criados pelo usuário logado.
+   */
+  async getExercisesLiteForSelectorCreatedByUser(userId: string): Promise<ExerciseLiteForSelector[]> {
+    if (useMock) {
+      return (await this.getExercisesLiteForSelector()).filter((ex: any) => ex.created_by === userId);
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          movement_pattern:movement_patterns(name)
+        `,
+        )
+        .eq('created_by', userId)
+        .order('name')
+        .overrideTypes<ExerciseLiteForSelector[], { merge: false }>(),
+      12000,
+      'carregando exercícios (selector lite: meus)'
+    );
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Versão lite (para selector): exercícios do app (criadores owners ativos), excluindo os do usuário.
+   * Usa join com `users` via PostgREST para filtrar `role` e `active`.
+   */
+  async getExercisesLiteForSelectorCreatedByOwnersExceptUser(userId: string): Promise<ExerciseLiteForSelector[]> {
+    if (useMock) {
+      return (await this.getExercisesLiteForSelector()).filter((ex: any) => ex.created_by !== userId);
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          movement_pattern:movement_patterns(name),
+          creator:users!created_by(role, active)
+        `,
+        )
+        .neq('created_by', userId)
+        .eq('creator.role', 'owner')
+        .eq('creator.active', true)
+        .order('name')
+        .overrideTypes<any[], { merge: false }>(),
+      12000,
+      'carregando exercícios (selector lite: app)'
+    );
+
+    if (error) throw error;
+    return (data || []).map((row: any) => {
+      const { creator, ...exercise } = row;
+      return exercise;
+    }) as ExerciseLiteForSelector[];
+  }
+
+  /**
+   * Versão lite (para selector): união de "meus" + "exercícios do app (owners)".
+   * Útil para TreinoForm/AddExerciseModal sem duplicar lógica em componentes.
+   */
+  async getExercisesLiteForSelectorUserAndApp(userId: string): Promise<ExerciseLiteForSelector[]> {
+    const results = await Promise.allSettled([
+      this.getExercisesLiteForSelectorCreatedByUser(userId),
+      this.getExercisesLiteForSelectorCreatedByOwnersExceptUser(userId),
+    ]);
+
+    const mine = results[0].status === 'fulfilled' ? results[0].value : [];
+    const app = results[1].status === 'fulfilled' ? results[1].value : [];
+
+    if (results[0].status === 'rejected') {
+      console.warn('Falha ao carregar exercícios do usuário (selector lite).', results[0].reason);
+    }
+    if (results[1].status === 'rejected') {
+      console.warn('Falha ao carregar exercícios do app (selector lite).', results[1].reason);
+    }
+    const byId = new Map<string, ExerciseLiteForSelector>();
+    for (const ex of [...mine, ...app]) byId.set(ex.id, ex);
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async getAllExercises(): Promise<Exercise[]> {
     if (useMock) {
       return mockExercises;
@@ -159,7 +262,8 @@ class ExerciseService {
         .select(
           `
           *,
-          movement_pattern:movement_patterns(*)
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .order('name');
@@ -175,6 +279,194 @@ class ExerciseService {
     }
   }
 
+  /**
+   * Exercícios criados pelo usuário logado.
+   */
+  async getExercisesCreatedByUser(userId: string): Promise<Exercise[]> {
+    if (useMock) {
+      return mockExercises.filter((ex) => ex.created_by === userId);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select(
+          `
+          *,
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
+        `,
+        )
+        .eq('created_by', userId)
+        .order('name');
+
+      if (error) throw error;
+      return (data || []) as Exercise[];
+    } catch (error: any) {
+      console.error('Erro ao buscar exercícios do usuário:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Exercícios (listagem com mídia) criados pelo usuário logado.
+   * Versão enxuta para performance em mobile (evita `*` + embeds grandes).
+   */
+  async getExercisesForMediaListCreatedByUser(userId: string): Promise<ExerciseForMediaList[]> {
+    if (useMock) {
+      return mockExercises
+        .filter((ex) => ex.created_by === userId)
+        .map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          tags: ex.tags ?? undefined,
+          video_id: (ex as any).video_id ?? null,
+          created_by: ex.created_by,
+          created_at: ex.created_at,
+          updated_at: ex.updated_at,
+          movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
+          video: (ex as any).video ?? null,
+        }));
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          created_by,
+          created_at,
+          updated_at,
+          movement_pattern:movement_patterns(name),
+          video:videos!exercises_video_id_fkey(id, title, storage_path, description, thumbnail_path)
+        `,
+        )
+        .eq('created_by', userId)
+        .order('name')
+        .overrideTypes<ExerciseForMediaList[], { merge: false }>(),
+      20000,
+      'carregando exercícios (mídia: meus)'
+    );
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
+   * Exercícios do app (criados por usuários owners), excluindo os do usuário logado.
+   *
+   * Importante: usa filtro em tabela relacionada (`users`) via PostgREST:
+   * - `creator:users!created_by(role, active)`
+   * - filtros: `creator.role = owner` e `creator.active = true`
+   */
+  async getExercisesCreatedByOwnersExceptUser(userId: string): Promise<Exercise[]> {
+    if (useMock) {
+      return mockExercises.filter((ex) => ex.created_by !== userId);
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select(
+          `
+          *,
+          movement_pattern:movement_patterns(*),
+          creator:users!created_by(role, active),
+          video:videos!exercises_video_id_fkey(*)
+        `,
+        )
+        .neq('created_by', userId)
+        .eq('creator.role', 'owner')
+        .eq('creator.active', true)
+        .order('name');
+
+      if (error) throw error;
+
+      // Remover o objeto embedado "creator" para manter o tipo Exercise
+      return (data || []).map((row: any) => {
+        const { creator, ...exercise } = row;
+        return exercise;
+      }) as Exercise[];
+    } catch (error: any) {
+      console.error('Erro ao buscar exercícios do app (owners):', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Exercícios (listagem com mídia) do app (criadores owners ativos), excluindo os do usuário.
+   * Versão enxuta para performance em mobile (evita `*` + embeds grandes).
+   */
+  async getExercisesForMediaListCreatedByOwnersExceptUser(userId: string): Promise<ExerciseForMediaList[]> {
+    if (useMock) {
+      return mockExercises
+        .filter((ex) => ex.created_by !== userId)
+        .map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          tags: ex.tags ?? undefined,
+          video_id: (ex as any).video_id ?? null,
+          created_by: ex.created_by,
+          created_at: ex.created_at,
+          updated_at: ex.updated_at,
+          movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
+          video: (ex as any).video ?? null,
+        }));
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          created_by,
+          created_at,
+          updated_at,
+          movement_pattern:movement_patterns(name),
+          creator:users!created_by(role, active),
+          video:videos!exercises_video_id_fkey(id, title, storage_path, description, thumbnail_path)
+        `,
+        )
+        .neq('created_by', userId)
+        .eq('creator.role', 'owner')
+        .eq('creator.active', true)
+        .order('name')
+        .overrideTypes<any[], { merge: false }>(),
+      20000,
+      'carregando exercícios (mídia: app)'
+    );
+
+    if (error) throw error;
+
+    return (data || []).map((row: any) => {
+      const { creator, ...exercise } = row;
+      return exercise;
+    }) as ExerciseForMediaList[];
+  }
+
+  /**
+   * Exercícios criados pelo usuário logado OU por usuários com role 'owner' (tabela users).
+   * Mantido por compatibilidade: agrega "meus" + "owners do app" (exceto o próprio usuário).
+   */
+  async getExercisesCreatedByUserOrOwners(userId: string): Promise<Exercise[]> {
+    const [mine, app] = await Promise.all([
+      this.getExercisesCreatedByUser(userId),
+      this.getExercisesCreatedByOwnersExceptUser(userId),
+    ]);
+
+    const byId = new Map<string, Exercise>();
+    for (const ex of [...mine, ...app]) byId.set(ex.id, ex);
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async getExerciseById(id: string): Promise<Exercise | null> {
     if (useMock) {
       return mockExercises.find((ex) => ex.id === id) || null;
@@ -186,7 +478,8 @@ class ExerciseService {
         .select(
           `
           *,
-          movement_pattern:movement_patterns(*)
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .eq('id', id)
@@ -216,14 +509,20 @@ class ExerciseService {
 
     try {
       // Preferir sessão local (evita request extra, mais resiliente em PWA standalone)
-      const {
-        data: { session },
-        error: sessionError,
-      } = await this.withTimeout(supabase.auth.getSession(), 5000, 'obtendo sessão');
+      // Importante: timeout/erro aqui não deve abortar a criação — fazemos fallback para getUser().
+      let sessionUser: { id: string } | null = null;
+      try {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await this.withTimeout(supabase.auth.getSession(), 5000, 'obtendo sessão');
 
-      const sessionUser = session?.user;
-      if (sessionError) {
-        console.warn('Aviso ao obter sessão (createExercise):', sessionError);
+        sessionUser = session?.user ?? null;
+        if (sessionError) {
+          console.warn('Aviso ao obter sessão (createExercise):', sessionError);
+        }
+      } catch (e) {
+        console.warn('Aviso: timeout/erro ao obter sessão (createExercise). Usando fallback getUser().', e);
       }
 
       // Fallback: buscar usuário via API (pode falhar/hangar em iOS PWA; protegido por timeout)
@@ -257,7 +556,8 @@ class ExerciseService {
           .select(
             `
             *,
-            movement_pattern:movement_patterns(*)
+            movement_pattern:movement_patterns(*),
+            video:videos!exercises_video_id_fkey(*)
           `,
           )
           .single(),
@@ -301,7 +601,8 @@ class ExerciseService {
         .select(
           `
           *,
-          movement_pattern:movement_patterns(*)
+          movement_pattern:movement_patterns(*),
+          video:videos!exercises_video_id_fkey(*)
         `,
         )
         .single();
