@@ -4,8 +4,9 @@
 
 - Tornar o relacionamento **1 exercício → 1 vídeo** explícito e simples, usando `public.exercises.video_id`.
 - Migrar dados existentes de:
-  1) `public.exercise_videos` → `public.exercises.video_id` (primeiro passo)
-  2) `public.exercise_prescriptions.video_id` → `public.exercises.video_id` (passo posterior, para completar lacunas)
+  1) (Opcional) `public.exercise_videos` → `public.exercises.video_id` (se a tabela existir e tiver dados)
+  2) `public.exercise_prescriptions.video_id` → `public.exercises.video_id` (para completar lacunas)
+  3) `public.videos` órfãos → criar linhas em `public.exercises` (quando existirem vídeos que “não viraram exercício”)
 - Atualizar UI/serviços para ler/escrever **somente** `exercises.video_id` com impacto mínimo.
 
 ---
@@ -37,6 +38,8 @@ create index if not exists idx_exercises_video_id on public.exercises (video_id)
 ---
 
 ## Fase 1 — Migrar `exercise_videos` → `exercises.video_id`
+
+> **Opcional.** Se o seu banco **não tem** `public.exercise_videos` (ou se já está vazio), pule esta fase.
 
 ### 1.1. Checar se há múltiplos vídeos por exercício (na tabela nova)
 
@@ -144,6 +147,208 @@ where c.exercise_id = e.id
 
 ---
 
+## Fase 2.5 — Promover vídeos (`videos` → `exercises`)
+
+Objetivo: garantir que **todo vídeo** em `public.videos` tenha um exercício correspondente em `public.exercises`,
+onde:
+
+- `exercises.video_id = videos.id`
+- `exercises.name` vem de `videos.title` (trim)
+- se já existir um exercício com o mesmo nome (por criador), ele deve ser **reutilizado** (link) quando possível
+- se não existir, ele deve ser **criado**
+
+> No repositório, existe uma migration pronta:
+> `supabase/migrations/20260301000010_promote_all_videos_to_exercises.sql`.
+
+### 2.5.1. (Opcional) Diagnóstico antes de rodar
+
+#### 2.5.1.1. Quantos vídeos ainda não estão vinculados por `video_id`?
+
+```sql
+select count(*) as videos_without_exercise_video_id
+from public.videos v
+left join public.exercises e on e.video_id = v.id
+where e.id is null;
+```
+
+#### 2.5.1.2. Quantos desses vídeos podem ser “linkados” por título (sem criar exercício novo)?
+
+```sql
+with v as (
+  select
+    id as video_id,
+    created_by,
+    coalesce(nullif(btrim(title), ''), 'Vídeo ' || left(id::text, 8)) as base_name
+  from public.videos
+)
+select count(*) as linkable_by_title
+from v
+join public.exercises e
+  on e.created_by is not distinct from v.created_by
+ and lower(e.name) = lower(v.base_name)
+where e.video_id is null;
+```
+
+### 2.5.2. Linkar por título e criar exercícios faltantes (determinístico e seguro)
+
+Regras:
+
+- Primeiro tenta **reutilizar** exercício existente com mesmo nome (por `created_by` + `lower(name)`), setando `video_id` quando `video_id` ainda estiver `null`.
+- Para os vídeos restantes, **cria** um exercício por vídeo.
+- `name` do exercício vem de `videos.title` (trim). Se `title` vier vazio: `Vídeo <prefixo-do-id>`.
+- Em caso de colisão de nome (mesmo criador + nome, case-insensitive) ou duplicidade, adiciona sufixo `(<prefixo-do-video_id>)` (determinístico).
+
+```sql
+-- 1) Linkar por título (quando existe exercício com mesmo nome e video_id ainda é null)
+with v as (
+  select
+    id as video_id,
+    created_by,
+    coalesce(nullif(btrim(title), ''), 'Vídeo ' || left(id::text, 8)) as base_name
+  from public.videos
+),
+matched as (
+  select
+    v.video_id,
+    e.id as exercise_id
+  from v
+  join public.exercises e
+    on e.created_by is not distinct from v.created_by
+   and lower(e.name) = lower(v.base_name)
+  where e.video_id is null
+),
+ranked as (
+  select
+    m.*,
+    row_number() over (
+      partition by m.video_id
+      order by m.exercise_id asc
+    ) as rn
+  from matched m
+)
+update public.exercises e
+set video_id = r.video_id
+from ranked r
+where r.rn = 1
+  and e.id = r.exercise_id;
+
+-- 2) Criar exercícios para vídeos ainda não vinculados via exercises.video_id
+with unlinked_videos as (
+  select v.*
+  from public.videos v
+  left join public.exercises e on e.video_id = v.id
+  where e.id is null
+),
+prepared as (
+  select
+    v.id as video_id,
+    coalesce(nullif(btrim(v.title), ''), 'Vídeo ' || left(v.id::text, 8)) as base_name,
+    v.created_by,
+    v.description,
+    v.tags,
+    v.created_at,
+    v.updated_at
+  from unlinked_videos v
+),
+dedup as (
+  select
+    p.*,
+    row_number() over (
+      partition by p.created_by, lower(p.base_name)
+      order by coalesce(p.created_at, now()) asc, p.video_id asc
+    ) as dup_rn
+  from prepared p
+),
+named as (
+  select
+    d.*,
+    exists (
+      select 1
+      from public.exercises e
+      where e.created_by is not distinct from d.created_by
+        and lower(e.name) = lower(d.base_name)
+    ) as name_exists_already
+  from dedup d
+)
+insert into public.exercises (
+  name,
+  description,
+  tags,
+  video_id,
+  created_by,
+  created_at,
+  updated_at
+)
+select
+  case
+    when n.dup_rn > 1 or n.name_exists_already
+      then n.base_name || ' (' || left(n.video_id::text, 6) || ')'
+    else n.base_name
+  end as name,
+  nullif(btrim(coalesce(n.description, '')), '') as description,
+  n.tags,
+  n.video_id,
+  n.created_by,
+  coalesce(n.created_at, now()) as created_at,
+  coalesce(n.updated_at, n.created_at, now()) as updated_at
+from named n;
+```
+
+---
+
+### 2.5.3. Validação pós-migração (recomendado)
+
+#### 2.5.3.1. Quantos vídeos continuam sem exercício?
+
+O esperado é **0** (a menos que existam restrições/RLS impedindo insert em `exercises`).
+
+```sql
+select count(*) as videos_without_exercise_after
+from public.videos v
+left join public.exercises e on e.video_id = v.id
+where e.id is null;
+```
+
+#### 2.5.3.2. Quantos exercícios agora possuem `video_id`?
+
+```sql
+select count(*) as exercises_with_video
+from public.exercises
+where video_id is not null;
+```
+
+#### 2.5.3.3. Conferir possíveis colisões de nome por criador (case-insensitive)
+
+Isto deve retornar **0 linhas** se os nomes estiverem únicos por criador.
+
+```sql
+select
+  created_by,
+  lower(name) as name_ci,
+  count(*) as qty
+from public.exercises
+group by created_by, lower(name)
+having count(*) > 1
+order by qty desc;
+```
+
+#### 2.5.3.4. Listar exercícios criados a partir de vídeos órfãos (amostra)
+
+```sql
+select
+  e.id as exercise_id,
+  e.name as exercise_name,
+  v.id as video_id,
+  v.title as video_title,
+  e.created_by
+from public.exercises e
+join public.videos v on v.id = e.video_id
+order by e.created_at desc
+limit 50;
+```
+
+---
+
 ## Fase 3 — Atualizar app (mínimo impacto)
 
 ### 3.1. Estratégia recomendada (transição segura)
@@ -157,18 +362,14 @@ where c.exercise_id = e.id
 
 ### 3.2. Pontos de código que normalmente precisam mudar
 
-- `src/services/exerciseVideoService.ts`
-  - pode ser aposentado (ou virar um wrapper temporário que lê `exercises.video_id`).
-- `src/components/treinos/AddExerciseModal.tsx`
-  - hoje chama `exerciseVideoService.getVideosByExerciseId(exercise.id)`
-  - trocar para “buscar vídeo do exercício” via `exercise.video_id` (embed `videos` no select ou `videoService.getVideoById`).
+- `src/services/exerciseService.ts`
+  - leitura/escrita do vídeo do exercício deve ser sempre via `exercises.video_id` (com embed `video:videos!exercises_video_id_fkey(*)`).
 - `src/pages/exercicios/ExerciciosComVideos.tsx`
-  - hoje carrega `exercise_videos` agrupado
-  - trocar para trazer `video:videos(*)` direto no select de exercícios.
+  - deve ler `exercise.video` (embed) e salvar removendo/definindo `exercise.video_id`.
 - `src/components/exercicios/ExerciseWithVideoDialog.tsx`
-  - hoje cria `exercise_videos.link(exerciseId, videoId)`
-  - trocar para `exerciseService.updateExercise(exerciseId, { video_id: videoId })` (ou método dedicado)
-  - no modo “Personalizar”, copiar `video_id` do exercício base para o novo exercício quando não houver upload.
+  - ao salvar, atualizar `exercises.video_id` (e no modo “Personalizar”, copiar `video_id` do exercício base quando não houver upload).
+- `src/components/treinos/AddExerciseModal.tsx`
+  - ao selecionar exercício, buscar o exercício completo e usar `exercise.video` para preview (com timeout para evitar “loading infinito”).
 
 ---
 

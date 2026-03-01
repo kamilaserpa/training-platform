@@ -1,54 +1,33 @@
-# Exercícios com Vídeos – Passos para implementação
+# Exercícios com Vídeos – Setup (modelo atual)
 
-Este documento descreve o que você precisa fazer para que a funcionalidade **Exercícios com Vídeos** funcione de ponta a ponta.
+Este documento descreve o que você precisa fazer para que a funcionalidade **Exercícios com Vídeos** funcione de ponta a ponta **no modelo atual**:
+
+- Relacionamento **1:1** via `public.exercises.video_id` → `public.videos.id`
+- A tabela `exercise_videos` **não é necessária** para o app
 
 ---
 
-## 1. Criar a tabela `exercise_videos` no Supabase
+## 1. Garantir coluna `exercises.video_id` no Supabase
 
-A relação exercício ↔ vídeo usa a tabela de junção `exercise_videos`. Ela ainda não existe no banco até você executar o SQL.
+Garanta que a tabela `public.exercises` tenha a coluna `video_id` com FK para `public.videos`.
 
-### Verificação contra o schema atual
-
-- **exercises**: existe `id uuid PRIMARY KEY` → a FK `exercise_id REFERENCES public.exercises(id)` é válida.
-- **videos**: existe `id uuid PRIMARY KEY` → a FK `video_id REFERENCES public.videos(id)` é válida.
-- **ON DELETE CASCADE**: ao excluir um exercício ou um vídeo, os registros em `exercise_videos` que o referenciam são excluídos automaticamente (evita órfãos).
-- **RLS**: políticas para o role `authenticated` (Supabase Auth). Se o projeto usar RLS por tenant/`created_by`, ajuste as políticas conforme as de `exercises` e `videos`.
-
-### Opção A: Usar a migration existente
-
-1. Abra o **Supabase Dashboard** do seu projeto.
-2. Vá em **SQL Editor**.
-3. Copie e execute o conteúdo do arquivo:
-   ```
-   supabase/migrations/20250223000000_create_exercise_videos.sql
-   ```
-
-### Opção B: Executar o SQL manualmente
-
-Execute no **SQL Editor** do Supabase **uma única vez** (se rodar de novo, as políticas podem dar erro de “já existem”):
+### SQL (rodar uma vez)
 
 ```sql
--- Tabela de relação N:N entre exercícios e vídeos
-CREATE TABLE IF NOT EXISTS public.exercise_videos (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  exercise_id uuid NOT NULL REFERENCES public.exercises(id) ON DELETE CASCADE,
-  video_id uuid NOT NULL REFERENCES public.videos(id) ON DELETE CASCADE,
-  order_index int NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(exercise_id, video_id)
-);
+alter table public.exercises
+  add column if not exists video_id uuid null;
 
-CREATE INDEX IF NOT EXISTS idx_exercise_videos_exercise_id ON public.exercise_videos(exercise_id);
-CREATE INDEX IF NOT EXISTS idx_exercise_videos_video_id ON public.exercise_videos(video_id);
+alter table public.exercises
+  add constraint if not exists exercises_video_id_fkey
+  foreign key (video_id) references public.videos (id)
+  on delete set null;
 
-ALTER TABLE public.exercise_videos ENABLE ROW LEVEL SECURITY;
+create index if not exists idx_exercises_video_id on public.exercises (video_id);
 
--- Ajuste as políticas conforme as regras do seu projeto (exemplo: usuários autenticados)
-CREATE POLICY "exercise_videos_select" ON public.exercise_videos FOR SELECT TO authenticated USING (true);
-CREATE POLICY "exercise_videos_insert" ON public.exercise_videos FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "exercise_videos_update" ON public.exercise_videos FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "exercise_videos_delete" ON public.exercise_videos FOR DELETE TO authenticated USING (true);
+-- Opcional (se você quer garantir 1 vídeo → no máximo 1 exercício)
+-- create unique index if not exists uq_exercises_video_id
+-- on public.exercises (video_id)
+-- where video_id is not null;
 ```
 
 ---
@@ -57,8 +36,8 @@ CREATE POLICY "exercise_videos_delete" ON public.exercise_videos FOR DELETE TO a
 
 Se o seu projeto usa RLS com regras mais restritas (por exemplo, por `owner_id` ou por tenant):
 
-- Edite as políticas `exercise_videos_*` no Supabase (**Authentication → Policies** ou via SQL) para refletir as mesmas regras que você usa em `exercises` e `videos`.
-- Garanta que usuários autenticados (ou o papel que você usa) tenham permissão de **SELECT**, **INSERT**, **UPDATE** e **DELETE** em `exercise_videos` quando fizer sentido para o seu caso.
+- Garanta que usuários autenticados (ou o papel que você usa) tenham permissão de **SELECT/INSERT/UPDATE** em `exercises` e `videos` conforme o fluxo do app.
+- Para remoção de mídia, o app precisa de permissão de `UPDATE exercises.video_id`.
 
 ---
 
@@ -69,10 +48,9 @@ Se o seu projeto usa RLS com regras mais restritas (por exemplo, por `owner_id` 
 3. No menu lateral, acesse **Exercícios com Vídeos**.
 4. Confira:
    - Listagem de exercícios carregando.
-   - **Adicionar vídeo**: abre o modal, ao clicar em um vídeo ele é vinculado ao exercício e o modal fecha.
-   - Na lista do exercício, o vídeo aparece com ações **Assistir** e **Remover**.
+   - Ao criar/editar exercício, é possível associar mídia e ela aparece como miniatura/preview.
    - **Assistir** abre o dialog e reproduz o vídeo (ou exibe a imagem).
-   - **Remover** desvincula o vídeo após confirmação.
+   - **Remover** desvincula a mídia (seta `exercises.video_id = null`).
 
 Se algo falhar (erro de permissão, tabela não existe, etc.), confira o console do navegador e as mensagens de erro do Supabase.
 
@@ -80,10 +58,8 @@ Se algo falhar (erro de permissão, tabela não existe, etc.), confira o console
 
 ## 4. Resumo do que já está implementado (não é preciso refazer)
 
-- Tipos TypeScript (`ExerciseVideo`, tabela no `Database`).
-- Serviço `exerciseVideoService` (CRUD da relação).
-- Página **Exercícios com Vídeos** (listagem, vincular, desvincular, visualizar vídeo).
+- Página **Exercícios com Vídeos** (listagem, editar, visualizar mídia).
 - Rota `/pages/exercicios-com-videos` e item no menu lateral.
 - Breadcrumb e layout responsivo/PWA.
 
-O único passo obrigatório no backend é **criar a tabela e as políticas RLS** no Supabase (itens 1 e 2 acima).
+O único passo obrigatório no backend é **garantir a coluna `exercises.video_id`** e as políticas RLS necessárias (itens 1 e 2 acima).

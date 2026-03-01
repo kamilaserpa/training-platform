@@ -29,6 +29,7 @@ import { exerciseService } from '../../services/exerciseService';
 import { movementPatternService } from '../../services/movementPatternService';
 import { supabase } from '../../lib/supabase';
 import type { Exercise, MovementPattern, Video } from '../../types/database.types';
+import type { ExerciseForMediaList } from '../../services/exerciseService';
 import { ExerciseWithVideoDialog } from '../../components/exercicios/ExerciseWithVideoDialog';
 import PageHeader from '../../components/PageHeader';
 
@@ -83,16 +84,17 @@ export default function ExerciciosComVideos() {
   const theme = useTheme();
   const { user } = useAuth();
 
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<ExerciseForMediaList[]>([]);
   const [loadingExercises, setLoadingExercises] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Carregando exercícios...');
   const [exerciseScope, setExerciseScope] = useState<'mine' | 'app'>('mine');
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'customize'>('create');
 
-  const fetchExercisesForScope = useCallback(async (scope: 'mine' | 'app') => {
+  const fetchExercisesForScope = useCallback(async (scope: 'mine' | 'app'): Promise<ExerciseForMediaList[]> => {
     if (!user?.id) return [];
     return scope === 'mine'
-      ? await exerciseService.getExercisesCreatedByUser(user.id)
-      : await exerciseService.getExercisesCreatedByOwnersExceptUser(user.id);
+      ? await exerciseService.getExercisesForMediaListCreatedByUser(user.id)
+      : await exerciseService.getExercisesForMediaListCreatedByOwnersExceptUser(user.id);
   }, [user?.id]);
 
   const loadExercises = useCallback(async () => {
@@ -102,12 +104,49 @@ export default function ExerciciosComVideos() {
       return;
     }
     setLoadingExercises(true);
+    setLoadingMessage('Carregando exercícios...');
     try {
-      const data = await fetchExercisesForScope(exerciseScope);
+      const isTransientError = (err: unknown) => {
+        const obj = err && typeof err === 'object' ? (err as Record<string, unknown>) : null;
+        const name = obj?.name != null ? String(obj.name) : '';
+        const msg = obj?.message != null ? String(obj.message) : '';
+        return (
+          name === 'AbortError' ||
+          name === 'TimeoutError' ||
+          msg.includes('Tempo esgotado') ||
+          msg.includes('Failed to fetch') ||
+          msg.includes('NetworkError') ||
+          msg.includes('fetch')
+        );
+      };
+
+      // Retry com backoff para melhorar UX em rede móvel / auth inicializando
+      const backoffMs = [1000, 2000, 4000];
+      let lastErr: unknown = null;
+      let data: ExerciseForMediaList[] = [];
+
+      for (let attempt = 0; attempt <= backoffMs.length; attempt++) {
+        try {
+          if (attempt > 0) setLoadingMessage('Conectando...');
+          data = await fetchExercisesForScope(exerciseScope);
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+          if (!isTransientError(e) || attempt === backoffMs.length) throw e;
+          const waitMs = backoffMs[attempt] ?? 0;
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+        }
+      }
+
+      if (lastErr) throw lastErr;
+
       setExercises(data);
     } catch (err: any) {
       console.error('Erro ao carregar exercícios:', err);
       setExercises([]);
+      setError(err?.message || 'Não foi possível carregar exercícios. Verifique sua conexão e tente novamente.');
+      setErrorSeverity('error');
     } finally {
       setLoadingExercises(false);
     }
@@ -205,19 +244,47 @@ export default function ExerciciosComVideos() {
     setFormDialogOpen(true);
   };
 
-  const handleEditExercise = (exercise: Exercise) => {
+  const fetchFullExerciseOrThrow = async (exerciseId: string) => {
+    const timeoutMs = 12000;
+    const fullExercise = await Promise.race([
+      exerciseService.getExerciseById(exerciseId),
+      new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error('Tempo esgotado ao carregar exercício.')), timeoutMs)
+      ),
+    ]);
+    if (!fullExercise) throw new Error('Exercício não encontrado.');
+    return fullExercise;
+  };
+
+  const handleEditExercise = async (exercise: ExerciseForMediaList) => {
+    setError(null);
     setFormMode('edit');
-    setFormEditingExercise(exercise);
-    setFormDialogOpen(true);
+    try {
+      const full = await fetchFullExerciseOrThrow(exercise.id);
+      setFormEditingExercise(full);
+      setFormDialogOpen(true);
+    } catch (err: any) {
+      console.error('Erro ao abrir edição do exercício:', err);
+      setError(err?.message || 'Não foi possível carregar o exercício para edição.');
+      setErrorSeverity('error');
+    }
   };
 
-  const handleCustomizeExercise = (exercise: Exercise) => {
+  const handleCustomizeExercise = async (exercise: ExerciseForMediaList) => {
+    setError(null);
     setFormMode('customize');
-    setFormEditingExercise(exercise);
-    setFormDialogOpen(true);
+    try {
+      const full = await fetchFullExerciseOrThrow(exercise.id);
+      setFormEditingExercise(full);
+      setFormDialogOpen(true);
+    } catch (err: any) {
+      console.error('Erro ao abrir personalização do exercício:', err);
+      setError(err?.message || 'Não foi possível carregar o exercício para personalizar.');
+      setErrorSeverity('error');
+    }
   };
 
-  const handleDeleteExercise = async (exercise: Exercise) => {
+  const handleDeleteExercise = async (exercise: ExerciseForMediaList) => {
     if (!confirm(`Excluir o exercício "${exercise.name}"?`)) return;
     try {
       await exerciseService.deleteExercise(exercise.id);
@@ -230,12 +297,16 @@ export default function ExerciciosComVideos() {
     }
   };
 
-  const isLoading = loadingExercises || loadingPatterns;
+  // Patterns não bloqueiam a listagem; só são necessários para o dialog.
+  const isLoading = loadingExercises;
 
   if (isLoading && exercises.length === 0) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress size={48} />
+        <Stack spacing={2} alignItems="center">
+          <CircularProgress size={48} />
+          <Typography color="text.secondary">{loadingMessage}</Typography>
+        </Stack>
       </Box>
     );
   }

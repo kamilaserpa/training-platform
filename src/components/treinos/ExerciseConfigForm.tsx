@@ -36,10 +36,12 @@ export const ExerciseConfigForm = ({
     initialValues,
     onChange,
 }: ExerciseConfigFormProps) => {
-    // Calcular tempo total inicial
+    // Calcular tempo total: (tempo + intervalo) × séries. Intervalo 0 é válido.
     const calculateTempoTotal = (series: number, duracao: number | null, intervalo: number | null) => {
-        if (!series || !duracao || !intervalo) return 0;
-        return series > 0 ? (duracao + intervalo) * series : 0;
+        if (!series || series <= 0) return 0;
+        const d = duracao ?? 0;
+        const i = intervalo ?? 0;
+        return (d + i) * series;
     };
 
     // Usar valores iniciais se fornecidos, senão usar padrões apenas para criação

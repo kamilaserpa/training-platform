@@ -1,5 +1,9 @@
 # 📚 Refatoração: Sistema de Biblioteca de Vídeos
 
+> **Nota:** este documento contém histórico de uma refatoração anterior.
+>
+> O estado atual do app usa o modelo **1:1** via `public.exercises.video_id` → `public.videos.id` como fonte principal.
+
 ## ✅ Implementado
 
 ### 1. Database Schema
@@ -26,7 +30,7 @@
 - ✅ **Arquivo:** `src/services/videoService.ts`
 - ✅ `getVideos(filters)` - Buscar com filtros avançados
 - ✅ `getVideoById(id)` - Buscar vídeo específico
-- ✅ `getVideosByExerciseId(exerciseId)` - Vídeos de um exercício
+- ⚠️ `getVideosByExerciseId(exerciseId)` - **legado** (era baseado em prescrições)
 - ✅ `createVideo(dto)` - Criar novo vídeo
 - ✅ `updateVideo(id, dto)` - Atualizar vídeo
 - ✅ `deleteVideo(id)` - Deletar vídeo
@@ -74,7 +78,7 @@ supabase-instructions/migrations/add-video-library.sql
 ```tsx
 // src/components/biblioteca/VideoSelector.tsx
 - Usado no TreinoForm ao adicionar exercício
-- Mostra vídeos disponíveis para o exercise_id
+- (Modelo atual) exercícios têm no máximo 1 vídeo via `exercise.video_id`
 - Filtro rápido por level/plane
 - Permite selecionar qual vídeo usar neste treino
 - Salva video_id no exercise_prescription
@@ -141,8 +145,7 @@ export default {
 
 2. **Criando Treino** (`/treinos/novo`)
    - Adiciona exercício
-   - Sistema mostra vídeos disponíveis para aquele exercício
-   - Personal escolhe qual vídeo o aluno verá
+   - Sistema mostra a mídia do exercício (se existir)
    - Pode escolher vídeo mais fácil (beginner) ou avançado (advanced)
    - Pode escolher ângulo (frontal, lateral, etc)
 
@@ -162,9 +165,7 @@ export default {
    - Plataforma oferece baseline de vídeos
 
 2. **Contexto do Treino**
-   - Mesmo exercício, vídeos diferentes conforme treino
-   - Exemplo: "Agachamento" para iniciante vs avançado
-   - Aluno vê exatamente o que o personal escolheu
+   - Exercício tem uma mídia canônica (consistência e simplicidade)
 
 3. **Escalabilidade**
    - Fácil adicionar vídeos de múltiplos ângulos

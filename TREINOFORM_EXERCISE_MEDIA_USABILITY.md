@@ -5,8 +5,8 @@
 No fluxo de adicionar exercício em `src/pages/treinos/TreinoForm.jsx`, a seleção de exercícios é feita pelo modal `src/components/treinos/AddExerciseModal.tsx`, que usa `src/components/treinos/ExerciseSelector.tsx`.
 
 - A lista do `ExerciseSelector` carrega dados **lite** via `exerciseService.getExercisesLiteForSelector()` (cacheado).
-- A informação de mídia **não vem na listagem**. Só após o clique no exercício, o modal busca vídeos do exercício:
-  - `exerciseVideoService.getVideosByExerciseId(exercise.id)` e seleciona o primeiro (se existir).
+- A informação de mídia pode vir **sem custo extra** na listagem usando `exercise.video_id` (1:1 via `public.exercises.video_id`).
+- Após o clique no exercício, o modal pode buscar o exercício completo (incluindo `video`) para exibir preview, se necessário.
 
 Isso cria um “gap” de usabilidade: antes de clicar, o usuário não sabe se o exercício tem mídia e qual é.
 
@@ -22,7 +22,7 @@ Melhorar a UX do usuário ao escolher um exercício (ex.: mostrar um badge/ícon
 
 - Evitar N+1 requests (1 request por item da lista) ao renderizar.
 - Não gerar Signed URLs em massa (caro e lento) para todos os itens.
-- Respeitar RLS/policies do Supabase (principalmente em `exercise_videos`, `videos`, `users`).
+- Respeitar RLS/policies do Supabase (principalmente em `exercises`, `videos`, `users`).
 
 ---
 
@@ -31,12 +31,12 @@ Melhorar a UX do usuário ao escolher um exercício (ex.: mostrar um badge/ícon
 ### Ideia
 Modificar a fonte de dados do selector para retornar, além de `id/name/tags/movement_pattern`, dados mínimos de mídia:
 
-- `has_media: boolean` (existe vínculo em `exercise_videos`)
+- `video_id: uuid | null` (já indica se existe mídia, sem join adicional)
 - opcional: `first_media_title`
 - opcional: `first_media_storage_path` (apenas se necessário para preview lazy)
 
 ### Como implementar (alto nível)
-- Criar uma **VIEW** (ou RPC) que agrega `exercise_videos` + `videos` por `exercise_id` e devolve os campos lite.
+- (Alternativa mais simples no modelo atual) incluir `video_id` diretamente no tipo lite do selector.
 - O front troca `getExercisesLiteForSelector()` para consultar essa view/RPC.
 
 ### UX sugerida
@@ -60,10 +60,7 @@ Modificar a fonte de dados do selector para retornar, além de `id/name/tags/mov
 Manter `getExercisesLiteForSelector()` como está e adicionar uma chamada extra que pega mídia em lote:
 
 - Após calcular a lista filtrada, pega só os primeiros N (ex.: 30–50 ids).
-- Faz **uma** query:
-  - `exercise_videos` filtrando `.in('exercise_id', ids)`
-  - selecionando mínimo: `exercise_id`, `video_id` e `video:videos(id,title,storage_path)`
-- Monta `Map<exerciseId, firstVideo>` para render.
+- Faz **uma** query para buscar detalhes do vídeo apenas dos itens visíveis, usando `exercises.video_id`.
 
 ### UX sugerida
 - Exibir 🎬 quando houver entrada no map.
@@ -115,7 +112,6 @@ Se não quiser mexer no banco agora:
 ## Pontos do código relacionados
 
 - `src/components/treinos/ExerciseSelector.tsx`: listagem de exercícios (dados lite, cache).
-- `src/components/treinos/AddExerciseModal.tsx`: ao selecionar exercício, busca vídeos via `exerciseVideoService.getVideosByExerciseId`.
-- `src/services/exerciseService.ts`: `getExercisesLiteForSelector()`.
-- `src/services/exerciseVideoService.ts`: `getVideosByExerciseId()` e queries em `exercise_videos`.
+- `src/components/treinos/AddExerciseModal.tsx`: ao selecionar exercício, busca o exercício completo para pegar `exercise.video`.
+- `src/services/exerciseService.ts`: `getExercisesLiteForSelector()` / `getExerciseById()`.
 

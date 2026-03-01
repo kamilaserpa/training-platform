@@ -96,6 +96,12 @@ const mockTrainingBlocks: TrainingBlock[] = [
 ];
 
 class TrainingService {
+  private currentUserIdInFlight: Promise<string> | null = null;
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   private withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, operationName: string): Promise<T> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -115,29 +121,73 @@ class TrainingService {
   }
 
   private async getCurrentUserId(): Promise<string> {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await this.withTimeout(supabase.auth.getSession(), 5000, 'obtendo sessão');
+    if (this.currentUserIdInFlight) return this.currentUserIdInFlight;
 
-    if (sessionError) {
-      console.warn('Aviso ao obter sessão (trainingService):', sessionError);
-    }
+    this.currentUserIdInFlight = (async () => {
+      let lastAuthError: unknown = null;
 
-    const sessionUser = session?.user;
-    if (sessionUser?.id) return sessionUser.id;
+      const tryGetSessionUserId = async (): Promise<string | null> => {
+        try {
+          const {
+            data: { session },
+            error: sessionError,
+          } = await this.withTimeout(supabase.auth.getSession(), 12000, 'obtendo sessão');
 
-    const user = await this.withTimeout(
-      supabase.auth.getUser().then((r) => {
-        if (r.error) throw r.error;
-        return r.data.user;
-      }),
-      10000,
-      'obtendo usuário'
-    );
+          if (sessionError) {
+            lastAuthError = sessionError;
+            console.warn('Aviso ao obter sessão (trainingService):', sessionError);
+          }
 
-    if (!user?.id) throw new Error('Usuário não autenticado');
-    return user.id;
+          return session?.user?.id ?? null;
+        } catch (e) {
+          lastAuthError = e;
+          console.warn('Aviso ao obter sessão (trainingService):', e);
+          return null;
+        }
+      };
+
+      const tryGetUserId = async (): Promise<string | null> => {
+        try {
+          const user = await this.withTimeout(
+            supabase.auth.getUser().then((r) => {
+              if (r.error) throw r.error;
+              return r.data.user;
+            }),
+            15000,
+            'obtendo usuário'
+          );
+          return user?.id ?? null;
+        } catch (e) {
+          lastAuthError = e;
+          console.warn('Aviso ao obter usuário (trainingService):', e);
+          return null;
+        }
+      };
+
+      // 1) Prefer session (fast path), but be tolerant to hangs/timeouts.
+      let userId = await tryGetSessionUserId();
+      if (!userId) {
+        // Small delay helps when auth is still initializing (especially in dev StrictMode).
+        await this.sleep(400);
+        userId = await tryGetSessionUserId();
+      }
+      if (userId) return userId;
+
+      // 2) Fallback to remote user fetch.
+      userId = await tryGetUserId();
+      if (userId) return userId;
+
+      // If auth failed with a meaningful error, bubble it up (better UX and helps debugging).
+      if (lastAuthError && typeof lastAuthError === 'object' && 'message' in lastAuthError) {
+        throw lastAuthError as Error;
+      }
+
+      throw new Error('Usuário não autenticado');
+    })().finally(() => {
+      this.currentUserIdInFlight = null;
+    });
+
+    return this.currentUserIdInFlight;
   }
 
   async getAllTrainings(): Promise<Training[]> {

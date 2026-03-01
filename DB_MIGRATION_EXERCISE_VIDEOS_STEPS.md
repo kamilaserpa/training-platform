@@ -1,4 +1,10 @@
-# Migração em etapas — Vídeos saindo de `exercise_prescriptions` para `exercise_videos`
+# (LEGADO) Migração em etapas — `exercise_prescriptions` → `exercise_videos`
+
+> **Status:** este documento está **legado**.
+>
+> O app migrou para o modelo **1:1** via `public.exercises.video_id` (sem dependência de `exercise_videos`).
+>
+> Use o documento `DB_MIGRATION_EXERCISES_VIDEO_ID_STEPS.md` como referência atual.
 
 ## Objetivo
 

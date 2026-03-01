@@ -1,6 +1,6 @@
 // Serviço para gerenciar exercícios
 import { supabase, useMock } from '../lib/supabase';
-import type { CreateExerciseDTO, Exercise } from '../types/database.types';
+import type { CreateExerciseDTO, Exercise, Video } from '../types/database.types';
 
 export type ExerciseLiteForMatching = Pick<Exercise, 'id' | 'name'> & {
   movement_pattern?: { name: string } | null;
@@ -8,6 +8,14 @@ export type ExerciseLiteForMatching = Pick<Exercise, 'id' | 'name'> & {
 
 export type ExerciseLiteForSelector = Pick<Exercise, 'id' | 'name' | 'tags' | 'video_id'> & {
   movement_pattern?: { name: string } | null;
+};
+
+export type ExerciseForMediaList = Pick<
+  Exercise,
+  'id' | 'name' | 'tags' | 'video_id' | 'created_by' | 'created_at' | 'updated_at'
+> & {
+  movement_pattern?: { name: string } | null;
+  video?: Pick<Video, 'id' | 'title' | 'storage_path' | 'description' | 'thumbnail_path'> | null;
 };
 
 // Mock data para desenvolvimento
@@ -301,6 +309,54 @@ class ExerciseService {
   }
 
   /**
+   * Exercícios (listagem com mídia) criados pelo usuário logado.
+   * Versão enxuta para performance em mobile (evita `*` + embeds grandes).
+   */
+  async getExercisesForMediaListCreatedByUser(userId: string): Promise<ExerciseForMediaList[]> {
+    if (useMock) {
+      return mockExercises
+        .filter((ex) => ex.created_by === userId)
+        .map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          tags: ex.tags ?? undefined,
+          video_id: (ex as any).video_id ?? null,
+          created_by: ex.created_by,
+          created_at: ex.created_at,
+          updated_at: ex.updated_at,
+          movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
+          video: (ex as any).video ?? null,
+        }));
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          created_by,
+          created_at,
+          updated_at,
+          movement_pattern:movement_patterns(name),
+          video:videos!exercises_video_id_fkey(id, title, storage_path, description, thumbnail_path)
+        `,
+        )
+        .eq('created_by', userId)
+        .order('name')
+        .overrideTypes<ExerciseForMediaList[], { merge: false }>(),
+      20000,
+      'carregando exercícios (mídia: meus)'
+    );
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  /**
    * Exercícios do app (criados por usuários owners), excluindo os do usuário logado.
    *
    * Importante: usa filtro em tabela relacionada (`users`) via PostgREST:
@@ -339,6 +395,61 @@ class ExerciseService {
       console.error('Erro ao buscar exercícios do app (owners):', error);
       throw error;
     }
+  }
+
+  /**
+   * Exercícios (listagem com mídia) do app (criadores owners ativos), excluindo os do usuário.
+   * Versão enxuta para performance em mobile (evita `*` + embeds grandes).
+   */
+  async getExercisesForMediaListCreatedByOwnersExceptUser(userId: string): Promise<ExerciseForMediaList[]> {
+    if (useMock) {
+      return mockExercises
+        .filter((ex) => ex.created_by !== userId)
+        .map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          tags: ex.tags ?? undefined,
+          video_id: (ex as any).video_id ?? null,
+          created_by: ex.created_by,
+          created_at: ex.created_at,
+          updated_at: ex.updated_at,
+          movement_pattern: ex.movement_pattern?.name ? { name: ex.movement_pattern.name } : null,
+          video: (ex as any).video ?? null,
+        }));
+    }
+
+    const { data, error } = await this.withTimeout(
+      supabase
+        .from('exercises')
+        .select(
+          `
+          id,
+          name,
+          tags,
+          video_id,
+          created_by,
+          created_at,
+          updated_at,
+          movement_pattern:movement_patterns(name),
+          creator:users!created_by(role, active),
+          video:videos!exercises_video_id_fkey(id, title, storage_path, description, thumbnail_path)
+        `,
+        )
+        .neq('created_by', userId)
+        .eq('creator.role', 'owner')
+        .eq('creator.active', true)
+        .order('name')
+        .overrideTypes<any[], { merge: false }>(),
+      20000,
+      'carregando exercícios (mídia: app)'
+    );
+
+    if (error) throw error;
+
+    return (data || []).map((row: any) => {
+      const { creator, ...exercise } = row;
+      return exercise;
+    }) as ExerciseForMediaList[];
   }
 
   /**
