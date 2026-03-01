@@ -9,15 +9,21 @@ import { supabaseMock, type SupabaseQuery } from '../../test/mocks/supabaseMock'
 import TreinoForm from './TreinoForm.jsx'
 
 // Make exercise adding deterministic in tests: replace AddExerciseModal with a tiny mock
-// that saves a synthetic exercise for the current section.
+// that mirrors the real flow: 2 steps (exercise → config); video comes from exercise link (simulated as first video).
 vi.mock('../../components/treinos/AddExerciseModal', () => {
+    const mockVideos = [
+        { id: 'vid-1', title: 'Tutorial Agachamento' },
+        { id: 'vid-2', title: 'Mobilidade Quadril' },
+    ]
+
     function MockAddExerciseModal({ open, onSave, section }: any) {
         if (!open) return null
 
-        const [step, setStep] = useState<'exercise' | 'video' | 'config'>('exercise')
+        const [step, setStep] = useState<'exercise' | 'config'>('exercise')
         const [exerciseName, setExerciseName] = useState('')
         const [exerciseId, setExerciseId] = useState<string | null>(null)
-        const [videoId, setVideoId] = useState('')
+        // Simula vídeo vinculado ao exercício (primeiro da lista quando há nome)
+        const [linkedVideo, setLinkedVideo] = useState<typeof mockVideos[0] | null>(null)
 
         const [series, setSeries] = useState('3')
         const [repetitions, setRepetitions] = useState('')
@@ -31,7 +37,7 @@ vi.mock('../../components/treinos/AddExerciseModal', () => {
             setStep('exercise')
             setExerciseName('')
             setExerciseId(null)
-            setVideoId('')
+            setLinkedVideo(null)
             setSeries('3')
             setRepetitions('')
             setWeightKg('')
@@ -40,22 +46,12 @@ vi.mock('../../components/treinos/AddExerciseModal', () => {
             setNotes('')
         }, [open])
 
-        const videos = [
-            { id: 'vid-1', name: 'Tutorial Agachamento' },
-            { id: 'vid-2', name: 'Mobilidade Quadril' },
-        ]
-
-        const selectedVideo = videos.find((v) => v.id === videoId) ?? null
-
-        const handleCreateExercise = () => {
+        // Ao "selecionar exercício": simula fetch do vídeo vinculado e vai para config (fluxo real sem step de vídeo)
+        const handleSelectExercise = () => {
             const name = exerciseName.trim()
             if (!name) return
             setExerciseId(`ex-new-${String(section ?? 'sec')}`)
-            setStep('video')
-        }
-
-        const handleAdvanceToConfig = () => {
-            if (!exerciseId) return
+            setLinkedVideo(mockVideos[0]) // simula exercício com vídeo vinculado
             setStep('config')
         }
 
@@ -63,7 +59,7 @@ vi.mock('../../components/treinos/AddExerciseModal', () => {
             if (!exerciseId) return
             onSave({
                 exercise: { id: exerciseId, name: exerciseName.trim() },
-                video: selectedVideo,
+                video: linkedVideo,
                 config: {
                     series: Number(series) || 0,
                     repetitions,
@@ -109,29 +105,8 @@ vi.mock('../../components/treinos/AddExerciseModal', () => {
                                 value={exerciseName}
                                 onChange={(e) => setExerciseName(e.target.value)}
                             />
-                            <button type="button" onClick={handleCreateExercise}>
+                            <button type="button" onClick={handleSelectExercise}>
                                 Criar exercício
-                            </button>
-                        </div>
-                    )}
-
-                    {step === 'video' && (
-                        <div>
-                            <div>Selecionar vídeo</div>
-                            <select
-                                aria-label="Vídeo"
-                                value={videoId}
-                                onChange={(e) => setVideoId(e.target.value)}
-                            >
-                                <option value="">(Sem vídeo)</option>
-                                {videos.map((v) => (
-                                    <option key={v.id} value={v.id}>
-                                        {v.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <button type="button" onClick={handleAdvanceToConfig}>
-                                Avançar
                             </button>
                         </div>
                     )}
@@ -583,15 +558,11 @@ describe('TreinoForm (integração)', () => {
         await user.click(screen.getByLabelText(/Adicionar exercício - Mobilidade Articular/i))
         expect(await screen.findByRole('dialog', { name: /Mock AddExerciseModal/i })).toBeInTheDocument()
 
-        // Cria exercício novo
+        // Seleciona exercício (no fluxo real o vídeo vem vinculado ao exercício; no mock vai direto para config com vídeo simulado)
         await user.type(screen.getByLabelText(/Nome do exercício/i), 'Agachamento Frontal')
         await user.click(screen.getByRole('button', { name: /Criar exercício/i }))
 
-        // Seleciona vídeo
-        await user.selectOptions(screen.getByLabelText(/^Vídeo$/i), 'vid-1')
-        await user.click(screen.getByRole('button', { name: /^Avançar$/i }))
-
-        // Preenche configurações
+        // Preenche configurações (step config; vídeo já definido pelo mock como vinculado ao exercício)
         await user.clear(screen.getByLabelText(/Séries/i))
         await user.type(screen.getByLabelText(/Séries/i), '4')
 

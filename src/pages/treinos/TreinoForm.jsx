@@ -757,17 +757,24 @@ function TreinoForm() {
 
     const { exercise, video, config } = data
 
+    // Calcular tempo total: (tempo + intervalo) × séries (intervalo 0 é válido)
+    const series = config.series || 0
+    const tempoSegundos = config.duration_seconds ?? 0
+    const intervaloSegundos = config.rest_seconds ?? 0
+    const tempoTotal = series > 0 ? (tempoSegundos + intervaloSegundos) * series : 0
+
     // Criar objeto do exercício com todos os dados
     const exerciseItem = {
       exercicioId: exercise.id,
       nome: exercise.name,
       videoId: video?.id || null,
-      videoName: video?.name || null,
+      videoName: video?.title || null,
       series: config.series || 3,
       repeticoes: config.repetitions || '12',
       carga: config.weight_kg || '',
       tempoSegundos: config.duration_seconds || null,
       intervaloSegundos: config.rest_seconds ?? 0,
+      tempoTotal,
       observacoes: config.notes || ''
     }
 
@@ -798,9 +805,16 @@ function TreinoForm() {
     handleCloseAddExerciseModal()
   }
 
-  // Calcular tempo total do treino bloco
+  // Calcular tempo total do treino bloco (usa item.tempoTotal ou deriva de séries/tempo/intervalo)
   const calcularTempoTotal = (items) => {
-    const totalSegundos = items.reduce((acc, item) => acc + (item.tempoTotal || 0), 0)
+    const totalSegundos = items.reduce((acc, item) => {
+      if (item.tempoTotal != null && item.tempoTotal !== '') return acc + Number(item.tempoTotal)
+      const series = Number(item.series) || 0
+      const tempo = Number(item.tempoSegundos) || 0
+      const intervalo = Number(item.intervaloSegundos) || 0
+      const itemTotal = series > 0 ? (tempo + intervalo) * series : 0
+      return acc + itemTotal
+    }, 0)
     const minutos = Math.floor(totalSegundos / 60)
     const segundos = totalSegundos % 60
     return `${minutos}min ${segundos}s`
@@ -1849,9 +1863,9 @@ function TreinoForm() {
                       <Typography variant="h6" fontWeight="600" gutterBottom>
                         Compartilhamento do Treino
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                      {/* <Typography variant="caption" color="text.secondary" display="block" mb={2}>
                         Gere um link para compartilhar este treino com seus alunos
-                      </Typography>
+                      </Typography> */}
                       <Divider sx={{ mb: 1 }} />
 
                       {shareLink ? (
@@ -1982,7 +1996,7 @@ function TreinoForm() {
 
                     <FormInput
                       name="observacoes_internas"
-                      label="Observações Internas (não visíveis no compartilhamento)"
+                      label="Observações Internas"
                       multiline
                       rows={4}
                       placeholder="Ex: Atenção especial ao joelho esquerdo, histórico de lesão..."

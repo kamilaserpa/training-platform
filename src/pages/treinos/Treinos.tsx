@@ -193,10 +193,12 @@ const Treinos = () => {
   const navigate = useNavigate();
   const [treinos, setTreinos] = useState<Treino[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Carregando treinos...');
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('data-desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [reloadSeq, setReloadSeq] = useState(0);
 
   // Carregar treinos do banco de dados
   useEffect(() => {
@@ -205,9 +207,47 @@ const Treinos = () => {
     const loadTreinos = async () => {
       try {
         setLoading(true)
+        setLoadingMessage('Carregando treinos...')
         setError(null)
 
-        const treinosData = await trainingService.getAllTrainings()
+        const isSessionTimeoutError = (err: unknown) => {
+          const obj = err && typeof err === 'object' ? (err as Record<string, unknown>) : null;
+          const name = obj?.name != null ? String(obj.name) : '';
+          const msg = obj?.message != null ? String(obj.message) : '';
+          return (
+            name === 'TimeoutError' &&
+            (msg.includes('obtendo sessão') || msg.includes('obtendo sessao'))
+          );
+        };
+
+        // UX: se o auth ainda não “subiu”, tentar automaticamente com backoff.
+        // Evita o usuário ficar clicando “Tentar novamente”.
+        const backoffMs = [1000, 2000, 4000];
+        let treinosData: Awaited<ReturnType<typeof trainingService.getAllTrainings>> = [];
+        let lastErr: unknown = null;
+
+        for (let attempt = 0; attempt <= backoffMs.length; attempt++) {
+          try {
+            if (attempt > 0) {
+              setLoadingMessage('Conectando...')
+            }
+
+            treinosData = await trainingService.getAllTrainings()
+            lastErr = null;
+            break;
+          } catch (e) {
+            lastErr = e;
+            if (!isSessionTimeoutError(e) || attempt === backoffMs.length) {
+              throw e;
+            }
+
+            const waitMs = backoffMs[attempt] ?? 0;
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+            if (!isMounted) return;
+          }
+        }
+
+        if (lastErr) throw lastErr;
 
         if (!isMounted) return;
 
@@ -257,7 +297,7 @@ const Treinos = () => {
     return () => {
       isMounted = false;
     };
-  }, [])
+  }, [reloadSeq])
 
   // Filtros aplicados
   const treinosFiltrados = useMemo(() => {
@@ -383,7 +423,7 @@ const Treinos = () => {
       {loading && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <Stack spacing={2} alignItems="center">
-            <Typography variant="h6">Carregando treinos...</Typography>
+            <Typography variant="h6">{loadingMessage}</Typography>
           </Stack>
         </Box>
       )}
@@ -391,16 +431,22 @@ const Treinos = () => {
       {/* Error State */}
       {error && !loading && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <Stack spacing={2} alignItems="center">
-            <Typography variant="h6" color="error">Erro ao carregar treinos</Typography>
-            <Typography color="text.secondary">{error}</Typography>
-            <Button
-              variant="outlined"
-              onClick={() => window.location.reload()}
-            >
-              Tentar Novamente
-            </Button>
-          </Stack>
+          <Grid container spacing={2} direction="column" alignItems="center" sx={{ width: '100%', maxWidth: 520 }}>
+            <Grid item>
+              <Typography variant="h6" color="error">Erro ao carregar treinos</Typography>
+            </Grid>
+            <Grid item>
+              <Typography color="text.secondary" align="center">{error}</Typography>
+            </Grid>
+            <Grid item>
+              <Button
+                variant="outlined"
+                onClick={() => setReloadSeq((s) => s + 1)}
+              >
+                Tentar Novamente
+              </Button>
+            </Grid>
+          </Grid>
         </Box>
       )}
 
