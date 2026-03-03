@@ -10,6 +10,13 @@ const typography: TypographyOptions = {
   h1: {
     fontSize: '3rem',
     fontWeight: 700,
+    lineHeight: 1.2,
+  },
+  overline: {
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    letterSpacing: 1.5,
+    lineHeight: 1.5,
   },
   h2: {
     fontSize: '2.125rem',
@@ -50,6 +57,7 @@ const typography: TypographyOptions = {
   caption: {
     fontSize: '0.75rem',
     fontWeight: 600,
+    lineHeight: 1.5,
   },
   button: {
     fontSize: '1rem',

@@ -30,7 +30,7 @@ export default function Contact() {
           <Box
             component="iframe"
             src="https://maps.google.com/maps?q=Fortaleza,+CE,+Brazil&t=&z=12&ie=UTF8&iwloc=&output=embed"
-            sx={{ width: '100%', height: 500, border: 0, display: 'block' }}
+            sx={{ width: '100%', height: '100%', border: 0, display: 'block' }}
             title="Mapa Fortaleza, CE"
           />
         </Grid>
@@ -68,10 +68,6 @@ export default function Contact() {
                 <IconifyIcon icon="ic:round-email" width={20} />
                 {EMAIL}
               </Link>
-              <Link href={`tel:${PHONE_TEL}`} color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <IconifyIcon icon="ic:round-phone" width={20} />
-                {PHONE}
-              </Link>
               <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <IconifyIcon icon="ic:round-badge" width={20} />
                 CREF {CREF}
@@ -81,14 +77,14 @@ export default function Contact() {
                 @carolcavalcantefit
               </Link>
             </Box>
-            <Paper component="form" onSubmit={handleSubmit} sx={{ p: 3, borderRadius: 2 }}>
+            <Paper component="form" onSubmit={handleSubmit} sx={{ p: 3, pt:5,borderRadius: 2 }}>
               <TextField
                 fullWidth
                 label="Nome"
                 name="name"
                 required
                 variant="outlined"
-                sx={{ mb: 2 }}
+                sx={{ mb: 4 }}
               />
               <TextField
                 fullWidth
@@ -97,14 +93,14 @@ export default function Contact() {
                 type="email"
                 required
                 variant="outlined"
-                sx={{ mb: 2 }}
+                sx={{ mb: 4 }}
               />
               <TextField
                 fullWidth
                 label="Celular"
                 name="phone"
                 variant="outlined"
-                sx={{ mb: 2 }}
+                sx={{ mb: 4 }}
               />
               <TextField
                 fullWidth

@@ -38,6 +38,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '../../assets/images/logo-main.png';
+import paths from '../../routes/paths';
 import { trainingService } from '../../services/trainingService';
 import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
@@ -346,7 +347,7 @@ const Treinos = () => {
   };
 
   const handleEdit = (id: string) => {
-    navigate(`/pages/treinos/${id}/editar`);
+    navigate(paths.treinoEditar(id));
   };
 
   // Handler para exportar PDF
@@ -505,7 +506,7 @@ const Treinos = () => {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => navigate('/pages/treinos/novo')}
+                onClick={() => navigate(paths.treinoNovo)}
                 sx={{
                   minWidth: { xs: 40, sm: 'auto' },
                   px: { xs: 1, sm: 2 },
@@ -613,7 +614,7 @@ const Treinos = () => {
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate('/pages/treinos/novo')}
+                    onClick={() => navigate(paths.treinoNovo)}
                   >
                     Criar Primeiro Treino
                   </Button>
@@ -871,7 +872,7 @@ const Treinos = () => {
               right: 24,
               display: { xs: 'flex', md: 'none' },
             }}
-            onClick={() => navigate('/pages/treinos/novo')}
+            onClick={() => navigate(paths.treinoNovo)}
           >
             <AddIcon />
           </Fab>

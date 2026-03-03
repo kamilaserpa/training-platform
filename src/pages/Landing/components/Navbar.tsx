@@ -1,6 +1,7 @@
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Collapse from '@mui/material/Collapse';
 import Container from '@mui/material/Container';
 import IconButton from '@mui/material/IconButton';
 import Toolbar from '@mui/material/Toolbar';
@@ -54,7 +55,7 @@ export default function Navbar() {
       }}
     >
       <Container maxWidth="lg">
-        <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: { xs: 64, md: 72 } }}>
+        <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: { xs: 56, md: 64 }, py: 0 }}>
           <Typography
             component="button"
             variant="h5"
@@ -72,7 +73,7 @@ export default function Navbar() {
             Carol<em> Cavalcante</em>
           </Typography>
 
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 0.5 }}>
             {navItems.map((item) => (
               <Button
                 key={item.id}
@@ -91,8 +92,9 @@ export default function Navbar() {
             <Button
               variant="contained"
               color="primary"
+              size="medium"
               onClick={() => navigate(paths.signin)}
-              sx={{ ml: 1, textTransform: 'none', fontWeight: 600 }}
+              sx={{ ml: 1.5, textTransform: 'none', fontWeight: 600 }}
             >
               Login
             </Button>
@@ -108,47 +110,57 @@ export default function Navbar() {
           </IconButton>
         </Toolbar>
 
-        {mobileOpen && (
+        <Collapse
+          in={mobileOpen}
+          timeout={{ enter: 300, exit: 200 }}
+          sx={{ display: { md: 'none' } }}
+        >
           <Box
             sx={{
-              display: { md: 'none' },
               py: 2,
               px: 2,
               borderTop: 1,
               borderColor: 'divider',
               bgcolor: 'background.paper',
               color: 'text.primary',
-              boxShadow: 4,
+              boxShadow: 2,
+              overflow: 'hidden',
             }}
           >
-            {navItems.map((item) => (
+           
+              {navItems.map((item) => (
+                <Button
+                  key={item.id}
+                  fullWidth
+                  color="inherit"
+                  onClick={() => {
+                    scrollToSection(item.id);
+                    setMobileOpen(false);
+                  }}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    textTransform: 'none',
+                    py: 1.5,
+                    minHeight: 48,
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
               <Button
-                key={item.id}
                 fullWidth
-                color="inherit"
+                variant="contained"
+                color="primary"
                 onClick={() => {
-                  scrollToSection(item.id);
+                  navigate(paths.signin);
                   setMobileOpen(false);
                 }}
-                sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+                sx={{ mt: 2, py: 1.5, textTransform: 'none', fontWeight: 600, minHeight: 48 }}
               >
-                {item.label}
+                Login
               </Button>
-            ))}
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                navigate(paths.signin);
-                setMobileOpen(false);
-              }}
-              sx={{ mt: 2, textTransform: 'none', fontWeight: 600 }}
-            >
-              Login
-            </Button>
           </Box>
-        )}
+        </Collapse>
       </Container>
     </AppBar>
   );

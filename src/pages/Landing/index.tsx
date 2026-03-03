@@ -8,7 +8,9 @@ import Hero from './components/Hero';
 import Navbar from './components/Navbar';
 import ObjectionsSection from './components/ObjectionsSection';
 import PainSection from './components/PainSection';
+import PortfolioSection from './components/Portfolio';
 import TestimonialsSection from './components/TestimonialsSection';
+import FeaturesSection from './components/Features';
 
 /**
  * Landing page orientada a conversão (leads via Instagram).
@@ -24,6 +26,8 @@ export default function Landing() {
       <AuthoritySection />
       <BenefitsSection />
       <ObjectionsSection />
+      <PortfolioSection />
+      <FeaturesSection />
       <TestimonialsSection />
       <CallToAction />
       <Contact />
