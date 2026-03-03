@@ -1,6 +1,6 @@
 import { fontFamily } from 'theme/typography';
-import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
+import { Link as RouterLink } from 'react-router-dom';
 import List from '@mui/material/List';
 import Stack from '@mui/material/Stack';
 import ButtonBase from '@mui/material/ButtonBase';
@@ -11,6 +11,7 @@ import HorizonLogo from 'assets/images/logo-main.png';
 import Image from 'components/base/Image';
 import SidebarCard from './SidebarCard';
 import sitemap from 'routes/sitemap';
+import paths from 'routes/paths';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface DrawerItemsProps {
@@ -49,7 +50,7 @@ const DrawerItems = ({ onItemClick }: DrawerItemsProps) => {
         bgcolor="info.lighter"
         zIndex={1000}
       >
-        <ButtonBase component={Link} href="/" disableRipple>
+        <ButtonBase component={RouterLink} to={paths.dashboard} disableRipple sx={{ textDecoration: 'none' }}>
           <Image src={HorizonLogo} alt="logo" height={44} width={44} sx={{ mr: 1.75 }} />
           <Typography
             variant="h3"

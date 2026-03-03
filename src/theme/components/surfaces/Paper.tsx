@@ -22,6 +22,12 @@ const Paper: Components<Omit<Theme, 'components'>>['MuiPaper'] = {
       '&.MuiDialog-paper': {
         padding: 0,
       },
+
+      '&.MuiAppBar-root': {
+        padding: 0,
+        border: 'none',
+        boxShadow: 'none',
+      },
     }),
   },
 };

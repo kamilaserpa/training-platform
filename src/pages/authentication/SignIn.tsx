@@ -12,7 +12,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
 import { ChangeEvent, FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import paths from '../../routes/paths';
 
@@ -80,8 +80,8 @@ const SignIn = () => {
       <Box width={1}>
         <Button
           variant="text"
-          component={Link}
-          href="/"
+          component={RouterLink}
+          to={paths.landing}
           sx={{ ml: -1.75, pl: 1, pr: 2 }}
           startIcon={
             <IconifyIcon
@@ -90,7 +90,7 @@ const SignIn = () => {
             />
           }
         >
-          Back to dashboard
+          Voltar ao início
         </Button>
       </Box>
 

@@ -1,19 +1,29 @@
 export const rootPaths = {
-  root: '/',
+  /** Rota pública da landing page (portfólio) */
+  landing: '/',
+  /** Raiz das rotas protegidas do dashboard */
+  root: '/dashboard',
   pagesRoot: 'pages',
   authRoot: 'authentication',
 };
+
+/** Prefixo base para todas as rotas internas (área autenticada) */
+const dashboardBase = rootPaths.root;
 
 /**
  * Rotas da aplicação seguindo padrão RESTful
  *
  * Estrutura:
- * - Listagem: /pages/recurso
- * - Criar: /pages/recurso/novo
- * - Editar: /pages/recurso/:id/editar
- * - Ver: /pages/recurso/:id (quando aplicável)
+ * - Landing: / (pública)
+ * - Auth: /authentication/sign-in, sign-up
+ * - Dashboard e páginas: /dashboard, /dashboard/pages/...
  */
 export default {
+  // ==========================================
+  // Páginas públicas
+  // ==========================================
+  landing: rootPaths.landing,
+
   // ==========================================
   // Autenticação
   // ==========================================
@@ -21,54 +31,51 @@ export default {
   signup: `/${rootPaths.authRoot}/sign-up`,
 
   // ==========================================
-  // Dashboard
+  // Dashboard (área protegida)
   // ==========================================
-  dashboard: '/',
+  dashboard: dashboardBase,
 
   // ==========================================
   // Treinos (CRUD completo com rotas separadas)
   // ==========================================
-  treinos: `/${rootPaths.pagesRoot}/treinos`,
-  treinoNovo: `/${rootPaths.pagesRoot}/treinos/novo`,
-  treinoEditar: (id: string) => `/${rootPaths.pagesRoot}/treinos/${id}/editar`,
-  treinoVer: (id: string) => `/${rootPaths.pagesRoot}/treinos/${id}`,
+  treinos: `${dashboardBase}/${rootPaths.pagesRoot}/treinos`,
+  treinoNovo: `${dashboardBase}/${rootPaths.pagesRoot}/treinos/novo`,
+  treinoEditar: (id: string) => `${dashboardBase}/${rootPaths.pagesRoot}/treinos/${id}/editar`,
+  treinoVer: (id: string) => `${dashboardBase}/${rootPaths.pagesRoot}/treinos/${id}`,
 
   // ==========================================
-  // Exercícios (CRUD com modal inline)
-  // ==========================================
-  // exercicios: `/${rootPaths.pagesRoot}/exercicios`,
-
   // Exercícios com vídeos vinculados (CRUD da relação)
-  exercicios: `/${rootPaths.pagesRoot}/exercicios`,
+  // ==========================================
+  exercicios: `${dashboardBase}/${rootPaths.pagesRoot}/exercicios`,
 
   // ==========================================
   // Biblioteca de Vídeos
   // ==========================================
-  videos: `/${rootPaths.pagesRoot}/videos`,
+  videos: `${dashboardBase}/${rootPaths.pagesRoot}/videos`,
 
   // ==========================================
   // Semanas (CRUD com modal inline)
   // ==========================================
-  semanas: `/${rootPaths.pagesRoot}/semanas`,
-  exportSettings: `/${rootPaths.pagesRoot}/export-settings`,
+  semanas: `${dashboardBase}/${rootPaths.pagesRoot}/semanas`,
+  exportSettings: `${dashboardBase}/${rootPaths.pagesRoot}/export-settings`,
 
   // ==========================================
   // Configurações (página única)
   // ==========================================
-  parametros: `/${rootPaths.pagesRoot}/parametros`,
+  parametros: `${dashboardBase}/${rootPaths.pagesRoot}/parametros`,
 
   // ==========================================
   // Usuários (apenas Owner e Admin)
   // ==========================================
-  usuarios: `/${rootPaths.pagesRoot}/usuarios`,
+  usuarios: `${dashboardBase}/${rootPaths.pagesRoot}/usuarios`,
 
   // ==========================================
   // Perfil
   // ==========================================
-  perfil: `/${rootPaths.pagesRoot}/perfil`,
+  perfil: `${dashboardBase}/${rootPaths.pagesRoot}/perfil`,
 
   // ==========================================
   // Desenvolvimento
   // ==========================================
-  themePlayground: `/${rootPaths.pagesRoot}/theme-playground`,
+  themePlayground: `${dashboardBase}/${rootPaths.pagesRoot}/theme-playground`,
 };

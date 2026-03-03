@@ -11,6 +11,7 @@ import paths, { rootPaths } from './paths';
 const App = lazy(() => import('../App'));
 const MainLayout = lazy(() => import('../layouts/main-layout'));
 const AuthLayout = lazy(() => import('../layouts/auth-layout'));
+const Landing = lazy(() => import('../pages/Landing'));
 const Dashboard = lazy(() => import('../pages/dashboard/Dashboard'));
 const TreinoForm = lazy(() => import('../pages/treinos/TreinoForm.jsx'));
 const TreinoPublico = lazy(() => import('../pages/treinos/TreinoPublico.jsx'));
@@ -39,6 +40,16 @@ export const routes = [
       </Suspense>
     ),
     children: [
+      // Rota pública: landing (portfólio) na raiz
+      {
+        path: rootPaths.landing,
+        element: (
+          <Suspense fallback={<Progress />}>
+            <Landing />
+          </Suspense>
+        ),
+      },
+      // Rotas protegidas do dashboard (área autenticada)
       {
         path: rootPaths.root,
         element: (
@@ -52,7 +63,7 @@ export const routes = [
         ),
         children: [
           // ==========================================
-          // Dashboard
+          // Dashboard (index em /dashboard)
           // ==========================================
           {
             index: true,
@@ -60,18 +71,18 @@ export const routes = [
           },
 
           // ==========================================
-          // Treinos
+          // Treinos (paths relativos ao /dashboard)
           // ==========================================
           {
-            path: paths.treinos,
+            path: 'pages/treinos',
             element: <Treinos />,
           },
           {
-            path: paths.treinoNovo,
+            path: 'pages/treinos/novo',
             element: <TreinoForm />,
           },
           {
-            path: `${paths.treinos}/:id/editar`,
+            path: 'pages/treinos/:id/editar',
             element: <TreinoForm />,
           },
 
@@ -79,7 +90,7 @@ export const routes = [
           // Exercícios
           // ==========================================
           {
-            path: paths.exercicios,
+            path: 'pages/exercicios',
             element: <Exercicios />,
           },
 
@@ -87,7 +98,7 @@ export const routes = [
           // Biblioteca de Vídeos
           // ==========================================
           {
-            path: paths.videos,
+            path: 'pages/videos',
             element: <VideoLibrary />,
           },
 
@@ -95,7 +106,7 @@ export const routes = [
           // Semanas
           // ==========================================
           {
-            path: paths.semanas,
+            path: 'pages/semanas',
             element: <SemanasRefactored />,
           },
 
@@ -103,7 +114,7 @@ export const routes = [
           // Exportação Avançada
           // ==========================================
           {
-            path: paths.exportSettings,
+            path: 'pages/export-settings',
             element: <ExportSettingsPage />,
           },
 
@@ -111,7 +122,7 @@ export const routes = [
           // Parâmetros da Semana
           // ==========================================
           {
-            path: paths.parametros,
+            path: 'pages/parametros',
             element: <Parametros />,
           },
 
@@ -119,7 +130,7 @@ export const routes = [
           // Usuários (Owner e Admin)
           // ==========================================
           {
-            path: paths.usuarios,
+            path: 'pages/usuarios',
             element: <Usuarios />,
           },
 
@@ -127,7 +138,7 @@ export const routes = [
           // Perfil
           // ==========================================
           {
-            path: paths.perfil,
+            path: 'pages/perfil',
             element: <Perfil />,
           },
 
@@ -135,7 +146,7 @@ export const routes = [
           // Desenvolvimento
           // ==========================================
           {
-            path: paths.themePlayground,
+            path: 'pages/theme-playground',
             element: <ThemePlayground />,
           },
         ],
