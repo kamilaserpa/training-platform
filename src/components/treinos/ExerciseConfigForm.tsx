@@ -156,6 +156,7 @@ export const ExerciseConfigForm = ({
                                         muted
                                         showControls={false}
                                         height={160}
+                                        viewerTitle={exercise.name}
                                     />
                                 ) : (
                                     <Box sx={{

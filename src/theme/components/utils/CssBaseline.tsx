@@ -15,8 +15,13 @@ const CssBaseline: Components<Omit<Theme, 'components'>>['MuiCssBaseline'] = {
     },
     body: {
       fontVariantLigatures: 'none',
-      backgroundColor: theme.palette.info.main,
+      backgroundColor: theme.palette.background?.default ?? theme.palette.info.main,
       ...scrollbar(theme),
+    },
+    /* Focus visível para acessibilidade */
+    'button:focus-visible, a:focus-visible, [role="button"]:focus-visible': {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: 2,
     },
     ...echart(),
   }),

@@ -4,8 +4,8 @@ import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Image from 'components/base/Image';
-import Logo from 'assets/images/logo-dumbbell-white.png';
-import AuthBg from 'assets/images/auth/auth-bg.png';
+import Logo from 'assets/images/logo-white.png';
+import AuthBg from 'assets/images/auth/background-woman-kettlebell.jpg';
 import Horizon from 'assets/images/auth/horizon.png';
 
 interface FooterLinksProps {

@@ -181,7 +181,7 @@ class ExerciseService {
         .eq('created_by', userId)
         .order('name')
         .overrideTypes<ExerciseLiteForSelector[], { merge: false }>(),
-      12000,
+      25000,
       'carregando exercícios (selector lite: meus)'
     );
 
@@ -216,7 +216,7 @@ class ExerciseService {
         .eq('creator.active', true)
         .order('name')
         .overrideTypes<any[], { merge: false }>(),
-      12000,
+      25000,
       'carregando exercícios (selector lite: app)'
     );
 

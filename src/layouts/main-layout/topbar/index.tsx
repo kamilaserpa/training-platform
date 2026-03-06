@@ -27,7 +27,8 @@ const Topbar = ({ isClosing, mobileOpen, setMobileOpen }: TopbarProps) => {
 
   return (
     <Stack
-      height={90}
+      minHeight={{ xs: 56, sm: 64, md: 72 }}
+      height={{ xs: 56, sm: 64, md: 72 }}
       alignItems="center"
       justifyContent="space-between"
       position="sticky"
@@ -37,10 +38,11 @@ const Topbar = ({ isClosing, mobileOpen, setMobileOpen }: TopbarProps) => {
         borderBottom: '1px solid',
         borderColor: 'divider',
         backdropFilter: 'blur(6px)',
-        backgroundColor: 'info.main',
+        backgroundColor: 'background.paper',
       }}
+      px={2}
     >
-      <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
+      <Stack spacing={{ xs: 2, sm: 2 }} alignItems="center" sx={{ py: 1 }}>
         <ButtonBase
           component={Link}
           href="/"
@@ -50,20 +52,21 @@ const Topbar = ({ isClosing, mobileOpen, setMobileOpen }: TopbarProps) => {
           <Image src={HorizonLogo} alt="logo" height={44} width={44} />
         </ButtonBase>
 
-        <Toolbar sx={{ display: { xm: 'block', lg: 'none' } }}>
+        <Toolbar sx={{ display: { xm: 'block', lg: 'none' }, minHeight: 48 }}>
           <IconButton
             size="large"
             edge="start"
             color="inherit"
             aria-label="menu"
             onClick={handleDrawerToggle}
+            sx={{ minWidth: 48, minHeight: 48 }}
           >
             <IconifyIcon icon="ic:baseline-menu" />
           </IconButton>
         </Toolbar>
 
-        <Toolbar sx={{ display: { xm: 'block', md: 'none' } }}>
-          <IconButton size="large" edge="start" color="inherit" aria-label="search">
+        <Toolbar sx={{ display: { xm: 'block', md: 'none' }, minHeight: 48 }}>
+          <IconButton size="large" edge="start" color="inherit" aria-label="search" sx={{ minWidth: 48, minHeight: 48 }}>
             <IconifyIcon icon="bx:search" />
           </IconButton>
         </Toolbar>
@@ -82,10 +85,10 @@ const Topbar = ({ isClosing, mobileOpen, setMobileOpen }: TopbarProps) => {
         />
       </Stack>
 
-      <Stack spacing={{ xs: 1.5, sm: 2 }} alignItems="center">
+      <Stack spacing={{ xs: 2, sm: 2 }} alignItems="center" sx={{ py: 1 }}>
         {/* Internacionalização: seleção do idioma */}
         {/* <LanguageSelect /> */}
-        <IconButton size="large">
+        <IconButton size="large" sx={{ minWidth: 48, minHeight: 48 }} aria-label="notificações">
           <Badge color="error" variant="dot">
             <IconifyIcon icon="ic:baseline-notifications-none" />
           </Badge>

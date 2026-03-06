@@ -7,7 +7,7 @@ const Divider: Components<Omit<Theme, 'components'>>['MuiDivider'] = {
       height: 2,
       alignItems: 'center',
       backgroundColor: 'transparent',
-      borderColor: theme.palette.info.main,
+      borderColor: theme.palette.divider || '#ececec',
 
       '&.MuiDivider-withChildren': {
         height: '0 !important',
@@ -16,10 +16,10 @@ const Divider: Components<Omit<Theme, 'components'>>['MuiDivider'] = {
         fontWeight: 500,
 
         '&::before': {
-          backgroundColor: theme.palette.info.main,
+          backgroundColor: theme.palette.divider || '#ececec',
         },
         '&::after': {
-          backgroundColor: theme.palette.info.main,
+          backgroundColor: theme.palette.divider || '#ececec',
         },
       },
     }),
