@@ -31,8 +31,6 @@ import {
   TableRow,
   TextField,
   Typography,
-  useMediaQuery,
-  useTheme
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 
@@ -52,9 +50,6 @@ import { imageToBase64 } from '../../utils/pdf/pdfUtils';
 import { adaptarSemanasParaVisualizacao, type SemanaComTreinos } from '../../utils/semanaAdapter';
 
 const SemanasRefactored = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   // Cache-first data fetching com IndexedDB
   const {
     data: weeksFromCache,
@@ -420,7 +415,7 @@ const SemanasRefactored = () => {
             direction="row"
             spacing={1}
             alignItems="center"
-            justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+            justifyContent="flex-end"
             sx={{
               mt: { xs: 1, md: 0 },
               flexWrap: 'nowrap',
@@ -428,7 +423,7 @@ const SemanasRefactored = () => {
           >
             <Button
               variant="outlined"
-              size={isMobile ? 'small' : 'medium'}
+              size="medium"
               onClick={() => {
                 if (selectedWeekIds.length === 0) {
                   setSelectedWeeks(filteredSemanas.map((s) => s.id));
@@ -442,7 +437,7 @@ const SemanasRefactored = () => {
             </Button>
             <Button
               variant="contained"
-              size={isMobile ? 'small' : 'medium'}
+              size="medium"
               onClick={handleGlobalExportClick}
               sx={{ whiteSpace: 'nowrap', px: { xs: 1.5, sm: 2 } }}
             >
@@ -450,7 +445,7 @@ const SemanasRefactored = () => {
             </Button>
             <Button
               variant="contained"
-              size={isMobile ? 'small' : 'medium'}
+              size="medium"
               startIcon={<AddIcon />}
               onClick={handleOpenDialog}
               sx={{

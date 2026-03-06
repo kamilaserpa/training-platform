@@ -110,6 +110,8 @@ function TreinoForm() {
   const exercisesLiteCacheRef = useRef(null)
   /** Quando criar treino mas falhar ao salvar blocos (ex.: timeout), guardamos o ID para retry sem duplicar treino */
   const pendingCreatedTrainingIdRef = useRef(null)
+  /** Evita re-carregar o treino e sobrescrever alterações do usuário quando o effect re-executa (ex.: mudança em semanasOptions) */
+  const loadedTrainingIdRef = useRef(null)
 
   // Confirmação ao sair para criação de semana
   const [confirmLeaveSemanasOpen, setConfirmLeaveSemanasOpen] = useState(false)
@@ -254,25 +256,35 @@ function TreinoForm() {
   const [submitting, setSubmitting] = useState(false)
   const [submittingMessage, setSubmittingMessage] = useState('')
 
-  // Watch para mudanças na data e semana para atualizar nome do treino automaticamente
-  const watchedValues = watch(['data', 'semana'])
   const watchedSemana = watch('semana')
+  const watchedData = watch('data')
+  // Ref para evitar reexecução quando data/semana não mudaram (watch retorna refs que podem mudar a cada render)
+  const lastNameDepsRef = useRef({ semana: null, dataKey: null })
 
   useEffect(() => {
-    // Evitar execuções durante o carregamento inicial ou quando não há dados
-    if (loading || loadingTrainingData) return;
+    if (loading || loadingTrainingData) return
+    if (!watchedData || !watchedSemana || semanasOptions.length === 0) return
 
-    const [data, semana] = watchedValues
-    if (data && semana && semanasOptions.length > 0) {
-      const newName = generateTrainingName(semana, data)
-      devLog('🔄 Nome do treino atualizado automaticamente:', newName)
+    const dataKey = watchedData?.valueOf?.() ?? watchedData
+    if (
+      lastNameDepsRef.current.semana === watchedSemana &&
+      lastNameDepsRef.current.dataKey === dataKey
+    ) {
+      return
     }
-  }, [watchedValues, semanasOptions, loading, loadingTrainingData])
+    lastNameDepsRef.current = { semana: watchedSemana, dataKey }
+    generateTrainingName(watchedSemana, watchedData)
+  }, [watchedData, watchedSemana, semanasOptions.length, loading, loadingTrainingData])
 
   // Limpar ID de treino pendente ao entrar em modo edição (ex.: voltou da lista para editar outro)
   useEffect(() => {
     if (isEditMode) pendingCreatedTrainingIdRef.current = null
   }, [isEditMode])
+
+  // Ao mudar de treino (outro id), permitir carregar de novo
+  useEffect(() => {
+    if (!isEditMode || !editingTrainingId) loadedTrainingIdRef.current = null
+  }, [isEditMode, editingTrainingId])
 
   // Estados para compartilhamento
   const [shareLink, setShareLink] = useState('')
@@ -351,8 +363,6 @@ function TreinoForm() {
         ]
         setTrainingBlocks(blocks)
 
-        devLog('🔍 Debug - Opções de semanas:', semanasFormatted)
-        devLog('🔍 Debug - Opções de padrões:', padroesFormatted)
 
       } catch (error) {
         console.error('❌ Erro ao carregar dados dos selects:', error)
@@ -397,7 +407,6 @@ function TreinoForm() {
       const semanaCompleta = semanasCompletas.find(s => s.id === watchedSemana)
 
       if (semanaCompleta && semanaCompleta.start_date && semanaCompleta.end_date) {
-        devLog('📅 Destacando dias da semana:', semanaCompleta.start_date, '-', semanaCompleta.end_date)
         setWeekStartDate(semanaCompleta.start_date)
         setWeekEndDate(semanaCompleta.end_date)
       } else {
@@ -418,6 +427,11 @@ function TreinoForm() {
     const loadTrainingData = async () => {
       if (!isEditMode || !editingTrainingId || loading ||
         semanasOptions.length === 0 || padroesMovimentoOptions.length === 0) {
+        return
+      }
+      // Evitar re-carregar e sobrescrever alterações do usuário quando o effect re-executa (ex.: refetch de opções)
+      if (loadedTrainingIdRef.current === editingTrainingId) {
+        devLog('⏭️ Treino já carregado, ignorando nova execução do effect')
         return
       }
 
@@ -466,8 +480,6 @@ function TreinoForm() {
         setTrainingName(currentName)
         sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, currentName)
 
-        devLog('🔍 Dados formatados para o formulário:', formData)
-        devLog('📊 Opções válidas - Semanas:', semanasOptions.length, 'Padrões:', padroesMovimentoOptions.length)
 
         // Carregar dados de compartilhamento se existirem
         if (trainingData.share_token) {
@@ -479,6 +491,7 @@ function TreinoForm() {
 
         // Popular os blocos do treino
         populateTrainingBlocks(trainingData.training_blocks || [])
+        loadedTrainingIdRef.current = editingTrainingId
 
       } catch (error) {
         console.error('❌ Erro ao carregar dados do treino:', error)
@@ -517,7 +530,7 @@ function TreinoForm() {
     blocks.forEach(block => {
       switch (block.block_type) {
         case 'MOBILIDADE_ARTICULAR':
-          // Para mobilidade, preservar todos os campos como nas outras seções
+          // Para mobilidade, preservar todos os campos como nas outras seções. Vídeo vem de exercises.video_id
           const mobilityItems = block.exercise_prescriptions?.map(prescription => {
             const series = prescription.sets || 0
             const tempoSegundos = prescription.duration_seconds || 0
@@ -527,8 +540,8 @@ function TreinoForm() {
             return {
               nome: prescription.exercise?.name || 'Exercício não encontrado',
               exercicioId: prescription.exercise?.id,
-              videoId: prescription.video_id || null,
-              videoName: prescription.video?.title || null,
+              videoId: prescription.exercise?.video_id || prescription.exercise?.video?.id || null,
+              videoName: prescription.exercise?.video?.title || null,
               series: prescription.sets || '',
               repeticoes: prescription.reps || '',
               carga: prescription.weight_kg || '',
@@ -583,7 +596,7 @@ function TreinoForm() {
           setNeuralItems(neuralItems)
           break
         case 'TREINO_PRINCIPAL':
-          // Identificar qual bloco principal pelo nome ou ordem
+          // Identificar qual bloco principal: priorizar order_index (4 = Bloco 1, 5 = Bloco 2) para evitar perda de blocos
           const principalItems = block.exercise_prescriptions?.map(prescription => {
             const series = prescription.sets || 0
             const tempoSegundos = prescription.duration_seconds || 0
@@ -593,6 +606,8 @@ function TreinoForm() {
             return {
               nome: prescription.exercise?.name || 'Exercício não encontrado',
               exercicioId: prescription.exercise?.id,
+              videoId: prescription.exercise?.video_id || prescription.exercise?.video?.id || null,
+              videoName: prescription.exercise?.video?.title || null,
               series: prescription.sets || '',
               repeticoes: prescription.reps || '',
               carga: prescription.weight_kg || '',
@@ -603,25 +618,29 @@ function TreinoForm() {
             }
           }) || []
 
-          // Verificar pelo nome do bloco ou ordem para saber qual bloco é
-          if (block.name === 'Bloco Principal 1' || block.order_index === 4) {
+          const isBloco1 = block.order_index === 4 ||
+            (block.name && String(block.name).toLowerCase().includes('bloco') && (String(block.name).includes('1') || String(block.name).includes('01')))
+          const isBloco2 = block.order_index === 5 ||
+            (block.name && String(block.name).toLowerCase().includes('bloco') && (String(block.name).includes('2') || String(block.name).includes('02')))
+
+          if (isBloco1) {
             setTreinoBloco1(principalItems)
             devLog('📦 [DEBUG] Carregando exercícios para Bloco Principal 1:', principalItems.length, 'itens')
-          } else if (block.name === 'Bloco Principal 2' || block.order_index === 5) {
+          } else if (isBloco2) {
             setTreinoBloco2(principalItems)
             devLog('📦 [DEBUG] Carregando exercícios para Bloco Principal 2:', principalItems.length, 'itens')
           } else {
-            // Fallback: se não conseguir identificar, dividir pela metade (comportamento antigo)
-            const midPoint = Math.ceil(principalItems.length / 2)
-            setTreinoBloco1(principalItems.slice(0, midPoint))
-            setTreinoBloco2(principalItems.slice(midPoint))
-            devLog('📦 [DEBUG] Dividindo exercícios principal (fallback) - Bloco 1:', midPoint, '- Bloco 2:', principalItems.length - midPoint)
+            // Fallback: bloco único não identificado — colocar no Bloco 1 para não perder dados
+            setTreinoBloco1(principalItems)
+            devLog('📦 [DEBUG] TREINO_PRINCIPAL não identificado (order_index=', block.order_index, 'name=', block.name, ') — atribuído ao Bloco 1')
           }
           break
         case 'CONDICIONAMENTO_FISICO':
           const condicionamentoItems = block.exercise_prescriptions?.map(prescription => ({
             nome: prescription.exercise?.name || 'Exercício não encontrado',
             exercicioId: prescription.exercise?.id,
+            videoId: prescription.exercise?.video_id || prescription.exercise?.video?.id || null,
+            videoName: prescription.exercise?.video?.title || null,
             series: prescription.sets || '',
             repeticoes: prescription.reps || '',
             tempoSegundos: prescription.duration_seconds || '',
@@ -1748,12 +1767,14 @@ function TreinoForm() {
                 {/* Card: Informações Básicas */}
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" fontWeight="600" gutterBottom>
-                      Informações Básicas
-                    </Typography>
-                    <Divider sx={{ mb: 3 }} />
+                    <Box mb={2}>
+                      <Typography variant="h6" fontWeight="600" gutterBottom>
+                        Informações Básicas
+                      </Typography>
+                    </Box>
+                    <Divider sx={{ mb: 5 }} />
 
-                    <Grid container spacing={4.5}>
+                    <Grid container spacing={5}>
                       {/* Padrão de movimento */}
                       <Grid item xs={12} md={4}>
                         <FormSelect
@@ -2128,18 +2149,21 @@ function TreinoForm() {
           </Typography>
         </DialogContent>
         <DialogActions
+          disableSpacing
           sx={{
             px: 3,
             pb: 2,
+            display: 'flex',
             flexDirection: { xs: 'column', sm: 'row' },
             gap: 1,
-            alignItems: { xs: 'stretch', sm: 'center' },
+            alignItems: { xs: 'stretch', sm: 'flex-end' },
+            justifyContent: 'flex-end',
             '& > .MuiButton-root': {
-              width: { xs: '100%', sm: 'auto' }
-            }
+              width: { xs: '100%', sm: 'auto' },
+            },
           }}
         >
-          <Button onClick={handleCloseConfirmSemanas} variant="outlined" color="error">
+          <Button onClick={handleCloseConfirmSemanas} variant="outlined" color="error" autoFocus>
             Cancelar
           </Button>
           <Button onClick={handleConfirmNavigateToSemanas} variant="contained" color="secondary">

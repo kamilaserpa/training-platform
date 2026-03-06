@@ -1,6 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -17,9 +21,27 @@ export default defineConfig(({ mode }) => {
             tsconfigPaths(),
             react(),
         ],
-        // Deduplicate React and Emotion to prevent multiple instances
+        // Deduplicate React and Emotion to prevent multiple instances (Invalid hook call / useState null)
         resolve: {
-            dedupe: ['react', 'react-dom', '@emotion/react', '@emotion/styled']
+            dedupe: ['react', 'react-dom', '@emotion/react', '@emotion/styled'],
+            alias: {
+                react: path.resolve(__dirname, 'node_modules/react'),
+                'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+                '@emotion/react': path.resolve(__dirname, 'node_modules/@emotion/react'),
+                '@emotion/styled': path.resolve(__dirname, 'node_modules/@emotion/styled'),
+            },
+        },
+        // Force React/Emotion/MUI into the pre-bundle so lazy chunks use the same instance (evita Invalid hook call / useContext null)
+        optimizeDeps: {
+            include: [
+                'react',
+                'react-dom',
+                'react/jsx-runtime',
+                '@emotion/react',
+                '@emotion/styled',
+                '@mui/material',
+                '@mui/icons-material'
+            ]
         },
         base: basePath,
         preview: {

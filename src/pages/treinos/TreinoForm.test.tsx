@@ -676,6 +676,147 @@ describe('TreinoForm (integração)', () => {
         expect(screen.getByLabelText(/Observações Internas/i)).toHaveValue('Obs internas')
     })
 
+    it('em modo edição: ao salvar, preserva Bloco Principal 1, Bloco Principal 2 e Condicionamento (não perde blocos)', async () => {
+        const queries: SupabaseQuery[] = []
+        supabaseMock.setAuthUser({ id: 'user-1' })
+
+        const trainingWithThreeBlocks = {
+            id: 't-three-blocks',
+            training_week_id: 'w1',
+            name: 'Treino S01-06',
+            scheduled_date: '2026-02-06',
+            description: '',
+            internal_notes: '',
+            movement_pattern_id: 'mp1',
+            share_status: 'private',
+            training_blocks: [
+                {
+                    id: 'b-principal-1',
+                    training_id: 't-three-blocks',
+                    name: 'Bloco Principal 1',
+                    block_type: 'TREINO_PRINCIPAL',
+                    order_index: 4,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p1',
+                            sets: 3,
+                            reps: '10',
+                            weight_kg: null,
+                            duration_seconds: null,
+                            rest_seconds: 60,
+                            notes: '',
+                            exercise: { id: 'ex1', name: 'Alongamento' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+                {
+                    id: 'b-principal-2',
+                    training_id: 't-three-blocks',
+                    name: 'Bloco Principal 2',
+                    block_type: 'TREINO_PRINCIPAL',
+                    order_index: 5,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p2',
+                            sets: 4,
+                            reps: '8',
+                            weight_kg: null,
+                            duration_seconds: null,
+                            rest_seconds: 90,
+                            notes: '',
+                            exercise: { id: 'ex1', name: 'Alongamento' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+                {
+                    id: 'b-cond',
+                    training_id: 't-three-blocks',
+                    name: 'Condicionamento Físico',
+                    block_type: 'CONDICIONAMENTO_FISICO',
+                    order_index: 6,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p3',
+                            sets: 2,
+                            reps: '30s',
+                            weight_kg: null,
+                            duration_seconds: 30,
+                            rest_seconds: 30,
+                            notes: '',
+                            exercise: { id: 'ex1', name: 'Alongamento' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+            ],
+        }
+
+        let blockInsertCount = 0
+        supabaseMock.setQueryHandler(async (q) => {
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            if (seeded.data || seeded.error) return seeded
+
+            if (q.table === 'trainings' && q.op === 'select' && q.single) {
+                return { data: trainingWithThreeBlocks, error: null }
+            }
+            if (q.table === 'trainings' && q.op === 'update') {
+                return { data: { ...trainingWithThreeBlocks, updated_at: new Date().toISOString() }, error: null }
+            }
+            if (q.table === 'training_blocks' && q.op === 'select') {
+                return {
+                    data: trainingWithThreeBlocks.training_blocks.map((b: any) => ({ id: b.id })),
+                    error: null,
+                }
+            }
+            if (q.table === 'training_blocks' && q.op === 'delete') {
+                return { data: null, error: null }
+            }
+            if (q.table === 'exercise_prescriptions' && q.op === 'delete') {
+                return { data: null, error: null }
+            }
+            if (q.table === 'training_blocks' && q.op === 'insert') {
+                blockInsertCount += 1
+                const payload = q.payload as any
+                return {
+                    data: { id: `b-new-${blockInsertCount}`, ...payload },
+                    error: null,
+                }
+            }
+            if (q.table === 'exercise_prescriptions' && q.op === 'insert') {
+                const payload = q.payload as any
+                return { data: { id: `p-new-${payload.exercise_id}`, ...payload }, error: null }
+            }
+
+            return { data: null, error: null }
+        })
+
+        const { user } = renderTreinoForm('/pages/treinos/t-three-blocks/editar')
+
+        expect(screen.getByText(/Carregando dados do treino/i)).toBeInTheDocument()
+        expect(await screen.findByText('Editar Treino')).toBeInTheDocument()
+
+        // Pelo menos um exercício carregado (estado dos 3 blocos foi populado)
+        expect(await screen.findByText('Alongamento')).toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', { name: /Atualizar Treino/i }))
+
+        expect(await screen.findByText(/Treino atualizado com sucesso!/i, {}, { timeout: 15000 })).toBeInTheDocument()
+
+        // Regressão: ao salvar em edição, os 3 blocos devem ser recriados (delete + insert); não podemos perder Bloco 02 nem Condicionamento
+        const blockInserts = queries.filter((x) => x.table === 'training_blocks' && x.op === 'insert')
+        expect(blockInserts.length).toBe(3)
+
+        const blockNames = blockInserts.map((x) => (x.payload as any)?.name).filter(Boolean)
+        expect(blockNames).toContain('Bloco Principal 1')
+        expect(blockNames).toContain('Bloco Principal 2')
+        expect(blockNames).toContain('Condicionamento Físico')
+    }, 20000)
+
     it('mostra erro quando usuário não está autenticado', async () => {
         const queries: SupabaseQuery[] = []
         supabaseMock.setAuthUser(null)

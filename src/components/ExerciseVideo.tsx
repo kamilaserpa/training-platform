@@ -3,9 +3,23 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import { Box, CircularProgress, IconButton, Typography } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { MediaViewerDialog } from './MediaViewerDialog';
 
-interface ExerciseVideoProps {
+/** Extensões consideradas imagem (inclui GIF). */
+const IMAGE_EXT_REGEX = /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i;
+
+function isImageUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const pathname = new URL(url, 'https://dummy').pathname;
+    return IMAGE_EXT_REGEX.test(pathname);
+  } catch {
+    return IMAGE_EXT_REGEX.test(url);
+  }
+}
+
+export interface ExerciseVideoProps {
   videoUrl: string;
   alt?: string;
   showControls?: boolean;
@@ -15,21 +29,36 @@ interface ExerciseVideoProps {
   width?: string | number;
   height?: string | number;
   borderRadius?: string | number;
+  /** 'cover' preenche o quadro; 'contain' garante que a mídia inteira apareça (ex.: no dialog). */
+  objectFit?: 'cover' | 'contain';
+  /** Se definido, ao clicar na mídia abre um dialog com visualização ampliada (título = nome do exercício). */
+  viewerTitle?: string;
+  /** 'overlay' = botões escuros sobre a mídia; 'primary' = botões com cor do tema, mais acessíveis. */
+  controlsVariant?: 'overlay' | 'primary';
 }
 
+const sizeStyle = (
+  width: string | number,
+  height: string | number,
+  borderRadius: string | number,
+  display: string,
+  objectFit: 'cover' | 'contain' = 'cover'
+) => ({
+  width: typeof width === 'number' ? `${width}px` : width,
+  height: typeof height === 'number' ? `${height}px` : height,
+  borderRadius: typeof borderRadius === 'number' ? `${borderRadius}px` : borderRadius,
+  display,
+  objectFit,
+});
+
 /**
- * Componente para exibir vídeos de exercícios
- * Comporta como GIF por padrão (autoplay, loop, muted)
+ * Componente para exibir vídeo ou imagem de exercício (inclui GIF).
+ * Vídeo: comportamento tipo GIF por padrão (autoplay, loop, muted).
+ * Imagem: exibe estática; GIF animado é exibido normalmente.
  *
  * @example
- * // Comportamento de GIF (padrão)
  * <ExerciseVideo videoUrl={signedUrl} />
- *
- * // Com controles customizados
- * <ExerciseVideo videoUrl={signedUrl} showControls />
- *
- * // Com áudio
- * <ExerciseVideo videoUrl={signedUrl} muted={false} showControls />
+ * <ExerciseVideo videoUrl={signedImageUrl} /> // PNG, JPEG, GIF, WebP, etc.
  */
 export function ExerciseVideo({
   videoUrl,
@@ -41,12 +70,26 @@ export function ExerciseVideo({
   width = '100%',
   height = 'auto',
   borderRadius = 8,
+  objectFit = 'cover',
+  viewerTitle,
+  controlsVariant = 'overlay',
 }: ExerciseVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [playing, setPlaying] = useState(autoPlay);
   const [isMuted, setIsMuted] = useState(muted);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  const isImage = isImageUrl(videoUrl);
+  const isClickable = Boolean(viewerTitle && !error);
+  const isPrimaryControls = controlsVariant === 'primary';
+
+  const handleOpenViewer = useCallback(() => {
+    if (isClickable) setViewerOpen(true);
+  }, [isClickable]);
+
+  const handleCloseViewer = useCallback(() => setViewerOpen(false), []);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -69,14 +112,30 @@ export function ExerciseVideo({
   };
 
   useEffect(() => {
-    // Garantir que o vídeo começa com as configurações corretas
     if (videoRef.current) {
       videoRef.current.muted = muted;
     }
   }, [muted]);
 
   return (
-    <Box position="relative" width={width} height={height}>
+    <>
+      <Box
+        position="relative"
+        width={width}
+        height={height}
+        onClick={isClickable ? handleOpenViewer : undefined}
+        sx={
+          isClickable
+            ? {
+                cursor: 'pointer',
+                '&:focus': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 },
+                '&:focus:not(:focus-visible)': { outline: 'none' },
+              }
+            : undefined
+        }
+        role={isClickable ? 'button' : undefined}
+        aria-label={isClickable ? `Ampliar mídia: ${viewerTitle}` : undefined}
+      >
       {loading && (
         <Box
           position="absolute"
@@ -101,12 +160,28 @@ export function ExerciseVideo({
           }}
         >
           <Typography color="text.secondary">
-            Não foi possível carregar o vídeo
+            {isImage ? 'Não foi possível carregar a imagem' : 'Não foi possível carregar o vídeo'}
           </Typography>
         </Box>
       )}
 
-      {!error && (
+      {!error && isImage && (
+        <img
+          src={videoUrl}
+          alt={alt}
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setLoading(false);
+            setError(true);
+          }}
+          style={{
+            ...sizeStyle(width, height, borderRadius, loading ? 'none' : 'block', objectFit),
+            maxWidth: '100%',
+          }}
+        />
+      )}
+
+      {!error && !isImage && (
         <video
           ref={videoRef}
           autoPlay={autoPlay}
@@ -121,14 +196,7 @@ export function ExerciseVideo({
           }}
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
-          style={{
-            width: typeof width === 'number' ? `${width}px` : width,
-            height: typeof height === 'number' ? `${height}px` : height,
-            borderRadius:
-              typeof borderRadius === 'number' ? `${borderRadius}px` : borderRadius,
-            display: loading ? 'none' : 'block',
-            objectFit: 'cover',
-          }}
+          style={sizeStyle(width, height, borderRadius, loading ? 'none' : 'block', objectFit)}
           aria-label={alt}
         >
           <source src={videoUrl} type="video/mp4" />
@@ -137,51 +205,98 @@ export function ExerciseVideo({
         </video>
       )}
 
-      {/* Controles customizados */}
-      {showControls && !loading && !error && (
+      {showControls && !loading && !error && !isImage && (
         <Box
           position="absolute"
-          bottom={8}
-          right={8}
+          bottom={10}
+          right={10}
           display="flex"
           gap={1}
           sx={{ zIndex: 2 }}
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* Botão Play/Pause */}
           <IconButton
             onClick={togglePlay}
-            size="small"
-            sx={{
-              bgcolor: 'rgba(0,0,0,0.6)',
-              color: 'white',
-              '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
-            }}
-            aria-label={playing ? 'Pausar' : 'Reproduzir'}
+            size={isPrimaryControls ? 'medium' : 'small'}
+            color={isPrimaryControls ? 'primary' : 'inherit'}
+            sx={
+              isPrimaryControls
+                ? {
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    '&:hover': { bgcolor: 'primary.dark' },
+                    '&:focus-visible': {
+                      outline: '2px solid',
+                      outlineColor: 'primary.main',
+                      outlineOffset: 2,
+                    },
+                  }
+                : {
+                    bgcolor: 'rgba(0,0,0,0.6)',
+                    color: 'white',
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+                    '&:focus-visible': {
+                      outline: '2px solid',
+                      outlineColor: 'white',
+                      outlineOffset: 2,
+                    },
+                  }
+            }
+            aria-label={playing ? 'Pausar vídeo' : 'Reproduzir vídeo'}
           >
-            {playing ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
+            {playing ? <PauseIcon fontSize={isPrimaryControls ? 'medium' : 'small'} /> : <PlayArrowIcon fontSize={isPrimaryControls ? 'medium' : 'small'} />}
           </IconButton>
 
-          {/* Botão Mute/Unmute (se áudio estiver habilitado) */}
           {!muted && (
             <IconButton
               onClick={toggleMute}
-              size="small"
-              sx={{
-                bgcolor: 'rgba(0,0,0,0.6)',
-                color: 'white',
-                '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
-              }}
+              size={isPrimaryControls ? 'medium' : 'small'}
+              color={isPrimaryControls ? 'primary' : 'inherit'}
+              sx={
+                isPrimaryControls
+                  ? {
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      '&:hover': { bgcolor: 'primary.dark' },
+                      '&:focus-visible': {
+                        outline: '2px solid',
+                        outlineColor: 'primary.main',
+                        outlineOffset: 2,
+                      },
+                    }
+                  : {
+                      bgcolor: 'rgba(0,0,0,0.6)',
+                      color: 'white',
+                      '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+                      '&:focus-visible': {
+                        outline: '2px solid',
+                        outlineColor: 'white',
+                        outlineOffset: 2,
+                      },
+                    }
+              }
               aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
             >
               {isMuted ? (
-                <VolumeOffIcon fontSize="small" />
+                <VolumeOffIcon fontSize={isPrimaryControls ? 'medium' : 'small'} />
               ) : (
-                <VolumeUpIcon fontSize="small" />
+                <VolumeUpIcon fontSize={isPrimaryControls ? 'medium' : 'small'} />
               )}
             </IconButton>
           )}
         </Box>
       )}
-    </Box>
+      </Box>
+
+      {viewerTitle && (
+        <MediaViewerDialog
+          open={viewerOpen}
+          onClose={handleCloseViewer}
+          mediaUrl={videoUrl}
+          title={viewerTitle}
+          alt={alt}
+        />
+      )}
+    </>
   );
 }
