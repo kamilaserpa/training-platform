@@ -167,8 +167,6 @@ export const routes = [
   },
 ];
 
-const router = createHashRouter(routes, {
-    future: { v7_startTransition: true },
-});
+const router = createHashRouter(routes);
 
 export default router;
