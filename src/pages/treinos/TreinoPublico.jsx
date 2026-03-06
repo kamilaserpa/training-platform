@@ -523,7 +523,7 @@ const TreinoPublico = () => {
                       justifyContent: 'space-between',
                       gap: 1,
                       borderBottom: '2px solid',
-                      borderColor: 'primary.main'
+                      borderColor: 'divider'
                     }}
                   >
                     <Box sx={{ flex: 1, minWidth: 0 }}>

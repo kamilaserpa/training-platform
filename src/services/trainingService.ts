@@ -323,7 +323,10 @@ class TrainingService {
               *,
               exercise_prescriptions(
                 *,
-                exercise:exercises(*)
+                exercise:exercises(
+                  *,
+                  video:videos!exercises_video_id_fkey(id, title, storage_path)
+                )
               )
             )
           `,

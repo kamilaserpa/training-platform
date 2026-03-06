@@ -16,24 +16,31 @@ export default function FormSelect({ name, label, options, required, ...props })
         name={name}
         control={control}
         defaultValue=""
-        render={({ field }) => (
-          <Select
-            fullWidth
-            {...field}
-            labelId={`${name}-label`}
-            label={label}
-            {...props}
-          >
-            <MenuItem value="">
-              <em>Nenhum</em>
-            </MenuItem>
-            {options.map((item) => (
-              <MenuItem key={item.id} value={item.id}>
-                {item.label}
+        render={({ field }) => {
+          // Evita "out-of-range value" do MUI: só passa valor que existe nas opções
+          const optionIds = options.map((o) => o.id)
+          const safeValue = optionIds.includes(field.value) ? field.value : ''
+          return (
+            <Select
+              fullWidth
+              {...field}
+              value={safeValue}
+              onChange={(e) => field.onChange(e.target.value)}
+              labelId={`${name}-label`}
+              label={label}
+              {...props}
+            >
+              <MenuItem value="">
+                <em>Nenhum</em>
               </MenuItem>
-            ))}
-          </Select>
-        )}
+              {options.map((item) => (
+                <MenuItem key={item.id} value={item.id}>
+                  {item.label}
+                </MenuItem>
+              ))}
+            </Select>
+          )
+        }}
       />
       {isError && <FormHelperText>{errorMessage}</FormHelperText>}
     </FormControl>

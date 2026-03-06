@@ -453,105 +453,125 @@ const Treinos = () => {
       {/* Content - apenas quando não está carregando e não há erro */}
       {!loading && !error && (
         <>
-          {/* Header */}
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+          {/* Dialog de confirmação de exclusão do treino */}
+          <Dialog
+            open={deleteDialog.open}
+            onClose={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
+            maxWidth="xs"
+            fullWidth
+          >
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogContent>
+              <Typography>
+                Tem certeza que deseja excluir <strong>{deleteDialog.treinoNome}</strong>?
+              </Typography>
+              <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+                ⚠️ Esta ação não pode ser desfeita.
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}>
+                Cancelar
+              </Button>
+              <Button onClick={confirmDeleteTraining} variant="contained" color="error">
+                Excluir
+              </Button>
+            </DialogActions>
+          </Dialog>
 
-            {/* Dialog de confirmação de exclusão do treino */}
-            <Dialog
-              open={deleteDialog.open}
-              onClose={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}
-              maxWidth="xs"
-              fullWidth
-            >
-              <DialogTitle>Confirmar Exclusão</DialogTitle>
-              <DialogContent>
-                <Typography>
-                  Tem certeza que deseja excluir <strong>{deleteDialog.treinoNome}</strong>?
-                </Typography>
-                <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-                  ⚠️ Esta ação não pode ser desfeita.
-                </Typography>
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setDeleteDialog({ open: false, treinoId: '', treinoNome: '' })}>
-                  Cancelar
-                </Button>
-                <Button onClick={confirmDeleteTraining} variant="contained" color="error">
-                  Excluir
-                </Button>
-              </DialogActions>
-            </Dialog>
-
-            {/* Snackbar para feedback */}
-            <Snackbar
-              open={snackbar.open}
-              autoHideDuration={6000}
+          {/* Snackbar para feedback */}
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={6000}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <Alert
               onClose={() => setSnackbar({ ...snackbar, open: false })}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              severity={snackbar.severity}
+              variant="filled"
+              sx={{ width: '100%' }}
             >
-              <Alert
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
-                severity={snackbar.severity}
-                variant="filled"
-                sx={{ width: '100%' }}
-              >
-                {snackbar.message}
-              </Alert>
-            </Snackbar>
-            <Typography variant="h4" fontWeight="700">
-              Treinos
-            </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/pages/treinos/novo')}
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
+
+          {/* Header - mesmo padrão da listagem de semanas */}
+          <Box sx={{ mb: 4 }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'flex-start' }} spacing={{ xs: 2, md: 0 }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h4" fontWeight="700" gutterBottom>
+                  Treinos
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Visualize e gerencie seus treinos
+                </Typography>
+              </Box>
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                justifyContent="flex-end"
                 sx={{
-                  minWidth: { xs: 40, sm: 'auto' },
-                  px: { xs: 1, sm: 2 },
-                  width: { xs: '45px', sm: 'auto' },
-                  height: { xs: '45px', sm: 'auto' },
-                  '&:hover': {
-                    color: 'info.main',
-                  },
-                  '& .MuiButton-startIcon': {
-                    margin: { xs: 0, sm: '0 8px 0 -4px' },
-                  },
+                  mt: { xs: 1, md: 0 },
+                  flexWrap: 'nowrap',
                 }}
               >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  Novo Treino
-                </Box>
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<PdfIcon />}
-                disabled={selectedIds.size === 0}
-                onClick={handleExportSelected}
-                sx={{
-                  minWidth: { xs: 40, sm: 'auto' },
-                  px: { xs: 1, sm: 2 },
-                  width: { xs: '45px', sm: 'auto' },
-                  height: { xs: '45px', sm: 'auto' },
-                  '& .MuiButton-startIcon': {
-                    margin: { xs: 0, sm: '0 8px 0 -4px' },
-                  },
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  Exportar Selecionado
-                </Box>
-              </Button>
-              <Button
-                variant="text"
-                disabled={selectedIds.size === 0}
-                onClick={clearSelection}
-                sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-              >
-                Limpar seleção
-              </Button>
+                <Button
+                  variant="outlined"
+                  size="medium"
+                  disabled={selectedIds.size === 0}
+                  onClick={clearSelection}
+                  sx={{ whiteSpace: 'nowrap', minWidth: { xs: 'auto', sm: 120 }, px: { xs: 1.5, sm: 2 } }}
+                >
+                  Limpar seleção
+                </Button>
+                <Button
+                  variant="contained"
+                  size="medium"
+                  disabled={selectedIds.size === 0}
+                  onClick={handleExportSelected}
+                  startIcon={<PdfIcon />}
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    minWidth: { xs: 48, md: 'auto' },
+                    px: { xs: 1.5, md: 2 },
+                    height: { xs: 40, md: 'auto' },
+                    '& .MuiButton-startIcon': {
+                      mr: { xs: 0, md: 1 },
+                      display: 'inherit',
+                      flexShrink: 0,
+                    },
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                    Exportar Selecionado
+                  </Box>
+                </Button>
+                <Button
+                  variant="contained"
+                  size="medium"
+                  startIcon={<AddIcon />}
+                  onClick={() => navigate('/pages/treinos/novo')}
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    minWidth: { xs: 48, md: 'auto' },
+                    px: { xs: 1.5, md: 2 },
+                    height: { xs: 40, md: 'auto' },
+                    '& .MuiButton-startIcon': {
+                      mr: { xs: 0, md: 1 },
+                      display: 'inherit',
+                      flexShrink: 0,
+                    },
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                    Novo Treino
+                  </Box>
+                </Button>
+              </Stack>
             </Stack>
-          </Stack>
+          </Box>
 
           {/* Filtros */}
           <Card sx={{ mb: 4 }}>
@@ -707,7 +727,7 @@ const Treinos = () => {
                           />
 
                           <Checkbox
-                            color="info"
+                            color="secondary"
                             checked={selectedIds.has(treino.id)}
                             onChange={() => toggleSelected(treino.id)}
                             inputProps={{ 'aria-label': 'Selecionar treino' }}

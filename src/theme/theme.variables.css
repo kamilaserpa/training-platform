@@ -1,0 +1,60 @@
+/**
+ * Design System — Variáveis globais (identidade #e02397).
+ * Mobile-first, WCAG AA, estética moderna e feminina.
+ */
+
+:root {
+  /* --- Primary (pink) --- */
+  --color-primary: #e02397;
+  --color-primary-hover: #c41d82;
+  --color-primary-active: #a8186b;
+  --color-primary-light: #eb5fac;
+  --color-primary-soft: #fde6f4;
+
+  /* --- Neutras --- */
+  --color-dark: #1f1f1f;
+  --color-text: #333333;
+  --color-text-light: #6b6b6b;
+  --color-border: #ececec;
+  --color-background: #ffffff;
+  --color-background-soft: #fafafa;
+
+  /* --- Complementares --- */
+  --color-accent: #8b7a9e;
+  --color-accent-light: #b8a9c9;
+  --color-accent-soft: #f0ebf4;
+  --color-nude-light: #faf0f5;
+  --color-nude: #e8d4df;
+
+  /* --- Semânticas --- */
+  --color-error: #ee5d50;
+  --color-error-dark: #e31a1a;
+  --color-success: #05cd99;
+  --color-warning: #ffce20;
+
+  /* --- UI --- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-soft: 0 2px 8px rgba(224, 35, 151, 0.06);
+  --shadow-medium: 0 4px 16px rgba(224, 35, 151, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(224, 35, 151, 0.2);
+  --transition-ease: 0.2s ease;
+
+  /* --- Touch / Mobile --- */
+  --touch-min-height: 48px;
+  --touch-min-width: 48px;
+}
+
+/* Utilitárias */
+.text-primary-soft {
+  color: var(--color-primary);
+}
+
+.bg-primary-soft {
+  background-color: var(--color-primary-soft);
+}
+
+.border-primary-soft {
+  border-color: var(--color-primary-soft);
+}

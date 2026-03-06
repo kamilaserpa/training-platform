@@ -1,3 +1,4 @@
+import 'theme/theme.variables.css';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import BreakpointsProvider from 'providers/BreakpointsProvider';
 import React from 'react';

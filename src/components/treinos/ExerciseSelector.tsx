@@ -65,7 +65,7 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
       return await exerciseService.getExercisesLiteForSelectorUserAndApp(user.id);
     },
     ttl: EXERCISES_SELECTOR_TTL_MS,
-    revalidateOnMount: true,
+    revalidateOnMount: false,
     revalidateOnFocus: false,
   });
 
