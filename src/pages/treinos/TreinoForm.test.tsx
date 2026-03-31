@@ -947,4 +947,276 @@ describe('TreinoForm (integração)', () => {
             expect(screen.queryByText('Alongamento')).not.toBeInTheDocument()
         })
     })
+
+    it('em modo edição: quando um exercício de bloco não encontra correspondência no banco (createExerciseFromString), o treino não deve perder exercícios silenciosamente (teste TDD – falha)', async () => {
+        const queries: SupabaseQuery[] = []
+        supabaseMock.setAuthUser({ id: 'user-1' })
+        // Nenhum exercício compatível para matching por nome
+        const seedWithoutMatchingExercises: SeedData = {
+            weeks: seed.weeks,
+            movementPatterns: seed.movementPatterns,
+            exercises: [
+                { id: 'ex-other', name: 'Outro Nome', movement_pattern: { name: 'Mobilidade' }, tags: [] },
+            ],
+        }
+        supabaseMock.setQueryHandler(async (q) => {
+            queries.push(q)
+            // sobrescreve o handler default com o seed sem matching
+            if (q.table === 'training_weeks' && q.op === 'select') {
+                return { data: seedWithoutMatchingExercises.weeks, error: null }
+            }
+            if (q.table === 'movement_patterns' && q.op === 'select') {
+                return { data: seedWithoutMatchingExercises.movementPatterns, error: null }
+            }
+            if (q.table === 'exercises' && q.op === 'select') {
+                return { data: seedWithoutMatchingExercises.exercises, error: null }
+            }
+            // Treino existente em modo edição com blocos "preenchidos" apenas por nome (sem exercicioId)
+            if (q.table === 'trainings' && q.op === 'select' && q.single) {
+                return {
+                    data: {
+                        id: 't-no-match',
+                        training_week_id: 'w1',
+                        name: 'Treino S01-06',
+                        scheduled_date: '2026-02-06',
+                        description: '',
+                        internal_notes: '',
+                        movement_pattern_id: 'mp1',
+                        share_status: 'private',
+                        training_blocks: [
+                            {
+                                id: 'b1',
+                                training_id: 't-no-match',
+                                name: 'Bloco Principal 1',
+                                block_type: 'TREINO_PRINCIPAL',
+                                order_index: 4,
+                                exercise_prescriptions: [
+                                    {
+                                        id: 'p1',
+                                        sets: 3,
+                                        reps: '10',
+                                        duration_seconds: null,
+                                        rest_seconds: 60,
+                                        notes: '',
+                                        exercise: { id: null, name: 'Nome Sem Cadastro' }, // sem id válido
+                                        video_id: null,
+                                        video: null,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    error: null,
+                }
+            }
+            if (q.table === 'trainings' && q.op === 'update') {
+                return { data: { id: 't-no-match', updated_at: new Date().toISOString() }, error: null }
+            }
+            // deleteAllTrainingBlocks
+            if (q.table === 'training_blocks' && q.op === 'select') {
+                return { data: [{ id: 'b1' }], error: null }
+            }
+            if (q.table === 'exercise_prescriptions' && q.op === 'delete') {
+                return { data: null, error: null }
+            }
+            if (q.table === 'training_blocks' && q.op === 'delete') {
+                return { data: null, error: null }
+            }
+            // inserts de blocos e prescriptions
+            if (q.table === 'training_blocks' && q.op === 'insert') {
+                return {
+                    data: { id: 'b-new-1', ...(q.payload as any) },
+                    error: null,
+                }
+            }
+            if (q.table === 'exercise_prescriptions' && q.op === 'insert') {
+                return {
+                    data: { id: 'p-new-1', ...(q.payload as any) },
+                    error: null,
+                }
+            }
+            return { data: null, error: null }
+        })
+        const { user } = renderTreinoForm('/pages/treinos/t-no-match/editar')
+        // Carrega treino em modo edição
+        expect(await screen.findByText('Editar Treino')).toBeInTheDocument()
+
+        // Clica em "Atualizar Treino" sem alterar blocos
+        await user.click(screen.getByRole('button', { name: /Atualizar Treino/i }))
+
+        // Comportamento desejado: não criar prescriptions quando o exercício não existe no banco
+        const prescriptionInserts = queries.filter(
+            (x) => x.table === 'exercise_prescriptions' && x.op === 'insert',
+        )
+        expect(prescriptionInserts.length).toBe(0)
+
+        // E notificar o usuário com uma mensagem de erro clara
+        expect(
+            await screen.findByText(
+                /Exercício 'Nome Sem Cadastro' não encontrado no banco ao salvar bloco/i,
+            ),
+        ).toBeInTheDocument()
+    })
+
+    it('em modo edição: se houver erro ao recriar blocos após deleteAllTrainingBlocks, o treino não deve ficar parcialmente vazio (teste TDD – falha)', async () => {
+        const queries: SupabaseQuery[] = []
+        supabaseMock.setAuthUser({ id: 'user-1' })
+
+        const trainingWithAllBlocks = {
+            id: 't-error-during-update',
+            training_week_id: 'w1',
+            name: 'Treino S01-06',
+            scheduled_date: '2026-02-06',
+            description: '',
+            internal_notes: '',
+            movement_pattern_id: 'mp1',
+            share_status: 'private',
+            training_blocks: [
+                {
+                    id: 'b-mob',
+                    training_id: 't-error-during-update',
+                    name: 'Mobilidade Articular',
+                    block_type: 'MOBILIDADE_ARTICULAR',
+                    order_index: 1,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p-mob-1',
+                            sets: 1,
+                            reps: '30s',
+                            duration_seconds: 30,
+                            rest_seconds: 30,
+                            notes: '',
+                            exercise: { id: 'ex1', name: 'Alongamento Mobilidade' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+                {
+                    id: 'b-main-1',
+                    training_id: 't-error-during-update',
+                    name: 'Bloco Principal 1',
+                    block_type: 'TREINO_PRINCIPAL',
+                    order_index: 4,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p-main-1',
+                            sets: 3,
+                            reps: '10',
+                            duration_seconds: null,
+                            rest_seconds: 60,
+                            notes: '',
+                            exercise: { id: 'ex1', name: 'Alongamento Principal 1' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+                {
+                    id: 'b-main-2',
+                    training_id: 't-error-during-update',
+                    name: 'Bloco Principal 2',
+                    block_type: 'TREINO_PRINCIPAL',
+                    order_index: 5,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p-main-2',
+                            sets: 4,
+                            reps: '8',
+                            duration_seconds: null,
+                            rest_seconds: 90,
+                            notes: '',
+                            exercise: { id: 'ex1', name: 'Alongamento Principal 2' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+                {
+                    id: 'b-cond',
+                    training_id: 't-error-during-update',
+                    name: 'Condicionamento Físico',
+                    block_type: 'CONDICIONAMENTO_FISICO',
+                    order_index: 6,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p-cond-1',
+                            sets: 2,
+                            reps: '30s',
+                            duration_seconds: 30,
+                            rest_seconds: 30,
+                            notes: '',
+                            exercise: { id: 'ex1', name: 'Alongamento Condicionamento' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+            ],
+        }
+
+        let blockInsertCount = 0
+        let prescriptionInsertCount = 0
+
+        supabaseMock.setQueryHandler(async (q) => {
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            if (seeded.data || seeded.error) return seeded
+
+            if (q.table === 'trainings' && q.op === 'select' && q.single) {
+                return { data: trainingWithAllBlocks, error: null }
+            }
+            if (q.table === 'trainings' && q.op === 'update') {
+                return { data: { ...trainingWithAllBlocks, updated_at: new Date().toISOString() }, error: null }
+            }
+
+            // deleteAllTrainingBlocks: lista blocos e deleta todos + prescriptions
+            if (q.table === 'training_blocks' && q.op === 'select') {
+                return {
+                    data: trainingWithAllBlocks.training_blocks.map((b: any) => ({ id: b.id })),
+                    error: null,
+                }
+            }
+            if (q.table === 'exercise_prescriptions' && q.op === 'delete') {
+                return { data: null, error: null }
+            }
+            if (q.table === 'training_blocks' && q.op === 'delete') {
+                return { data: null, error: null }
+            }
+
+            // Durante recriação: simulamos um erro logo no primeiro insert de prescription
+            if (q.table === 'training_blocks' && q.op === 'insert') {
+                blockInsertCount += 1
+                const payload = q.payload as any
+                return {
+                    data: { id: `b-new-${blockInsertCount}`, ...payload },
+                    error: null,
+                }
+            }
+            if (q.table === 'exercise_prescriptions' && q.op === 'insert') {
+                prescriptionInsertCount += 1
+                if (prescriptionInsertCount === 1) {
+                    // primeira prescrição falha -> simula erro em persistTrainingBlocks
+                    return { data: null, error: new Error('Erro simulado ao criar prescrição') }
+                }
+                const payload = q.payload as any
+                return { data: { id: `p-new-${payload.exercise_id}`, ...payload }, error: null }
+            }
+
+            return { data: null, error: null }
+        })
+
+        const { user } = renderTreinoForm('/pages/treinos/t-error-during-update/editar')
+
+        expect(await screen.findByText('Editar Treino')).toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', { name: /Atualizar Treino/i }))
+
+        // Comportamento atual: erro é capturado, mas blocos/exercícios antigos já foram deletados.
+        // TDD: comportamento desejado – não deixar o treino com blocos principais/condicionamento "perdidos".
+        // Exigimos que, mesmo em caso de erro, NÃO haja cenário onde zero prescriptions sejam recriadas.
+        const prescriptionInserts = queries.filter(
+            (x) => x.table === 'exercise_prescriptions' && x.op === 'insert',
+        )
+        expect(prescriptionInserts.length).toBeGreaterThan(1)
+    })
 })

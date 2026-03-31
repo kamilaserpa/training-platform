@@ -556,6 +556,43 @@ class TrainingService {
     }
   }
 
+  // Deletar um conjunto específico de blocos de treino (e suas prescrições)
+  async deleteTrainingBlocksByIds(blockIds: string[]): Promise<void> {
+    if (useMock) {
+      return;
+    }
+
+    if (!blockIds || blockIds.length === 0) {
+      return;
+    }
+
+    try {
+      // Deletar todas as prescrições de exercícios dos blocos informados
+      const { error: prescriptionsError } = await this.withTimeout(
+        supabase.from('exercise_prescriptions').delete().in('training_block_id', blockIds),
+        60000,
+        'removendo exercícios de blocos específicos'
+      );
+
+      if (prescriptionsError) {
+        // Mesmo em caso de erro nas prescrições, tentamos prosseguir com a remoção dos blocos
+        console.warn('Aviso ao remover prescrições de blocos específicos:', prescriptionsError);
+      }
+
+      // Depois deletar os blocos em si
+      const { error: blocksError } = await this.withTimeout(
+        supabase.from('training_blocks').delete().in('id', blockIds),
+        80000,
+        'removendo blocos específicos do treino'
+      );
+
+      if (blocksError) throw blocksError;
+    } catch (error) {
+      console.error('Erro ao deletar blocos específicos do treino:', error);
+      throw error;
+    }
+  }
+
   // Deletar todos os blocos de um treino
   async deleteAllTrainingBlocks(trainingId: string): Promise<void> {
     if (useMock) {

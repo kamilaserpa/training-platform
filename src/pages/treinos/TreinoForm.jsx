@@ -1046,7 +1046,12 @@ function TreinoForm() {
         })
         devLog(`✅ Exercício '${exercise.name}' adicionado ao bloco com sucesso`)
       } else {
-        devLog(`⚠️ Exercício '${exerciseName}' não encontrado no banco, pulando...`)
+        // Antes: apenas logava e "pulava" silenciosamente.
+        // Agora: tratamos como erro de domínio para não perder itens visíveis na UI.
+        throw new Error(
+          `Exercício '${exerciseName}' não encontrado no banco para o bloco '${blockType}'. ` +
+          `Revise o nome ou recrie o exercício pelo fluxo de adicionar com vídeo.`
+        )
       }
 
     } catch (error) {
@@ -1245,7 +1250,11 @@ function TreinoForm() {
         await trainingService.addExerciseToBlock(prescriptionData)
         devLog(`✅ Exercício '${exercise.name}' adicionado ao bloco com protocolo`)
       } else {
-        devLog(`⚠️ Exercício '${exerciseObj.nome}' não encontrado, pulando...`)
+        // Não é aceitável "pular" silenciosamente um exercício que aparece na UI.
+        throw new Error(
+          `Exercício '${exerciseObj.nome}' não encontrado no banco ao salvar bloco. ` +
+          `Revise o cadastro ou recrie o exercício pelo fluxo de adicionar com vídeo.`
+        )
       }
 
     } catch (error) {
@@ -1260,23 +1269,47 @@ function TreinoForm() {
 
       // Primeiro, carregar os blocos existentes do banco
       const existingTraining = await trainingService.getTrainingById(trainingId)
-      const existingBlocks = existingTraining.training_blocks || []
-
+      const existingBlocks = existingTraining?.training_blocks || []
 
       const blockDrafts = getTrainingBlockDrafts()
 
-      // Para simplicidade, vamos remover todos os blocos existentes e criar novos
-      // TODO: Implementar lógica mais sofisticada para atualizar apenas os que mudaram
-      devLog('🗑️ Removendo blocos existentes...')
-      setSubmittingMessage('🗑️ Removendo blocos existentes...')
-      try {
-        await trainingService.deleteAllTrainingBlocks(trainingId)
-        devLog('✅ Todos os blocos existentes foram removidos')
-        setSubmittingMessage('✅ Blocos removidos, criando novos...')
-      } catch (error) {
-        console.warn('⚠️ Erro ao remover blocos existentes:', error)
-        setSubmittingMessage('⚠️ Erro ao remover blocos, continuando...')
-        // Continue mesmo se houver erro na remoção
+      // Estratégia de merge: remover apenas blocos "controlados pela UI"
+      const isControlledBlock = (block) => {
+        if (!block) return false
+        const type = block.block_type
+        const name = (block.name || '').toString().toLowerCase()
+        const order = block.order_index
+
+        if (type === 'MOBILIDADE_ARTICULAR') return true
+        if (type === 'ATIVACAO_CORE') return true
+        if (type === 'ATIVACAO_NEURAL') return true
+        if (type === 'CONDICIONAMENTO_FISICO') return true
+
+        if (type === 'TREINO_PRINCIPAL') {
+          if (order === 4 || order === 5) return true
+          if (name.includes('bloco')) return true
+        }
+
+        return false
+      }
+
+      const controlledBlocks = existingBlocks.filter(isControlledBlock)
+      const controlledBlockIds = controlledBlocks.map((b) => b.id).filter(Boolean)
+
+      if (controlledBlockIds.length > 0) {
+        devLog('🗑️ Removendo blocos controlados existentes...', controlledBlockIds)
+        setSubmittingMessage('🗑️ Removendo blocos controlados existentes...')
+        try {
+          await trainingService.deleteTrainingBlocksByIds(controlledBlockIds)
+          devLog('✅ Blocos controlados foram removidos')
+          setSubmittingMessage('✅ Blocos controlados removidos, criando novos...')
+        } catch (error) {
+          console.warn('⚠️ Erro ao remover blocos controlados existentes:', error)
+          setSubmittingMessage('⚠️ Erro ao remover blocos controlados, continuando...')
+          // Continue mesmo se houver erro na remoção (merge best-effort)
+        }
+      } else {
+        devLog('ℹ️ Nenhum bloco controlado encontrado para remoção')
       }
 
       await persistTrainingBlocks({
@@ -1347,6 +1380,17 @@ function TreinoForm() {
 
   const handleCopyLink = async () => {
     try {
+      // Nem todos os ambientes/browsers expõem navigator.clipboard
+      if (!navigator || !navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        console.warn('⚠️ Clipboard API indisponível neste ambiente; usando fallback manual.')
+        setSnackbar({
+          open: true,
+          message: 'Não foi possível copiar. Selecione e copie o link manualmente.',
+          severity: 'warning'
+        })
+        return
+      }
+
       await navigator.clipboard.writeText(shareLink)
       setCopySuccess(true)
 
@@ -1365,7 +1409,7 @@ function TreinoForm() {
       console.error('❌ Erro ao copiar link:', error)
       setSnackbar({
         open: true,
-        message: 'Erro ao copiar link',
+        message: 'Não foi possível copiar. Selecione e copie o link manualmente.',
         severity: 'error'
       })
     }
