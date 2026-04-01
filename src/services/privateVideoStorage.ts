@@ -173,8 +173,8 @@ export const privateVideoStorage = {
     return data.map((item) => ({
       name: item.name,
       size: item.metadata?.size || 0,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
+      created_at: item.created_at ?? '',
+      updated_at: item.updated_at ?? '',
     }));
   },
 
