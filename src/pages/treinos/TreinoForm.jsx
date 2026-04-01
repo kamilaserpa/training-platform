@@ -423,6 +423,29 @@ function TreinoForm() {
     }
   }, [watchedSemana, semanasCompletas])
 
+  // Pré-carregar exercícios "lite" para matching (cache global do formulário)
+  useEffect(() => {
+    let cancelled = false
+
+    const preloadExercisesLite = async () => {
+      try {
+        if (exercisesLiteCacheRef.current) return
+        const lite = await exerciseService.getExercisesLiteForMatching()
+        if (!cancelled) {
+          exercisesLiteCacheRef.current = lite
+        }
+      } catch (error) {
+        devLog('⚠️ Erro ao pré-carregar exercícios (lite):', error)
+      }
+    }
+
+    preloadExercisesLite()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // Hook para carregar dados do treino em modo de edição
   useEffect(() => {
     let isMounted = true;
@@ -1576,13 +1599,24 @@ function TreinoForm() {
         error?.name === 'TimeoutError' ||
         (error?.message && String(error.message).includes('Tempo esgotado'))
 
+      const messageFromError = String(error?.message ?? '')
+
       let message
       if (pendingCreatedTrainingIdRef.current) {
         message =
           'Treino já foi criado, mas os blocos não foram salvos (ex.: tempo esgotado). Suas alterações estão preservadas. Clique em "Salvar Treino" novamente para concluir (não criará outro treino).'
+      } else if (isTimeout && messageFromError.includes('criando treino')) {
+        message =
+          'Tempo esgotado ao criar o treino. Nenhuma alteração permanente foi salva. Verifique sua conexão e tente novamente.'
+      } else if (isTimeout && messageFromError.includes('atualizando treino')) {
+        message =
+          'Tempo esgotado ao atualizar os dados do treino. Nenhuma alteração permanente foi salva.'
+      } else if (isTimeout && messageFromError.includes('atualizando blocos do treino (RPC)')) {
+        message =
+          'A atualização dos blocos do treino demorou demais. O estado anterior do treino foi mantido. Tente novamente mais tarde.'
       } else if (isTimeout) {
         message =
-          'Tempo esgotado ao salvar. Verifique sua conexão e tente novamente. Seus dados não foram perdidos.'
+          'Tempo esgotado ao salvar. Verifique sua conexão e tente novamente. Seus dados podem não ter sido aplicados.'
       } else {
         message = error?.message || 'Erro ao salvar treino. Tente novamente.'
       }

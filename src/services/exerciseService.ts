@@ -100,17 +100,21 @@ class ExerciseService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('exercises')
-        .select(
-          `
-          id,
-          name,
-          movement_pattern:movement_patterns(name)
-        `,
-        )
-        .order('name')
-        .overrideTypes<ExerciseLiteForMatching[], { merge: false }>();
+      const { data, error } = await this.withTimeout(
+        supabase
+          .from('exercises')
+          .select(
+            `
+            id,
+            name,
+            movement_pattern:movement_patterns(name)
+          `,
+          )
+          .order('name')
+          .overrideTypes<ExerciseLiteForMatching[], { merge: false }>(),
+        60000,
+        'carregando exercícios (lite para matching)'
+      );
 
       if (error) {
         throw error;
