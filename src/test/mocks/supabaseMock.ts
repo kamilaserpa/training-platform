@@ -120,6 +120,7 @@ class QueryBuilder {
 
 function createSupabaseClientMock() {
   let queryHandler: SupabaseQueryHandler = defaultQueryHandler
+  const rpcCalls: Array<{ name: string; args: any }> = []
 
   const authGetUser = vi.fn(async () => ({
     data: { user: { id: 'user-1' } as any },
@@ -137,6 +138,10 @@ function createSupabaseClientMock() {
       getSession: authGetSession,
     },
     from: vi.fn((table: string) => new QueryBuilder(table, () => queryHandler)),
+    rpc: vi.fn(async (name: string, args?: any) => {
+      rpcCalls.push({ name, args })
+      return defaultQueryHandler()
+    }),
   }
 
   const setQueryHandler = (handler: SupabaseQueryHandler) => {
@@ -169,6 +174,8 @@ function createSupabaseClientMock() {
     })
 
     client.from.mockClear()
+    client.rpc.mockClear()
+    rpcCalls.splice(0, rpcCalls.length)
     queryHandler = defaultQueryHandler
   }
 
@@ -180,6 +187,7 @@ function createSupabaseClientMock() {
     setAuthUser,
     setAuthError,
     reset,
+    rpcCalls,
   }
 }
 

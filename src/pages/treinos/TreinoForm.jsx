@@ -65,6 +65,9 @@ import {
   FormSelect,
 } from '../../components/form'
 
+// Feature flag simples para controlar uso do RPC atômico de blocos
+const useAtomicBlocksRpc = true
+
 // Schema de validação (Yup)
 const validationSchema = yup.object().shape({
   data: yup.date().typeError('Data inválida').required('Data é obrigatória'),
@@ -1263,6 +1266,11 @@ function TreinoForm() {
     }
   }
 
+  const updateTrainingBlocksWithRpc = async (trainingId) => {
+    const blockDrafts = getTrainingBlockDrafts()
+    await trainingService.updateTrainingBlocksAtomically(trainingId, blockDrafts)
+  }
+
   // Função para atualizar os blocos do treino existente
   const updateTrainingBlocks = async (trainingId) => {
     try {
@@ -1522,7 +1530,11 @@ function TreinoForm() {
       devLog('🛠️ Processando blocos do treino...')
       try {
         if (isEditMode || isRetryAfterPartial) {
-          await updateTrainingBlocks(training.id)
+          if (useAtomicBlocksRpc) {
+            await updateTrainingBlocksWithRpc(training.id)
+          } else {
+            await updateTrainingBlocks(training.id)
+          }
         } else {
           await createTrainingBlocks(training.id)
         }

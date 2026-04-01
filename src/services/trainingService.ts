@@ -593,6 +593,73 @@ class TrainingService {
     }
   }
 
+  /**
+   * Atualiza os blocos de um treino de forma atômica via RPC no Supabase.
+   * Recebe os drafts já montados pelo `TreinoForm` e delega a recriação para o banco.
+   */
+  async updateTrainingBlocksAtomically(
+    trainingId: string,
+    blockDrafts: Array<{
+      name: string;
+      type: string;
+      items: any[];
+      order: number;
+    }>
+  ): Promise<void> {
+    if (useMock) {
+      // Em modo mock, mantemos o comportamento atual sem chamar o RPC real.
+      return;
+    }
+
+    const blocksWithItems = (blockDrafts || []).filter(
+      (b) => b && Array.isArray(b.items) && b.items.length > 0
+    );
+
+    if (blocksWithItems.length === 0) {
+      // Nada a atualizar em termos de blocos/exercícios.
+      return;
+    }
+
+    const payloadBlocks = blocksWithItems.map((block) => ({
+      name: block.name,
+      block_type: block.type,
+      order_index: block.order,
+      rest_between_exercises_seconds: 60,
+      exercises: (block.items || []).map((item: any) => ({
+        exercise_id: item.exercicioId,
+        video_id: item.videoId ?? null,
+        sets: Number(item.series) || 1,
+        reps: item.repeticoes ?? null,
+        duration_seconds:
+          item.tempoSegundos != null && item.tempoSegundos !== ''
+            ? Number(item.tempoSegundos)
+            : null,
+        rest_seconds:
+          item.intervaloSegundos != null && item.intervaloSegundos !== ''
+            ? Number(item.intervaloSegundos)
+            : 0,
+        weight_kg:
+          item.carga && item.carga !== ''
+            ? Number(String(item.carga).replace('kg', '').trim())
+            : null,
+        notes: item.observacoes ?? null,
+      })),
+    }));
+
+    const { error } = await this.withTimeout(
+      supabase.rpc('update_training_blocks_atomically', {
+        p_training_id: trainingId,
+        p_blocks: payloadBlocks,
+      }),
+      60000,
+      'atualizando blocos do treino (RPC)'
+    );
+
+    if (error) {
+      throw error;
+    }
+  }
+
   // Deletar todos os blocos de um treino
   async deleteAllTrainingBlocks(trainingId: string): Promise<void> {
     if (useMock) {
