@@ -24,7 +24,7 @@ export type SupabaseQueryHandler = (query: SupabaseQuery) =>
   | SupabaseResult
   | Promise<SupabaseResult>
 
-const defaultQueryHandler: SupabaseQueryHandler = async () => ({
+const defaultQueryHandler: SupabaseQueryHandler = async (_query: SupabaseQuery) => ({
   data: null,
   error: null,
 })
@@ -140,7 +140,7 @@ function createSupabaseClientMock() {
     from: vi.fn((table: string) => new QueryBuilder(table, () => queryHandler)),
     rpc: vi.fn(async (name: string, args?: any) => {
       rpcCalls.push({ name, args })
-      return defaultQueryHandler()
+      return { data: null, error: null }
     }),
   }
 

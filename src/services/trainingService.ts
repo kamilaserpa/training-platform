@@ -646,8 +646,8 @@ class TrainingService {
       })),
     }));
 
-    const { error } = await this.withTimeout(
-      supabase.rpc('update_training_blocks_atomically', {
+    const rpcResult = await this.withTimeout<any>(
+      (supabase as any).rpc('update_training_blocks_atomically', {
         p_training_id: trainingId,
         p_blocks: payloadBlocks,
       }),
@@ -655,8 +655,8 @@ class TrainingService {
       'atualizando blocos do treino (RPC)'
     );
 
-    if (error) {
-      throw error;
+    if (rpcResult && rpcResult.error) {
+      throw rpcResult.error;
     }
   }
 
