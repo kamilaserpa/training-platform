@@ -226,6 +226,27 @@ export interface CreateTrainingDTO {
   movement_pattern_id?: string | null;
 }
 
+/** Parâmetros do RPC `create_training_with_week` (criação atômica de treino + semana). */
+export interface CreateTrainingWithWeekParams {
+  name: string;
+  scheduled_date: string;
+  week_focus_id: string;
+  movement_pattern_id?: string | null;
+  description?: string;
+  internal_notes?: string;
+  estimated_duration_minutes?: number;
+  share_status?: string;
+  share_token?: string;
+}
+
+/** Parâmetros do RPC `update_training_with_week` (atualização de treino com recálculo de semana). */
+export interface UpdateTrainingWithWeekParams {
+  training_id: string;
+  name: string;
+  scheduled_date: string;
+  week_focus_id: string;
+}
+
 // ------------------------------------------------------------
 // Supabase client typing
 // ------------------------------------------------------------

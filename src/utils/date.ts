@@ -1,3 +1,5 @@
+import { addDays, getISOWeek, getISOWeekYear, startOfWeek } from 'date-fns';
+
 const ISO_DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const BR_DATE_ONLY_RE = /^\d{2}\/\d{2}\/\d{4}$/;
 
@@ -34,4 +36,17 @@ export function formatISODateOnlyLocal(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/** Segunda-feira local da semana ISO (alinhado a date_trunc('week', date) no Postgres). */
+export function getWeekStartMondayLocal(date: Date): Date {
+  return startOfWeek(date, { weekStartsOn: 1 });
+}
+
+export function getWeekEndSundayLocal(weekStartMonday: Date): Date {
+  return addDays(weekStartMonday, 6);
+}
+
+export function getIsoWeekAndYear(date: Date): { week: number; year: number } {
+  return { week: getISOWeek(date), year: getISOWeekYear(date) };
 }
