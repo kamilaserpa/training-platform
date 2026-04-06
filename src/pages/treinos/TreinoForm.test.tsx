@@ -5,7 +5,12 @@ import { Controller, useFormContext } from 'react-hook-form'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { supabaseMock, type SupabaseQuery } from '../../test/mocks/supabaseMock'
+import {
+    supabaseMock,
+    type SupabaseFilter,
+    type SupabaseQuery,
+    type SupabaseResult,
+} from '../../test/mocks/supabaseMock'
 import TreinoForm from './TreinoForm.jsx'
 
 // Make exercise adding deterministic in tests: replace AddExerciseModal with a tiny mock
@@ -228,6 +233,7 @@ vi.mock('../../lib/supabase', () => ({
 
 type SeedData = {
     weeks: Array<any>
+    weekFocuses: Array<any>
     movementPatterns: Array<any>
     exercises: Array<any>
 }
@@ -236,12 +242,19 @@ const seed: SeedData = {
     weeks: [
         {
             id: 'w1',
-            name: 'Semana 01 - Fevereiro 2026',
-            week_focus: { name: 'Hipertrofia' },
+            name: '2026-06',
+            week_focus_id: 'wf1',
+            week_focus: {
+                id: 'wf1',
+                name: 'Hipertrofia',
+                color_hex: '#3B82F6',
+                intensity_percentage: 65,
+            },
             start_date: '2026-02-02',
             end_date: '2026-02-08',
         },
     ],
+    weekFocuses: [{ id: 'wf1', name: 'Hipertrofia', color_hex: '#3B82F6', intensity_percentage: 65 }],
     movementPatterns: [{ id: 'mp1', name: 'Agachar' }],
     exercises: [{ id: 'ex1', name: 'Alongamento', movement_pattern: { name: 'Mobilidade' }, tags: [] }],
 }
@@ -297,9 +310,25 @@ function makeDefaultQueryHandler(queries: SupabaseQuery[]) {
     return async (q: SupabaseQuery) => {
         queries.push(q)
 
-        // Seed loads
+        if (q.table === 'week_focuses' && q.op === 'select') {
+            return { data: seed.weekFocuses, error: null }
+        }
+
         if (q.table === 'training_weeks' && q.op === 'select') {
-            return { data: seed.weeks, error: null }
+            let rows = seed.weeks
+            const idEq = q.filters.find((f): f is Extract<SupabaseFilter, { type: 'eq' }> => f.type === 'eq' && f.column === 'id')
+            const startEq = q.filters.find(
+                (f): f is Extract<SupabaseFilter, { type: 'eq' }> => f.type === 'eq' && f.column === 'start_date',
+            )
+            if (idEq) {
+                rows = rows.filter((w) => w.id === idEq.value)
+            } else if (startEq) {
+                rows = rows.filter((w) => w.start_date === startEq.value)
+            }
+            if (q.resultMode === 'maybeSingle' || q.resultMode === 'single') {
+                return { data: rows[0] ?? null, error: null }
+            }
+            return { data: rows, error: null }
         }
 
         if (q.table === 'movement_patterns' && q.op === 'select') {
@@ -310,14 +339,51 @@ function makeDefaultQueryHandler(queries: SupabaseQuery[]) {
             return { data: seed.exercises, error: null }
         }
 
-        // Default fallthrough
-        return { data: null, error: null }
+        if (q.table === 'trainings' && q.op === 'update') {
+            const idEq = q.filters.find((f): f is Extract<SupabaseFilter, { type: 'eq' }> => f.type === 'eq' && f.column === 'id')
+            return {
+                data: {
+                    id: idEq?.value,
+                    ...(q.payload as object),
+                    share_token: 'token-123',
+                },
+                error: null,
+            }
+        }
+
+        return null
+    }
+}
+
+/** Após create_training_with_week + getTrainingById (fluxo de criação). */
+function getTrainingSelectByIdFallback(q: SupabaseQuery): SupabaseResult | null {
+    if (q.table !== 'trainings' || q.op !== 'select' || !q.single) return null
+    const idEq = q.filters.find((f): f is Extract<SupabaseFilter, { type: 'eq' }> => f.type === 'eq' && f.column === 'id')
+    const id = (idEq?.value as string) ?? 't-default'
+    return {
+        data: {
+            id,
+            name: 'Treino',
+            training_week_id: 'w1',
+            scheduled_date: '2026-02-06',
+            share_token: 'token-123',
+            share_status: 'private',
+            training_blocks: [],
+        },
+        error: null,
     }
 }
 
 describe('TreinoForm (integração)', () => {
     beforeEach(() => {
         supabaseMock.reset()
+            ; (supabaseMock.client.rpc as any).mockImplementation(async (name: string, args?: Record<string, unknown>) => {
+                supabaseMock.rpcCalls.push({ name, args })
+                if (name === 'create_training_with_week') {
+                    return { data: 't-default', error: null }
+                }
+                return { data: null, error: null }
+            })
     })
 
     it('renderiza a tela de criação e permite salvar um treino (fluxo feliz)', async () => {
@@ -325,22 +391,10 @@ describe('TreinoForm (integração)', () => {
         supabaseMock.setAuthUser({ id: 'user-1' })
 
         supabaseMock.setQueryHandler(async (q) => {
-            // let default seeds resolve
             const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
-            if (q.table === 'trainings' && q.op === 'insert') {
-                const payload = q.payload as any
-                return {
-                    data: {
-                        id: 't1',
-                        ...payload,
-                        share_token: 'token-123',
-                    },
-                    error: null,
-                }
-            }
-
+            if (seeded !== null) return seeded
+            const byId = getTrainingSelectByIdFallback(q)
+            if (byId !== null) return byId
             return { data: null, error: null }
         })
 
@@ -349,60 +403,56 @@ describe('TreinoForm (integração)', () => {
         // Header
         expect(await screen.findByText('Criar Treino')).toBeInTheDocument()
 
-        // Preencher selects
-        await openMuiSelect(user, /Padrão de Movimento/i)
-        await chooseOption(user, /Agachar/i)
-
-        await openMuiSelect(user, /Semana/i)
-        await chooseOption(user, /Semana 01 - Fevereiro 2026/i)
-
-        // Preencher data
+        // Preencher data primeiro (para evitar que sobrescreva o nome)
         const dateInput = screen.getByLabelText(/Data do Treino/i)
         await user.clear(dateInput)
         await user.type(dateInput, '06/02/2026')
         await user.tab()
 
+        // Agora preencher nome (depois da data)
+        await user.clear(screen.getByLabelText(/Nome do Treino/i))
+        await user.type(screen.getByLabelText(/Nome do Treino/i), 'Treino Teste')
+
+        await openMuiSelect(user, /Padrão de Movimento/i)
+        await chooseOption(user, /Agachar/i)
+
         // Salvar
         await user.click(screen.getByRole('button', { name: /Salvar Treino/i }))
 
-        // Snackbar de sucesso
-        expect(await screen.findByText(/Treino criado com sucesso!/i)).toBeInTheDocument()
+        // Aguardar snackbar de sucesso (pode incluir texto sobre link de compartilhamento)
+        expect(await screen.findByText(/Treino criado com sucesso/i, {}, { timeout: 5000 })).toBeInTheDocument()
 
-        // Confiança: payload enviado (scheduled_date formatado em YYYY-MM-DD local)
-        const insert = queries.find((x) => x.table === 'trainings' && x.op === 'insert')
-        expect(insert).toBeTruthy()
-        expect((insert!.payload as any).scheduled_date).toBe('2026-02-06')
+        // Verificar que o RPC foi chamado corretamente (sem waitFor adicional)
+        const rpcCall = supabaseMock.rpcCalls.find((c) => c.name === 'create_training_with_week')
+        expect(rpcCall).toBeTruthy()
+        expect((rpcCall!.args as any).p_scheduled_date).toBe('2026-02-06')
+        expect((rpcCall!.args as any).p_name).toBe('Treino Teste')
+        expect((rpcCall!.args as any).p_movement_pattern_id).toBe('mp1')
+        expect((rpcCall!.args as any).p_created_by).toBe('user-1')
 
-        // Navegação pós-criação: a tela agenda um navigate em 1500ms.
-        // Para manter o teste focado no comportamento, verificamos que o timer dispara sem crash.
-        // (Rota real do app é /pages/treinos/:id/editar; aqui evitamos re-render complexo do TreinoForm.)
-        await waitFor(() => {
-            expect(screen.queryByText(/Salvando/i)).not.toBeInTheDocument()
-        })
-
-    })
+        // Verificar que o treino foi buscado por ID após criação
+        const selectQuery = queries.find(
+            (q) => q.table === 'trainings' && q.op === 'select' && q.single
+        )
+        expect(selectQuery).toBeTruthy()
+    }, 10000)
 
     it('permite adicionar exercícios em todos os blocos e salvar o treino', async () => {
         const queries: SupabaseQuery[] = []
         supabaseMock.setAuthUser({ id: 'user-1' })
+            ; (supabaseMock.client.rpc as any).mockImplementation(async (name: string, args?: Record<string, unknown>) => {
+                supabaseMock.rpcCalls.push({ name, args })
+                if (name === 'create_training_with_week') {
+                    return { data: 't-all-blocks', error: null }
+                }
+                return { data: null, error: null }
+            })
 
         let createdBlockCounter = 0
 
         supabaseMock.setQueryHandler(async (q) => {
             const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
-            if (q.table === 'trainings' && q.op === 'insert') {
-                const payload = q.payload as any
-                return {
-                    data: {
-                        id: 't-all-blocks',
-                        ...payload,
-                        share_token: 'token-abc',
-                    },
-                    error: null,
-                }
-            }
+            if (seeded !== null) return seeded
 
             if (q.table === 'training_blocks' && q.op === 'insert') {
                 createdBlockCounter += 1
@@ -431,6 +481,9 @@ describe('TreinoForm (integração)', () => {
                 }
             }
 
+            const byId = getTrainingSelectByIdFallback(q)
+            if (byId !== null) return byId
+
             return { data: null, error: null }
         })
 
@@ -438,11 +491,10 @@ describe('TreinoForm (integração)', () => {
 
         expect(await screen.findByText('Criar Treino')).toBeInTheDocument()
 
+        await user.type(screen.getByLabelText(/Nome do Treino/i), 'Treino Blocos')
+
         await openMuiSelect(user, /Padrão de Movimento/i)
         await chooseOption(user, /Agachar/i)
-
-        await openMuiSelect(user, /Semana/i)
-        await chooseOption(user, /Semana 01 - Fevereiro 2026/i)
 
         const dateInput = screen.getByLabelText(/Data do Treino/i)
         await user.clear(dateInput)
@@ -466,12 +518,15 @@ describe('TreinoForm (integração)', () => {
         expect(await screen.findByText('Exercício condicionamento')).toBeInTheDocument()
 
         await user.click(screen.getByRole('button', { name: /Salvar Treino/i }))
-        expect(await screen.findByText(/Treino criado com sucesso!/i, {}, { timeout: 10000 })).toBeInTheDocument()
 
-        // Assertions: training saved + blocks created + prescriptions inserted
-        const trainingInsert = queries.find((x) => x.table === 'trainings' && x.op === 'insert')
-        expect(trainingInsert).toBeTruthy()
-        expect((trainingInsert!.payload as any).scheduled_date).toBe('2026-02-06')
+        await waitFor(
+            () => {
+                expect(screen.getByText(/Treino criado com sucesso!/i)).toBeInTheDocument()
+            },
+            { timeout: 10000 }
+        )
+
+        expect(supabaseMock.rpcCalls.some((c) => c.name === 'create_training_with_week')).toBe(true)
 
         const blockInserts = queries.filter((x) => x.table === 'training_blocks' && x.op === 'insert')
         expect(blockInserts).toHaveLength(6)
@@ -490,24 +545,19 @@ describe('TreinoForm (integração)', () => {
     it('em TreinoForm: adiciona exercício novo com vídeo e configurações (fluxo completo)', async () => {
         const queries: SupabaseQuery[] = []
         supabaseMock.setAuthUser({ id: 'user-1' })
+            ; (supabaseMock.client.rpc as any).mockImplementation(async (name: string, args?: Record<string, unknown>) => {
+                supabaseMock.rpcCalls.push({ name, args })
+                if (name === 'create_training_with_week') {
+                    return { data: 't-full-flow', error: null }
+                }
+                return { data: null, error: null }
+            })
 
         let createdBlockCounter = 0
 
         supabaseMock.setQueryHandler(async (q) => {
             const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
-            if (q.table === 'trainings' && q.op === 'insert') {
-                const payload = q.payload as any
-                return {
-                    data: {
-                        id: 't-full-flow',
-                        ...payload,
-                        share_token: 'token-full',
-                    },
-                    error: null,
-                }
-            }
+            if (seeded !== null) return seeded
 
             if (q.table === 'training_blocks' && q.op === 'insert') {
                 createdBlockCounter += 1
@@ -536,6 +586,9 @@ describe('TreinoForm (integração)', () => {
                 }
             }
 
+            const byId = getTrainingSelectByIdFallback(q)
+            if (byId !== null) return byId
+
             return { data: null, error: null }
         })
 
@@ -543,11 +596,10 @@ describe('TreinoForm (integração)', () => {
 
         expect(await screen.findByText('Criar Treino')).toBeInTheDocument()
 
+        await user.type(screen.getByLabelText(/Nome do Treino/i), 'Treino Vídeo')
+
         await openMuiSelect(user, /Padrão de Movimento/i)
         await chooseOption(user, /Agachar/i)
-
-        await openMuiSelect(user, /Semana/i)
-        await chooseOption(user, /Semana 01 - Fevereiro 2026/i)
 
         const dateInput = screen.getByLabelText(/Data do Treino/i)
         await user.clear(dateInput)
@@ -605,15 +657,19 @@ describe('TreinoForm (integração)', () => {
     it('mostra erro quando a API (Supabase) falha ao salvar', async () => {
         const queries: SupabaseQuery[] = []
         supabaseMock.setAuthUser({ id: 'user-1' })
+            ; (supabaseMock.client.rpc as any).mockImplementation(async (name: string, args?: Record<string, unknown>) => {
+                supabaseMock.rpcCalls.push({ name, args })
+                return {
+                    data: null,
+                    error: new Error('Falha ao salvar'),
+                }
+            })
 
         supabaseMock.setQueryHandler(async (q) => {
             const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
-            if (q.table === 'trainings' && q.op === 'insert') {
-                return { data: null, error: new Error('Falha ao salvar') }
-            }
-
+            if (seeded !== null) return seeded
+            const byId = getTrainingSelectByIdFallback(q)
+            if (byId !== null) return byId
             return { data: null, error: null }
         })
 
@@ -621,11 +677,10 @@ describe('TreinoForm (integração)', () => {
 
         expect(await screen.findByText('Criar Treino')).toBeInTheDocument()
 
+        await user.type(screen.getByLabelText(/Nome do Treino/i), 'Treino Erro')
+
         await openMuiSelect(user, /Padrão de Movimento/i)
         await chooseOption(user, /Agachar/i)
-
-        await openMuiSelect(user, /Semana/i)
-        await chooseOption(user, /Semana 01 - Fevereiro 2026/i)
 
         const dateInput = screen.getByLabelText(/Data do Treino/i)
         await user.clear(dateInput)
@@ -635,6 +690,7 @@ describe('TreinoForm (integração)', () => {
         await user.click(screen.getByRole('button', { name: /Salvar Treino/i }))
 
         expect(await screen.findByText(/Falha ao salvar/i)).toBeInTheDocument()
+        expect(supabaseMock.rpcCalls.some((c) => c.name === 'create_training_with_week')).toBe(true)
     })
 
     it('em modo edição: exibe loading e depois carrega dados do treino', async () => {
@@ -643,6 +699,16 @@ describe('TreinoForm (integração)', () => {
         const training = {
             id: 't-edit',
             training_week_id: 'w1',
+            training_week: {
+                id: 'w1',
+                start_date: '2026-02-02',
+                end_date: '2026-02-08',
+                week_focus: {
+                    name: 'Hipertrofia',
+                    color_hex: '#3B82F6',
+                    intensity_percentage: 65,
+                },
+            },
             name: 'Treino S01-06',
             scheduled_date: '2026-02-06',
             description: 'Obs públicas',
@@ -653,14 +719,11 @@ describe('TreinoForm (integração)', () => {
         }
 
         supabaseMock.setQueryHandler(async (q) => {
-            const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
             if (q.table === 'trainings' && q.op === 'select' && q.single) {
                 return { data: training, error: null }
             }
-
-            return { data: null, error: null }
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            return seeded ?? { data: null, error: null }
         })
 
         renderTreinoForm('/pages/treinos/t-edit/editar')
@@ -687,6 +750,16 @@ describe('TreinoForm (integração)', () => {
         const trainingWithThreeBlocks = {
             id: 't-three-blocks',
             training_week_id: 'w1',
+            training_week: {
+                id: 'w1',
+                start_date: '2026-02-02',
+                end_date: '2026-02-08',
+                week_focus: {
+                    name: 'Hipertrofia',
+                    color_hex: '#3B82F6',
+                    intensity_percentage: 65,
+                },
+            },
             name: 'Treino S01-06',
             scheduled_date: '2026-02-06',
             description: '',
@@ -761,12 +834,12 @@ describe('TreinoForm (integração)', () => {
         }
 
         supabaseMock.setQueryHandler(async (q) => {
-            const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
             if (q.table === 'trainings' && q.op === 'select' && q.single) {
                 return { data: trainingWithThreeBlocks, error: null }
             }
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            if (seeded !== null) return seeded
+
             if (q.table === 'trainings' && q.op === 'update') {
                 return { data: { ...trainingWithThreeBlocks, updated_at: new Date().toISOString() }, error: null }
             }
@@ -804,17 +877,19 @@ describe('TreinoForm (integração)', () => {
         const queries: SupabaseQuery[] = []
         supabaseMock.setAuthUser(null)
 
-        supabaseMock.setQueryHandler(makeDefaultQueryHandler(queries))
+        supabaseMock.setQueryHandler(async (q) => {
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            return seeded ?? { data: null, error: null }
+        })
 
         const { user } = renderTreinoForm('/pages/treinos/novo')
 
         expect(await screen.findByText('Criar Treino')).toBeInTheDocument()
 
+        await user.type(screen.getByLabelText(/Nome do Treino/i), 'Treino Auth')
+
         await openMuiSelect(user, /Padrão de Movimento/i)
         await chooseOption(user, /Agachar/i)
-
-        await openMuiSelect(user, /Semana/i)
-        await chooseOption(user, /Semana 01 - Fevereiro 2026/i)
 
         const dateInput = screen.getByLabelText(/Data do Treino/i)
         await user.clear(dateInput)
@@ -825,25 +900,26 @@ describe('TreinoForm (integração)', () => {
 
         expect(await screen.findByText(/Usuário não autenticado/i)).toBeInTheDocument()
 
-        // Como o erro ocorre antes do insert, não deve haver insert em trainings
-        expect(queries.some((q) => q.table === 'trainings' && q.op === 'insert')).toBe(false)
+        expect(supabaseMock.rpcCalls.some((c) => c.name === 'create_training_with_week')).toBe(false)
     })
 
     it('mostra erro quando auth.getUser falha (sessão expirada, etc.)', async () => {
         const queries: SupabaseQuery[] = []
         supabaseMock.setAuthError(new Error('Sessão expirada'))
 
-        supabaseMock.setQueryHandler(makeDefaultQueryHandler(queries))
+        supabaseMock.setQueryHandler(async (q) => {
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            return seeded ?? { data: null, error: null }
+        })
 
         const { user } = renderTreinoForm('/pages/treinos/novo')
 
         expect(await screen.findByText('Criar Treino')).toBeInTheDocument()
 
+        await user.type(screen.getByLabelText(/Nome do Treino/i), 'Treino Auth')
+
         await openMuiSelect(user, /Padrão de Movimento/i)
         await chooseOption(user, /Agachar/i)
-
-        await openMuiSelect(user, /Semana/i)
-        await chooseOption(user, /Semana 01 - Fevereiro 2026/i)
 
         const dateInput = screen.getByLabelText(/Data do Treino/i)
         await user.clear(dateInput)
@@ -854,7 +930,7 @@ describe('TreinoForm (integração)', () => {
 
         expect(await screen.findByText(/Sessão expirada/i)).toBeInTheDocument()
 
-        expect(queries.some((q) => q.table === 'trainings' && q.op === 'insert')).toBe(false)
+        expect(supabaseMock.rpcCalls.some((c) => c.name === 'create_training_with_week')).toBe(false)
     })
 
     it('pede confirmação ao excluir um exercício e só remove após confirmar', async () => {
@@ -863,6 +939,16 @@ describe('TreinoForm (integração)', () => {
         const trainingWithBlocks = {
             id: 't-del',
             training_week_id: 'w1',
+            training_week: {
+                id: 'w1',
+                start_date: '2026-02-02',
+                end_date: '2026-02-08',
+                week_focus: {
+                    name: 'Hipertrofia',
+                    color_hex: '#3B82F6',
+                    intensity_percentage: 65,
+                },
+            },
             name: 'Treino S01-06',
             scheduled_date: '2026-02-06',
             description: '',
@@ -895,14 +981,11 @@ describe('TreinoForm (integração)', () => {
         }
 
         supabaseMock.setQueryHandler(async (q) => {
-            const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
             if (q.table === 'trainings' && q.op === 'select' && q.single) {
                 return { data: trainingWithBlocks, error: null }
             }
-
-            return { data: null, error: null }
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            return seeded ?? { data: null, error: null }
         })
 
         const { user } = renderTreinoForm('/pages/treinos/t-del/editar')
@@ -937,6 +1020,7 @@ describe('TreinoForm (integração)', () => {
         // Nenhum exercício compatível para matching por nome
         const seedWithoutMatchingExercises: SeedData = {
             weeks: seed.weeks,
+            weekFocuses: seed.weekFocuses,
             movementPatterns: seed.movementPatterns,
             exercises: [
                 { id: 'ex-other', name: 'Outro Nome', movement_pattern: { name: 'Mobilidade' }, tags: [] },
@@ -945,6 +1029,9 @@ describe('TreinoForm (integração)', () => {
         supabaseMock.setQueryHandler(async (q) => {
             queries.push(q)
             // sobrescreve o handler default com o seed sem matching
+            if (q.table === 'week_focuses' && q.op === 'select') {
+                return { data: seedWithoutMatchingExercises.weekFocuses, error: null }
+            }
             if (q.table === 'training_weeks' && q.op === 'select') {
                 return { data: seedWithoutMatchingExercises.weeks, error: null }
             }
@@ -960,6 +1047,16 @@ describe('TreinoForm (integração)', () => {
                     data: {
                         id: 't-no-match',
                         training_week_id: 'w1',
+                        training_week: {
+                            id: 'w1',
+                            start_date: '2026-02-02',
+                            end_date: '2026-02-08',
+                            week_focus: {
+                                name: 'Hipertrofia',
+                                color_hex: '#3B82F6',
+                                intensity_percentage: 65,
+                            },
+                        },
                         name: 'Treino S01-06',
                         scheduled_date: '2026-02-06',
                         description: '',
@@ -1033,9 +1130,7 @@ describe('TreinoForm (integração)', () => {
         )
         expect(prescriptionInserts.length).toBe(0)
 
-        // E notificar o usuário via Snackbar de erro (role="alert")
-        const alert = await screen.findByRole('alert')
-        expect(alert).toBeInTheDocument()
+        expect(await screen.findByRole('alert')).toBeInTheDocument()
     })
 
     // TODO (RPC/atomic): cenário antigo simulava erro durante recriação via inserts JS em `exercise_prescriptions`.
@@ -1047,22 +1142,50 @@ describe('TreinoForm (integração)', () => {
         const trainingForError = {
             id: 't-error-rpc',
             training_week_id: 'w1',
+            training_week: {
+                id: 'w1',
+                start_date: '2026-02-02',
+                end_date: '2026-02-08',
+                week_focus: {
+                    name: 'Hipertrofia',
+                    color_hex: '#3B82F6',
+                    intensity_percentage: 65,
+                },
+            },
             name: 'Treino RPC Erro',
             scheduled_date: '2026-02-06',
             description: '',
             internal_notes: '',
             movement_pattern_id: 'mp1',
             share_status: 'private',
-            training_blocks: [],
+            training_blocks: [
+                {
+                    id: 'b-mob',
+                    training_id: 't-error-rpc',
+                    name: 'Mobilidade Articular',
+                    block_type: 'MOBILIDADE_ARTICULAR',
+                    order_index: 1,
+                    exercise_prescriptions: [
+                        {
+                            id: 'p-mob',
+                            sets: 2,
+                            reps: '10',
+                            exercise: { id: 'ex1', name: 'Alongamento' },
+                            video_id: null,
+                            video: null,
+                        },
+                    ],
+                },
+            ],
         }
 
         supabaseMock.setQueryHandler(async (q) => {
-            const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
             if (q.table === 'trainings' && q.op === 'select' && q.single) {
                 return { data: trainingForError, error: null }
             }
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            if (seeded !== null) return seeded
+
             if (q.table === 'trainings' && q.op === 'update') {
                 return { data: { ...trainingForError, updated_at: new Date().toISOString() }, error: null }
             }
@@ -1070,11 +1193,16 @@ describe('TreinoForm (integração)', () => {
             return { data: null, error: null }
         })
 
-        // Simula erro no RPC de atualização de blocos
-        ;(supabaseMock.client.rpc as any).mockImplementationOnce(async () => ({
-            data: null,
-            error: new Error('Erro simulado no RPC de blocos'),
-        }))
+            // Simula erro no RPC de atualização de blocos
+            ; (supabaseMock.client.rpc as any).mockImplementationOnce(
+                async (name: string, args?: Record<string, unknown>) => {
+                    supabaseMock.rpcCalls.push({ name, args })
+                    return {
+                        data: null,
+                        error: new Error('Erro simulado no RPC de blocos'),
+                    }
+                },
+            )
 
         const { user } = renderTreinoForm('/pages/treinos/t-error-rpc/editar')
 
@@ -1082,9 +1210,7 @@ describe('TreinoForm (integração)', () => {
 
         await user.click(screen.getByRole('button', { name: /Atualizar Treino/i }))
 
-        // Deve exibir Snackbar de erro (role="alert") em vez de sucesso
-        const alert = await screen.findByRole('alert')
-        expect(alert).toBeInTheDocument()
+        expect(await screen.findByText(/Erro simulado no RPC de blocos/i)).toBeInTheDocument()
     })
 
     it('em modo edição: usa RPC update_training_blocks_atomically quando a feature flag está ativa', async () => {
@@ -1094,6 +1220,16 @@ describe('TreinoForm (integração)', () => {
         const trainingForRpc = {
             id: 't-rpc',
             training_week_id: 'w1',
+            training_week: {
+                id: 'w1',
+                start_date: '2026-02-02',
+                end_date: '2026-02-08',
+                week_focus: {
+                    name: 'Hipertrofia',
+                    color_hex: '#3B82F6',
+                    intensity_percentage: 65,
+                },
+            },
             name: 'Treino RPC',
             scheduled_date: '2026-02-06',
             description: '',
@@ -1104,12 +1240,12 @@ describe('TreinoForm (integração)', () => {
         }
 
         supabaseMock.setQueryHandler(async (q) => {
-            const seeded = await makeDefaultQueryHandler(queries)(q)
-            if (seeded.data || seeded.error) return seeded
-
             if (q.table === 'trainings' && q.op === 'select' && q.single) {
                 return { data: trainingForRpc, error: null }
             }
+            const seeded = await makeDefaultQueryHandler(queries)(q)
+            if (seeded !== null) return seeded
+
             if (q.table === 'trainings' && q.op === 'update') {
                 return { data: { ...trainingForRpc, updated_at: new Date().toISOString() }, error: null }
             }

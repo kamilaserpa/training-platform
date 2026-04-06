@@ -184,7 +184,7 @@ npm run dev  # Modo normal
 
 ```bash
 # 1. Crie dois projetos no Supabase:
-# - treinos-dev (dados de teste)  
+# - treinos-dev (dados de teste)
 # - treinos-app (dados reais)
 
 # 2. Configure .env.local para desenvolvimento
@@ -308,6 +308,11 @@ git push origin main
 # → Dados reais protegidos
 ```
 
+Teste
+
+```shell
+npm run test:run -- src/pages/treinos/TreinoForm.test.tsx -t "feliz"
+```
 ---
 
 ### Opção 2: Supabase CLI Local (Avançado)
@@ -546,7 +551,7 @@ Abra o [Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql/new) e
 
 **1. Personal se cadastra normalmente:**
 - Acessa a aplicação
-- Clica em "Cadastrar" 
+- Clica em "Cadastrar"
 - Preenche email e senha
 - Supabase Auth cria o usuário automaticamente
 
@@ -572,7 +577,7 @@ SELECT create_initial_owner(
 ```sql
 SELECT create_initial_owner(
     'c310a67a-3a94-47f9-b3dd-db5fec871e3b',
-    'joao@personaltrainer.com', 
+    'joao@personaltrainer.com',
     'João Silva Personal'
 );
 ```

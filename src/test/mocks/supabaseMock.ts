@@ -13,6 +13,8 @@ export type SupabaseQuery = {
   filters: SupabaseFilter[]
   order?: { column: string; options?: unknown }
   single?: boolean
+  /** `single` / `maybeSingle` from supabase-js */
+  resultMode?: 'many' | 'single' | 'maybeSingle'
 }
 
 export type SupabaseResult<TData = any> = {
@@ -38,7 +40,7 @@ class QueryBuilder {
   private payloadValue: SupabaseQuery['payload']
   private filtersValue: SupabaseFilter[] = []
   private orderValue: SupabaseQuery['order']
-  private singleValue = false
+  private resultMode: SupabaseQuery['resultMode'] = 'many'
 
   constructor(table: string, getHandler: () => SupabaseQueryHandler) {
     this.table = table
@@ -88,7 +90,12 @@ class QueryBuilder {
   }
 
   single() {
-    this.singleValue = true
+    this.resultMode = 'single'
+    return this
+  }
+
+  maybeSingle() {
+    this.resultMode = 'maybeSingle'
     return this
   }
 
@@ -106,7 +113,8 @@ class QueryBuilder {
       payload: this.payloadValue,
       filters: this.filtersValue,
       order: this.orderValue,
-      single: this.singleValue,
+      single: this.resultMode === 'single' || this.resultMode === 'maybeSingle',
+      resultMode: this.resultMode,
     })
   }
 

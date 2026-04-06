@@ -4,12 +4,16 @@ import type {
   CreateExercisePrescriptionDTO,
   CreateTrainingBlockDTO,
   CreateTrainingDTO,
+  CreateTrainingWithWeekParams,
   ExercisePrescription,
   Training,
   TrainingBlock,
   TrainingWeek,
+  UpdateTrainingWithWeekParams,
   WeekFocus,
 } from '../types/database.types';
+import { formatISODateOnlyLocal, getWeekEndSundayLocal, getWeekStartMondayLocal, parseLocalDate } from '../utils/date';
+import { weekService } from './weekService';
 
 export type CurrentWeekSummary = Pick<TrainingWeek, 'id' | 'name' | 'start_date' | 'end_date' | 'status'> & {
   week_focus?: Pick<WeekFocus, 'name'> | null;
@@ -131,7 +135,7 @@ class TrainingService {
           const {
             data: { session },
             error: sessionError,
-          } = await this.withTimeout(supabase.auth.getSession(), 12000, 'obtendo sessão');
+          } = await this.withTimeout(supabase.auth.getSession(), 20000, 'obtendo sessão');
 
           if (sessionError) {
             lastAuthError = sessionError;
@@ -153,7 +157,7 @@ class TrainingService {
               if (r.error) throw r.error;
               return r.data.user;
             }),
-            15000,
+            25000,
             'obtendo usuário'
           );
           return user?.id ?? null;
@@ -393,6 +397,71 @@ class TrainingService {
     }
   }
 
+  /**
+   * Cria treino (e semana quando necessário) via RPC atômico no banco.
+   * Após o RPC, recarrega o treino completo (incl. share_token gerado por triggers/defaults).
+   */
+  async createTrainingWithWeek(params: CreateTrainingWithWeekParams): Promise<Training> {
+    if (useMock) {
+      const monday = getWeekStartMondayLocal(parseLocalDate(params.scheduled_date));
+      const mondayStr = formatISODateOnlyLocal(monday);
+      const endSunday = getWeekEndSundayLocal(monday);
+
+      let week = await weekService.getTrainingWeekByStartDate(mondayStr);
+
+      if (!week) {
+        week = await weekService.createTrainingWeek({
+          name: `${params.scheduled_date.slice(0, 4)}-${mondayStr}`,
+          week_focus_id: params.week_focus_id,
+          start_date: mondayStr,
+          end_date: formatISODateOnlyLocal(endSunday),
+        });
+      }
+
+      return this.createTraining({
+        training_week_id: week.id,
+        name: params.name,
+        scheduled_date: params.scheduled_date,
+        movement_pattern_id: null,
+      });
+    }
+
+    try {
+      const userId = await this.getCurrentUserId();
+
+      const rpcResult = (await this.withTimeout(
+        (supabase as any).rpc('create_training_with_week', {
+          p_name: params.name,
+          p_scheduled_date: params.scheduled_date,
+          p_week_focus_id: params.week_focus_id,
+          p_created_by: userId,
+          p_movement_pattern_id: params.movement_pattern_id || null,
+          p_description: params.description || null,
+          p_internal_notes: params.internal_notes || null,
+          p_estimated_duration_minutes: params.estimated_duration_minutes || null,
+          p_share_status: params.share_status || null,
+          p_share_token: params.share_token || null,
+        }),
+        60000,
+        'criando treino (RPC create_training_with_week)',
+      )) as { data: unknown; error: unknown };
+
+      const trainingId = rpcResult.data;
+      if (rpcResult.error) throw rpcResult.error;
+      if (!trainingId || typeof trainingId !== 'string') {
+        throw new Error('Resposta inválida ao criar treino');
+      }
+
+      const training = await this.getTrainingById(trainingId);
+      if (!training) throw new Error('Treino criado mas não foi possível recarregar os dados');
+
+      return training;
+    } catch (error) {
+      console.error('Erro ao criar treino com semana (RPC):', error);
+      throw error;
+    }
+  }
+
   async updateTraining(id: string, updates: Partial<CreateTrainingDTO>): Promise<Training> {
     if (useMock) {
       const index = mockTrainings.findIndex((t) => t.id === id);
@@ -432,6 +501,62 @@ class TrainingService {
       return data;
     } catch (error) {
       console.error('Erro ao atualizar treino:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza treino recalculando automaticamente a semana via RPC.
+   * Permite mudança livre da data; a semana será recalculada/criada conforme necessário.
+   */
+  async updateTrainingWithWeek(params: UpdateTrainingWithWeekParams): Promise<Training> {
+    if (useMock) {
+      const monday = getWeekStartMondayLocal(parseLocalDate(params.scheduled_date));
+      const mondayStr = formatISODateOnlyLocal(monday);
+      const endSunday = getWeekEndSundayLocal(monday);
+
+      let week = await weekService.getTrainingWeekByStartDate(mondayStr);
+
+      if (!week) {
+        week = await weekService.createTrainingWeek({
+          name: `${params.scheduled_date.slice(0, 4)}-${mondayStr}`,
+          week_focus_id: params.week_focus_id,
+          start_date: mondayStr,
+          end_date: formatISODateOnlyLocal(endSunday),
+        });
+      }
+
+      return this.updateTraining(params.training_id, {
+        training_week_id: week.id,
+        name: params.name,
+        scheduled_date: params.scheduled_date,
+      });
+    }
+
+    try {
+      const userId = await this.getCurrentUserId();
+
+      const rpcResult = (await this.withTimeout(
+        (supabase as any).rpc('update_training_with_week', {
+          p_training_id: params.training_id,
+          p_name: params.name,
+          p_scheduled_date: params.scheduled_date,
+          p_week_focus_id: params.week_focus_id,
+          p_created_by: userId,
+        }),
+        60000,
+        'atualizando treino (RPC update_training_with_week)',
+      )) as { data: unknown; error: unknown };
+
+      if (rpcResult.error) throw rpcResult.error;
+
+      // Recarregar treino com todas as relações
+      const training = await this.getTrainingById(params.training_id);
+      if (!training) throw new Error('Treino atualizado mas não foi possível recarregar os dados');
+
+      return training;
+    } catch (error) {
+      console.error('Erro ao atualizar treino com semana (RPC):', error);
       throw error;
     }
   }
