@@ -202,7 +202,8 @@ class TrainingService {
     try {
       const userId = await this.getCurrentUserId();
 
-      // Mobile perf: evite `*` em joins profundos (payload enorme).
+      // Query otimizada para listagem: apenas dados essenciais, sem blocos/exercícios
+      // Blocos e exercícios são carregados apenas na tela de detalhe (getTrainingById)
       const { data, error } = await this.withTimeout(
         supabase
           .from('trainings')
@@ -213,35 +214,11 @@ class TrainingService {
             scheduled_date,
             intensity_level,
             description,
-            estimated_duration_minutes,
-            share_status,
             training_week:training_weeks(
-              id,
               name,
-              start_date,
-              end_date,
-              status,
               week_focus:week_focuses(name)
             ),
-            movement_pattern:movement_patterns(name),
-            training_blocks(
-              id,
-              training_id,
-              name,
-              block_type,
-              order_index,
-              instructions,
-              rest_between_exercises_seconds,
-              exercise_prescriptions(
-                id,
-                exercise_id,
-                sets,
-                reps,
-                duration_seconds,
-                rest_seconds,
-                exercise:exercises(name, muscle_groups)
-              )
-            )
+            movement_pattern:movement_patterns(name)
           `,
           )
           .eq('created_by', userId)

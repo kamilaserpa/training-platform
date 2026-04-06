@@ -14,6 +14,7 @@ const AuthLayout = lazy(() => import('../layouts/auth-layout'));
 const Dashboard = lazy(() => import('../pages/dashboard/Dashboard'));
 const TreinoForm = lazy(() => import('../pages/treinos/TreinoForm.jsx'));
 const TreinoPublico = lazy(() => import('../pages/treinos/TreinoPublico.jsx'));
+const TrainingDetail = lazy(() => import('../pages/treinos/TrainingDetail'));
 
 // Novas páginas adicionadas
 const Semanas = lazy(() => import('../pages/semanas/Semanas'));
@@ -69,6 +70,10 @@ export const routes = [
           {
             path: paths.treinoNovo,
             element: <TreinoForm />,
+          },
+          {
+            path: `${paths.treinos}/:id`,
+            element: <TrainingDetail />,
           },
           {
             path: `${paths.treinos}/:id/editar`,
