@@ -4,12 +4,16 @@ import type {
   CreateExercisePrescriptionDTO,
   CreateTrainingBlockDTO,
   CreateTrainingDTO,
+  CreateTrainingWithWeekParams,
   ExercisePrescription,
   Training,
   TrainingBlock,
   TrainingWeek,
+  UpdateTrainingWithWeekParams,
   WeekFocus,
 } from '../types/database.types';
+import { formatISODateOnlyLocal, getWeekEndSundayLocal, getWeekStartMondayLocal, parseLocalDate } from '../utils/date';
+import { weekService } from './weekService';
 
 export type CurrentWeekSummary = Pick<TrainingWeek, 'id' | 'name' | 'start_date' | 'end_date' | 'status'> & {
   week_focus?: Pick<WeekFocus, 'name'> | null;
@@ -131,7 +135,7 @@ class TrainingService {
           const {
             data: { session },
             error: sessionError,
-          } = await this.withTimeout(supabase.auth.getSession(), 12000, 'obtendo sessão');
+          } = await this.withTimeout(supabase.auth.getSession(), 20000, 'obtendo sessão');
 
           if (sessionError) {
             lastAuthError = sessionError;
@@ -153,7 +157,7 @@ class TrainingService {
               if (r.error) throw r.error;
               return r.data.user;
             }),
-            15000,
+            25000,
             'obtendo usuário'
           );
           return user?.id ?? null;
@@ -198,7 +202,8 @@ class TrainingService {
     try {
       const userId = await this.getCurrentUserId();
 
-      // Mobile perf: evite `*` em joins profundos (payload enorme).
+      // Query otimizada para listagem: apenas dados essenciais, sem blocos/exercícios
+      // Blocos e exercícios são carregados apenas na tela de detalhe (getTrainingById)
       const { data, error } = await this.withTimeout(
         supabase
           .from('trainings')
@@ -209,35 +214,11 @@ class TrainingService {
             scheduled_date,
             intensity_level,
             description,
-            estimated_duration_minutes,
-            share_status,
             training_week:training_weeks(
-              id,
               name,
-              start_date,
-              end_date,
-              status,
               week_focus:week_focuses(name)
             ),
-            movement_pattern:movement_patterns(name),
-            training_blocks(
-              id,
-              training_id,
-              name,
-              block_type,
-              order_index,
-              instructions,
-              rest_between_exercises_seconds,
-              exercise_prescriptions(
-                id,
-                exercise_id,
-                sets,
-                reps,
-                duration_seconds,
-                rest_seconds,
-                exercise:exercises(name, muscle_groups)
-              )
-            )
+            movement_pattern:movement_patterns(name)
           `,
           )
           .eq('created_by', userId)
@@ -393,6 +374,71 @@ class TrainingService {
     }
   }
 
+  /**
+   * Cria treino (e semana quando necessário) via RPC atômico no banco.
+   * Após o RPC, recarrega o treino completo (incl. share_token gerado por triggers/defaults).
+   */
+  async createTrainingWithWeek(params: CreateTrainingWithWeekParams): Promise<Training> {
+    if (useMock) {
+      const monday = getWeekStartMondayLocal(parseLocalDate(params.scheduled_date));
+      const mondayStr = formatISODateOnlyLocal(monday);
+      const endSunday = getWeekEndSundayLocal(monday);
+
+      let week = await weekService.getTrainingWeekByStartDate(mondayStr);
+
+      if (!week) {
+        week = await weekService.createTrainingWeek({
+          name: `${params.scheduled_date.slice(0, 4)}-${mondayStr}`,
+          week_focus_id: params.week_focus_id,
+          start_date: mondayStr,
+          end_date: formatISODateOnlyLocal(endSunday),
+        });
+      }
+
+      return this.createTraining({
+        training_week_id: week.id,
+        name: params.name,
+        scheduled_date: params.scheduled_date,
+        movement_pattern_id: null,
+      });
+    }
+
+    try {
+      const userId = await this.getCurrentUserId();
+
+      const rpcResult = (await this.withTimeout(
+        (supabase as any).rpc('create_training_with_week', {
+          p_name: params.name,
+          p_scheduled_date: params.scheduled_date,
+          p_week_focus_id: params.week_focus_id,
+          p_created_by: userId,
+          p_movement_pattern_id: params.movement_pattern_id || null,
+          p_description: params.description || null,
+          p_internal_notes: params.internal_notes || null,
+          p_estimated_duration_minutes: params.estimated_duration_minutes || null,
+          p_share_status: params.share_status || null,
+          p_share_token: params.share_token || null,
+        }),
+        60000,
+        'criando treino (RPC create_training_with_week)',
+      )) as { data: unknown; error: unknown };
+
+      const trainingId = rpcResult.data;
+      if (rpcResult.error) throw rpcResult.error;
+      if (!trainingId || typeof trainingId !== 'string') {
+        throw new Error('Resposta inválida ao criar treino');
+      }
+
+      const training = await this.getTrainingById(trainingId);
+      if (!training) throw new Error('Treino criado mas não foi possível recarregar os dados');
+
+      return training;
+    } catch (error) {
+      console.error('Erro ao criar treino com semana (RPC):', error);
+      throw error;
+    }
+  }
+
   async updateTraining(id: string, updates: Partial<CreateTrainingDTO>): Promise<Training> {
     if (useMock) {
       const index = mockTrainings.findIndex((t) => t.id === id);
@@ -432,6 +478,62 @@ class TrainingService {
       return data;
     } catch (error) {
       console.error('Erro ao atualizar treino:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza treino recalculando automaticamente a semana via RPC.
+   * Permite mudança livre da data; a semana será recalculada/criada conforme necessário.
+   */
+  async updateTrainingWithWeek(params: UpdateTrainingWithWeekParams): Promise<Training> {
+    if (useMock) {
+      const monday = getWeekStartMondayLocal(parseLocalDate(params.scheduled_date));
+      const mondayStr = formatISODateOnlyLocal(monday);
+      const endSunday = getWeekEndSundayLocal(monday);
+
+      let week = await weekService.getTrainingWeekByStartDate(mondayStr);
+
+      if (!week) {
+        week = await weekService.createTrainingWeek({
+          name: `${params.scheduled_date.slice(0, 4)}-${mondayStr}`,
+          week_focus_id: params.week_focus_id,
+          start_date: mondayStr,
+          end_date: formatISODateOnlyLocal(endSunday),
+        });
+      }
+
+      return this.updateTraining(params.training_id, {
+        training_week_id: week.id,
+        name: params.name,
+        scheduled_date: params.scheduled_date,
+      });
+    }
+
+    try {
+      const userId = await this.getCurrentUserId();
+
+      const rpcResult = (await this.withTimeout(
+        (supabase as any).rpc('update_training_with_week', {
+          p_training_id: params.training_id,
+          p_name: params.name,
+          p_scheduled_date: params.scheduled_date,
+          p_week_focus_id: params.week_focus_id,
+          p_created_by: userId,
+        }),
+        60000,
+        'atualizando treino (RPC update_training_with_week)',
+      )) as { data: unknown; error: unknown };
+
+      if (rpcResult.error) throw rpcResult.error;
+
+      // Recarregar treino com todas as relações
+      const training = await this.getTrainingById(params.training_id);
+      if (!training) throw new Error('Treino atualizado mas não foi possível recarregar os dados');
+
+      return training;
+    } catch (error) {
+      console.error('Erro ao atualizar treino com semana (RPC):', error);
       throw error;
     }
   }
@@ -553,6 +655,110 @@ class TrainingService {
     } catch (error) {
       console.error('Erro ao deletar bloco:', error);
       throw error;
+    }
+  }
+
+  // Deletar um conjunto específico de blocos de treino (e suas prescrições)
+  async deleteTrainingBlocksByIds(blockIds: string[]): Promise<void> {
+    if (useMock) {
+      return;
+    }
+
+    if (!blockIds || blockIds.length === 0) {
+      return;
+    }
+
+    try {
+      // Deletar todas as prescrições de exercícios dos blocos informados
+      const { error: prescriptionsError } = await this.withTimeout(
+        supabase.from('exercise_prescriptions').delete().in('training_block_id', blockIds),
+        60000,
+        'removendo exercícios de blocos específicos'
+      );
+
+      if (prescriptionsError) {
+        // Mesmo em caso de erro nas prescrições, tentamos prosseguir com a remoção dos blocos
+        console.warn('Aviso ao remover prescrições de blocos específicos:', prescriptionsError);
+      }
+
+      // Depois deletar os blocos em si
+      const { error: blocksError } = await this.withTimeout(
+        supabase.from('training_blocks').delete().in('id', blockIds),
+        80000,
+        'removendo blocos específicos do treino'
+      );
+
+      if (blocksError) throw blocksError;
+    } catch (error) {
+      console.error('Erro ao deletar blocos específicos do treino:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza os blocos de um treino de forma atômica via RPC no Supabase.
+   * Recebe os drafts já montados pelo `TreinoForm` e delega a recriação para o banco.
+   */
+  async updateTrainingBlocksAtomically(
+    trainingId: string,
+    blockDrafts: Array<{
+      name: string;
+      type: string;
+      items: any[];
+      order: number;
+    }>
+  ): Promise<void> {
+    if (useMock) {
+      // Em modo mock, mantemos o comportamento atual sem chamar o RPC real.
+      return;
+    }
+
+    const blocksWithItems = (blockDrafts || []).filter(
+      (b) => b && Array.isArray(b.items) && b.items.length > 0
+    );
+
+    if (blocksWithItems.length === 0) {
+      // Nada a atualizar em termos de blocos/exercícios.
+      return;
+    }
+
+    const payloadBlocks = blocksWithItems.map((block) => ({
+      name: block.name,
+      block_type: block.type,
+      order_index: block.order,
+      rest_between_exercises_seconds: 60,
+      exercises: (block.items || []).map((item: any) => ({
+        exercise_id: item.exercicioId,
+        video_id: item.videoId ?? null,
+        sets: Number(item.series) || 1,
+        reps: item.repeticoes ?? null,
+        duration_seconds:
+          item.tempoSegundos != null && item.tempoSegundos !== ''
+            ? Number(item.tempoSegundos)
+            : null,
+        rest_seconds:
+          item.intervaloSegundos != null && item.intervaloSegundos !== ''
+            ? Number(item.intervaloSegundos)
+            : 0,
+        weight_kg:
+          item.carga && item.carga !== ''
+            ? Number(String(item.carga).replace('kg', '').trim())
+            : null,
+        notes: item.observacoes ?? null,
+      })),
+    }));
+
+    const rpcResult = await this.withTimeout<any>(
+      (supabase as any).rpc('update_training_blocks_atomically', {
+        p_training_id: trainingId,
+        p_blocks: payloadBlocks,
+      }),
+      60000,
+      'atualizando blocos do treino (RPC)'
+    );
+
+    if (rpcResult && rpcResult.error) {
+      throw rpcResult.error;
     }
   }
 
@@ -910,6 +1116,82 @@ class TrainingService {
       return data ? { ...data, trainings: data.trainings ?? [] } : null;
     } catch (error) {
       console.error('Erro ao buscar semana atual (summary):', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca treinos da semana atual com dados otimizados para o dashboard
+   * Retorna apenas informações essenciais: nome, data e contagens
+   */
+  async getCurrentWeekTrainingsForDashboard(): Promise<any[]> {
+    if (useMock) {
+      return [];
+    }
+
+    try {
+      const userId = await this.getCurrentUserId();
+      const today = new Date().toISOString().slice(0, 10);
+
+      // Buscar semana atual
+      const { data: currentWeek, error: weekError } = await supabase
+        .from('training_weeks')
+        .select('id, start_date, end_date')
+        .lte('start_date', today)
+        .gte('end_date', today)
+        .eq('created_by', userId)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (weekError) throw weekError;
+      if (!currentWeek) return [];
+
+      // Buscar treinos da semana com contagens via RPC ou agregação
+      // Query otimizada: apenas dados essenciais sem carregar todos os exercícios
+      const { data: trainings, error: trainingsError } = await supabase
+        .from('trainings')
+        .select(
+          `
+          id,
+          name,
+          scheduled_date,
+          training_blocks!inner(
+            id
+          )
+        `,
+        )
+        .eq('training_week_id', currentWeek.id)
+        .eq('created_by', userId)
+        .order('scheduled_date');
+
+      if (trainingsError) throw trainingsError;
+
+      // Processar os dados para adicionar contagens
+      const trainingsWithCounts = await Promise.all(
+        (trainings || []).map(async (training: any) => {
+          // Contar exercícios de forma otimizada
+          const { count: exerciseCount, error: countError } = await supabase
+            .from('exercise_prescriptions')
+            .select('id', { count: 'exact', head: true })
+            .in(
+              'training_block_id',
+              training.training_blocks?.map((b: any) => b.id) || []
+            );
+
+          return {
+            id: training.id,
+            name: training.name,
+            scheduled_date: training.scheduled_date,
+            training_blocks: training.training_blocks || [],
+            exercise_count: countError ? 0 : exerciseCount || 0,
+          };
+        })
+      );
+
+      return trainingsWithCounts;
+    } catch (error) {
+      console.error('Erro ao buscar treinos do dashboard:', error);
       throw error;
     }
   }

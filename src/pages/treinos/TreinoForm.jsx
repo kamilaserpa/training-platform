@@ -17,7 +17,12 @@ import { movementPatternService } from '../../services/movementPatternService'
 import { trainingService } from '../../services/trainingService'
 import { videoService } from '../../services/videoService'
 import { weekService } from '../../services/weekService'
-import { formatISODateOnlyLocal } from '../../utils/date'
+import {
+  formatISODateOnlyLocal,
+  getIsoWeekAndYear,
+  getWeekEndSundayLocal,
+  getWeekStartMondayLocal,
+} from '../../utils/date'
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF'
 import { imageToBase64 } from '../../utils/pdf/pdfUtils'
 
@@ -46,7 +51,6 @@ import {
 } from '@mui/material'
 
 import {
-  Add as AddIcon,
   ArrowBack as ArrowBackIcon,
   CheckCircle as CheckCircleIcon,
   ContentCopy as CopyIcon,
@@ -65,11 +69,15 @@ import {
   FormSelect,
 } from '../../components/form'
 
+// Feature flag simples para controlar uso do RPC atômico de blocos
+const useAtomicBlocksRpc = true
+
 // Schema de validação (Yup)
 const validationSchema = yup.object().shape({
+  nome: yup.string().required('Nome é obrigatório'),
   data: yup.date().typeError('Data inválida').required('Data é obrigatória'),
-  semana: yup.string().required('Semana é obrigatória'),
   padrao_movimento: yup.string().required('Padrão de movimento é obrigatório'),
+  week_focus_id: yup.string(),
   observacoes: yup.string(),
   observacoes_internas: yup.string(),
   link_ativo: yup.boolean(),
@@ -112,15 +120,6 @@ function TreinoForm() {
   const pendingCreatedTrainingIdRef = useRef(null)
   /** Evita re-carregar o treino e sobrescrever alterações do usuário quando o effect re-executa (ex.: mudança em semanasOptions) */
   const loadedTrainingIdRef = useRef(null)
-
-  // Confirmação ao sair para criação de semana
-  const [confirmLeaveSemanasOpen, setConfirmLeaveSemanasOpen] = useState(false)
-  const handleOpenConfirmSemanas = () => setConfirmLeaveSemanasOpen(true)
-  const handleCloseConfirmSemanas = () => setConfirmLeaveSemanasOpen(false)
-  const handleConfirmNavigateToSemanas = () => {
-    setConfirmLeaveSemanasOpen(false)
-    navigate('/pages/semanas')
-  }
 
   // Confirmação para excluir exercício do bloco
   const [confirmDeleteExerciseOpen, setConfirmDeleteExerciseOpen] = useState(false)
@@ -185,21 +184,28 @@ function TreinoForm() {
   const methods = useForm({
     resolver: yupResolver(validationSchema),
     defaultValues: {
+      nome: '',
       data: null,
-      semana: '',
       padrao_movimento: '',
+      week_focus_id: '',
       observacoes: '',
       observacoes_internas: '',
       link_ativo: true,
     },
   })
 
-  const { handleSubmit, formState: { errors }, watch, setValue } = methods
+  const { handleSubmit, formState: { errors }, watch, setValue, setError, clearErrors } = methods
 
   // Estados para dados dos selects
-  const [semanasOptions, setSemanasOptions] = useState([])
-  const [semanasCompletas, setSemanasCompletas] = useState([]) // Semanas com todas as informações
+  const [weekFocusOptions, setWeekFocusOptions] = useState([])
   const [padroesMovimentoOptions, setPadroesMovimentoOptions] = useState([])
+
+  /** Criação: semana encontrada no backend para a data (ou null). */
+  const [weekForSelectedDate, setWeekForSelectedDate] = useState(null)
+  const [weekLookupLoading, setWeekLookupLoading] = useState(false)
+  /** Edição: semana carregada com o treino */
+  const [editTrainingWeek, setEditTrainingWeek] = useState(null)
+  const [editTrainingWeekId, setEditTrainingWeekId] = useState('')
 
   // Estados para destacar dias da semana no date picker
   const [weekStartDate, setWeekStartDate] = useState(null)
@@ -242,6 +248,35 @@ function TreinoForm() {
     return parts.join(' • ')
   }
 
+  // Função para calcular tempo total de todos os blocos em segundos
+  const calculateTotalTrainingTime = () => {
+    let totalSeconds = 0
+
+    // Percorrer todos os blocos
+    Object.keys(sectionRegistry).forEach((sectionKey) => {
+      const items = sectionRegistry[sectionKey].items || []
+      items.forEach((item) => {
+        // Tenta obter o tempo total do item
+        if (item.tempoTotal && typeof item.tempoTotal === 'number') {
+          totalSeconds += item.tempoTotal
+        }
+      })
+    })
+
+    return totalSeconds
+  }
+
+  // Função para converter segundos em formato hh:mm:ss
+  const formatSecondsToHHMMSS = (totalSeconds) => {
+    if (!totalSeconds || totalSeconds === 0) return '00:00:00'
+
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+
   // Estados para controle de loading
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
@@ -256,25 +291,9 @@ function TreinoForm() {
   const [submitting, setSubmitting] = useState(false)
   const [submittingMessage, setSubmittingMessage] = useState('')
 
-  const watchedSemana = watch('semana')
   const watchedData = watch('data')
-  // Ref para evitar reexecução quando data/semana não mudaram (watch retorna refs que podem mudar a cada render)
-  const lastNameDepsRef = useRef({ semana: null, dataKey: null })
-
-  useEffect(() => {
-    if (loading || loadingTrainingData) return
-    if (!watchedData || !watchedSemana || semanasOptions.length === 0) return
-
-    const dataKey = watchedData?.valueOf?.() ?? watchedData
-    if (
-      lastNameDepsRef.current.semana === watchedSemana &&
-      lastNameDepsRef.current.dataKey === dataKey
-    ) {
-      return
-    }
-    lastNameDepsRef.current = { semana: watchedSemana, dataKey }
-    generateTrainingName(watchedSemana, watchedData)
-  }, [watchedData, watchedSemana, semanasOptions.length, loading, loadingTrainingData])
+  const watchedNome = watch('nome')
+  const watchedWeekFocusId = watch('week_focus_id')
 
   // Limpar ID de treino pendente ao entrar em modo edição (ex.: voltou da lista para editar outro)
   useEffect(() => {
@@ -291,41 +310,50 @@ function TreinoForm() {
   const [linkToken, setLinkToken] = useState('')
   const [copySuccess, setCopySuccess] = useState(false)
 
-  // Estado para nome do treino (usado no breadcrumb)
-  const [trainingName, setTrainingName] = useState('')
-
-  // Função para gerar nome do treino baseado na semana e data
-  const generateTrainingName = (weekId, date) => {
-    if (!weekId || !date) {
-      return 'Treino'
+  useEffect(() => {
+    if (isEditMode && editingTrainingId && watchedNome) {
+      sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, watchedNome)
     }
+  }, [watchedNome, isEditMode, editingTrainingId])
 
-    // Encontrar a semana selecionada
-    const selectedWeek = semanasOptions.find(w => w.id === weekId)
-    if (!selectedWeek) {
-      return 'Treino'
-    }
+  // Ref para evitar re-cálculos desnecessários de nome
+  const lastNameDepsRef = useRef({ date: null })
 
-    // Extrair número da semana do label (assumindo formato como "Semana 01 - ...")
-    const weekMatch = selectedWeek.label.match(/\d+/)
-    const weekNumber = weekMatch ? weekMatch[0].padStart(2, '0') : '01'
+  // Função para gerar nome do treino baseado na data
+  const generateTrainingName = (date) => {
+    if (!date) return
 
-    // Converter data para dia da semana (1=domingo, 2=segunda, etc)
-    const dayOfWeek = new Date(date).getDay() + 1 // getDay() retorna 0=domingo, queremos 1=domingo
+    const d = date?.toDate ? date.toDate() : new Date(date)
+    if (Number.isNaN(d.getTime())) return
+
+    // Obter semana ISO e número do dia
+    const { week } = getIsoWeekAndYear(d)
+    const dayOfWeek = d.getDay() + 1 // getDay() retorna 0=domingo, queremos 1=domingo
     const dayNumber = dayOfWeek.toString().padStart(2, '0')
 
-    const finalName = `Treino S${weekNumber}-${dayNumber}`
+    const finalName = `Treino S${week.toString().padStart(2, '0')}-${dayNumber}`
 
-    // Atualizar estado
-    setTrainingName(finalName)
+    // Apenas atualizar se o nome mudou (fazer setValue sem marcar como dirty)
+    if (watchedNome !== finalName) {
+      setValue('nome', finalName, { shouldValidate: false, shouldDirty: false })
+    }
+  }
 
-    // Salvar nome no sessionStorage para o breadcrumb (se estiver editando)
-    if (editingTrainingId) {
-      sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, finalName)
+  // Gerar nome automaticamente quando data muda (apenas em criação, não em edição)
+  useEffect(() => {
+    if (isEditMode || loading || !watchedData) return
+
+    const d = watchedData?.toDate ? watchedData.toDate() : new Date(watchedData)
+    const dateKey = d.getTime()
+
+    // Se a data não mudou, não recalcular
+    if (lastNameDepsRef.current.date === dateKey) {
+      return
     }
 
-    return finalName
-  }
+    lastNameDepsRef.current = { date: dateKey }
+    generateTrainingName(watchedData)
+  }, [watchedData, isEditMode, loading, setValue, watchedNome])
 
   // Carregar dados dos selects ao montar o componente
   useEffect(() => {
@@ -334,11 +362,11 @@ function TreinoForm() {
         setLoading(true)
         setLoadError(null)
 
-        // Buscar semanas de treino
-        const semanas = await weekService.getAllTrainingWeeksLite()
-        const semanasFormatted = semanas.map(semana => ({
-          id: semana.id,
-          label: `${semana.name} - ${semana.week_focus?.name || 'Sem foco'}`
+        const focuses = await weekService.getAllWeekFocuses()
+        const focusOpts = focuses.map((f) => ({
+          id: f.id,
+          label: f.name,
+          color_hex: f.color_hex,
         }))
 
         // Buscar padrões de movimento
@@ -348,8 +376,7 @@ function TreinoForm() {
           label: padrao.name
         }))
 
-        setSemanasOptions(semanasFormatted)
-        setSemanasCompletas(semanas) // Armazenar semanas completas com datas
+        setWeekFocusOptions(focusOpts)
         setPadroesMovimentoOptions(padroesFormatted)
 
         // Criar opções de training blocks baseadas nas seções disponíveis
@@ -369,8 +396,8 @@ function TreinoForm() {
         setLoadError(error.message)
 
         // Fallback para dados básicos em caso de erro
-        setSemanasOptions([
-          { id: 'erro', label: 'Erro ao carregar semanas' }
+        setWeekFocusOptions([
+          { id: 'erro', label: 'Erro ao carregar focos', color_hex: undefined }
         ])
         setPadroesMovimentoOptions([
           { id: 'erro', label: 'Erro ao carregar padrões' }
@@ -383,42 +410,109 @@ function TreinoForm() {
     loadSelectData()
   }, [])
 
-  // Hook para preencher semana automaticamente via query param
+  // Query ?semana=<id>: pré-preenche a data com o início da semana vinculada
   useEffect(() => {
-    const semanaParam = searchParams.get('semana')
-
-    if (semanaParam && !isEditMode && semanasOptions.length > 0) {
-      // Verificar se a semana existe nas opções
-      const semanaValida = semanasOptions.find(s => s.id === semanaParam)
-
-      if (semanaValida) {
-        devLog('✅ Preenchendo semana automaticamente:', semanaValida.label)
-        setValue('semana', semanaParam, { shouldValidate: false, shouldDirty: false })
-      } else {
-        console.warn('⚠️ Semana não encontrada nas opções:', semanaParam)
+    const params = new URLSearchParams(location.search)
+    const semanaId = params.get('semana')
+    if (!semanaId || isEditMode || loading) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const w = await weekService.getTrainingWeekById(semanaId)
+        if (cancelled || !w?.start_date) return
+        devLog('✅ Preenchendo data a partir da semana:', semanaId)
+        setValue('data', dayjs(w.start_date), { shouldValidate: false, shouldDirty: false })
+      } catch (e) {
+        console.warn('⚠️ Semana não encontrada:', semanaId, e)
       }
+    })()
+    return () => {
+      cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [semanasOptions.length, isEditMode])
+  }, [location.search, isEditMode, loading, setValue])
 
-  // Hook para atualizar datas de destaque quando semana é selecionada
+  // Destaque no calendário: período da semana (sempre derivado da data selecionada)
   useEffect(() => {
-    if (watchedSemana && semanasCompletas.length > 0) {
-      const semanaCompleta = semanasCompletas.find(s => s.id === watchedSemana)
-
-      if (semanaCompleta && semanaCompleta.start_date && semanaCompleta.end_date) {
-        setWeekStartDate(semanaCompleta.start_date)
-        setWeekEndDate(semanaCompleta.end_date)
-      } else {
-        devLog('⚠️ Semana sem datas definidas, não destacando dias')
-        setWeekStartDate(null)
-        setWeekEndDate(null)
-      }
-    } else {
+    if (!watchedData) {
       setWeekStartDate(null)
       setWeekEndDate(null)
+      return
     }
-  }, [watchedSemana, semanasCompletas])
+    const d = watchedData?.toDate ? watchedData.toDate() : new Date(watchedData)
+    if (Number.isNaN(d.getTime())) return
+    const monday = getWeekStartMondayLocal(d)
+    const sunday = getWeekEndSundayLocal(monday)
+    setWeekStartDate(formatISODateOnlyLocal(monday))
+    setWeekEndDate(formatISODateOnlyLocal(sunday))
+  }, [watchedData])
+
+  // Busca contextual da semana existente para a data (criação e edição)
+  useEffect(() => {
+    if (!watchedData || loading) return
+    let cancelled = false
+    const d = watchedData?.toDate ? watchedData.toDate() : new Date(watchedData)
+    if (Number.isNaN(d.getTime())) return
+    const monday = getWeekStartMondayLocal(d)
+    const startStr = formatISODateOnlyLocal(monday)
+    ;(async () => {
+      setWeekLookupLoading(true)
+      try {
+        const w = await weekService.getTrainingWeekByStartDate(startStr)
+        if (!cancelled) {
+          setWeekForSelectedDate(w)
+          // Atualizar semana de edição também para manter UI consistente
+          if (isEditMode) {
+            setEditTrainingWeek(w)
+            setEditTrainingWeekId(w?.id || '')
+          }
+          if (w?.week_focus_id) {
+            setValue('week_focus_id', '', { shouldValidate: false, shouldDirty: false })
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao buscar semana por data:', e)
+        if (!cancelled) {
+          setWeekForSelectedDate(null)
+          if (isEditMode) {
+            setEditTrainingWeek(null)
+            setEditTrainingWeekId('')
+          }
+        }
+      } finally {
+        if (!cancelled) setWeekLookupLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [watchedData, isEditMode, loading, setValue])
+
+  useEffect(() => {
+    if (watchedWeekFocusId) clearErrors('week_focus_id')
+  }, [watchedWeekFocusId, clearErrors])
+
+  // Pré-carregar exercícios "lite" para matching (cache global do formulário)
+  useEffect(() => {
+    let cancelled = false
+
+    const preloadExercisesLite = async () => {
+      try {
+        if (exercisesLiteCacheRef.current) return
+        const lite = await exerciseService.getExercisesLiteForMatching()
+        if (!cancelled) {
+          exercisesLiteCacheRef.current = lite
+        }
+      } catch (error) {
+        devLog('⚠️ Erro ao pré-carregar exercícios (lite):', error)
+      }
+    }
+
+    preloadExercisesLite()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Hook para carregar dados do treino em modo de edição
   useEffect(() => {
@@ -426,7 +520,7 @@ function TreinoForm() {
 
     const loadTrainingData = async () => {
       if (!isEditMode || !editingTrainingId || loading ||
-        semanasOptions.length === 0 || padroesMovimentoOptions.length === 0) {
+        padroesMovimentoOptions.length === 0) {
         return
       }
       // Evitar re-carregar e sobrescrever alterações do usuário quando o effect re-executa (ex.: refetch de opções)
@@ -447,8 +541,16 @@ function TreinoForm() {
           throw new Error('Treino não encontrado')
         }
 
-        // Validar semana contra opções disponíveis
-        const validWeekId = semanasOptions.find(week => week.id === trainingData.training_week_id)?.id || ''
+        let tw = trainingData.training_week
+        if (!tw && trainingData.training_week_id) {
+          try {
+            tw = await weekService.getTrainingWeekById(trainingData.training_week_id)
+          } catch {
+            tw = null
+          }
+        }
+        setEditTrainingWeek(tw || null)
+        setEditTrainingWeekId(trainingData.training_week_id || '')
 
         // Extrair o padrão de movimento do nome do treino se não estiver no campo específico
         let selectedPatternId = ''
@@ -468,16 +570,14 @@ function TreinoForm() {
         const formData = {
           nome: trainingData.name || '',
           data: trainingData.scheduled_date ? dayjs(trainingData.scheduled_date) : null,
-          semana: validWeekId,
+          week_focus_id: '',
           padrao_movimento: validPatternId,
           observacoes: trainingData.description || '',
           observacoes_internas: trainingData.internal_notes || '',
           link_ativo: trainingData.share_status === 'public',
         }
 
-        // Salvar nome do treino no sessionStorage para o breadcrumb (genérico)
         const currentName = trainingData.name || 'Treino'
-        setTrainingName(currentName)
         sessionStorage.setItem(`breadcrumb_${editingTrainingId}`, currentName)
 
 
@@ -514,7 +614,7 @@ function TreinoForm() {
     return () => {
       isMounted = false;
     }
-  }, [isEditMode, editingTrainingId, loading, semanasOptions.length, padroesMovimentoOptions.length])
+  }, [isEditMode, editingTrainingId, loading, padroesMovimentoOptions.length])
 
   // Função para popular os blocos do treino
   const populateTrainingBlocks = (blocks) => {
@@ -1046,7 +1146,12 @@ function TreinoForm() {
         })
         devLog(`✅ Exercício '${exercise.name}' adicionado ao bloco com sucesso`)
       } else {
-        devLog(`⚠️ Exercício '${exerciseName}' não encontrado no banco, pulando...`)
+        // Antes: apenas logava e "pulava" silenciosamente.
+        // Agora: tratamos como erro de domínio para não perder itens visíveis na UI.
+        throw new Error(
+          `Exercício '${exerciseName}' não encontrado no banco para o bloco '${blockType}'. ` +
+          `Revise o nome ou recrie o exercício pelo fluxo de adicionar com vídeo.`
+        )
       }
 
     } catch (error) {
@@ -1245,7 +1350,11 @@ function TreinoForm() {
         await trainingService.addExerciseToBlock(prescriptionData)
         devLog(`✅ Exercício '${exercise.name}' adicionado ao bloco com protocolo`)
       } else {
-        devLog(`⚠️ Exercício '${exerciseObj.nome}' não encontrado, pulando...`)
+        // Não é aceitável "pular" silenciosamente um exercício que aparece na UI.
+        throw new Error(
+          `Exercício '${exerciseObj.nome}' não encontrado no banco ao salvar bloco. ` +
+          `Revise o cadastro ou recrie o exercício pelo fluxo de adicionar com vídeo.`
+        )
       }
 
     } catch (error) {
@@ -1254,40 +1363,65 @@ function TreinoForm() {
     }
   }
 
+  const updateTrainingBlocksWithRpc = async (trainingId) => {
+    const blockDrafts = getTrainingBlockDrafts()
+    await trainingService.updateTrainingBlocksAtomically(trainingId, blockDrafts)
+  }
+
   // Função para atualizar os blocos do treino existente
   const updateTrainingBlocks = async (trainingId) => {
     try {
 
       // Primeiro, carregar os blocos existentes do banco
       const existingTraining = await trainingService.getTrainingById(trainingId)
-      const existingBlocks = existingTraining.training_blocks || []
-
+      const existingBlocks = existingTraining?.training_blocks || []
 
       const blockDrafts = getTrainingBlockDrafts()
 
-      // Para simplicidade, vamos remover todos os blocos existentes e criar novos
-      // TODO: Implementar lógica mais sofisticada para atualizar apenas os que mudaram
-      devLog('🗑️ Removendo blocos existentes...')
-      setSubmittingMessage('🗑️ Removendo blocos existentes...')
-      try {
-        await trainingService.deleteAllTrainingBlocks(trainingId)
-        devLog('✅ Todos os blocos existentes foram removidos')
-        setSubmittingMessage('✅ Blocos removidos, criando novos...')
-      } catch (error) {
-        console.warn('⚠️ Erro ao remover blocos existentes:', error)
-        setSubmittingMessage('⚠️ Erro ao remover blocos, continuando...')
-        // Continue mesmo se houver erro na remoção
+      // Estratégia de merge: remover apenas blocos "controlados pela UI"
+      const isControlledBlock = (block) => {
+        if (!block) return false
+        const type = block.block_type
+        const name = (block.name || '').toString().toLowerCase()
+        const order = block.order_index
+
+        if (type === 'MOBILIDADE_ARTICULAR') return true
+        if (type === 'ATIVACAO_CORE') return true
+        if (type === 'ATIVACAO_NEURAL') return true
+        if (type === 'CONDICIONAMENTO_FISICO') return true
+
+        if (type === 'TREINO_PRINCIPAL') {
+          if (order === 4 || order === 5) return true
+          if (name.includes('bloco')) return true
+        }
+
+        return false
+      }
+
+      const controlledBlocks = existingBlocks.filter(isControlledBlock)
+      const controlledBlockIds = controlledBlocks.map((b) => b.id).filter(Boolean)
+
+      if (controlledBlockIds.length > 0) {
+        devLog('🗑️ Removendo blocos controlados existentes...', controlledBlockIds)
+        try {
+          await trainingService.deleteTrainingBlocksByIds(controlledBlockIds)
+          devLog('✅ Blocos controlados foram removidos')
+        } catch (error) {
+          console.warn('⚠️ Erro ao remover blocos controlados existentes:', error)
+          // Continue mesmo se houver erro na remoção (merge best-effort)
+        }
+      } else {
+        devLog('ℹ️ Nenhum bloco controlado encontrado para remoção')
       }
 
       await persistTrainingBlocks({
         trainingId,
         blockDrafts,
         mode: 'update',
-        onProgressMessage: setSubmittingMessage
+        onProgressMessage: () => {} // Sem mensagens intermediárias
       })
 
       devLog('✅ Todos os blocos foram atualizados!')
-      setSubmittingMessage('✅ Treino salvo com sucesso!')
 
       // Pequeno delay para mostrar mensagem de sucesso
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -1347,6 +1481,17 @@ function TreinoForm() {
 
   const handleCopyLink = async () => {
     try {
+      // Nem todos os ambientes/browsers expõem navigator.clipboard
+      if (!navigator || !navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        console.warn('⚠️ Clipboard API indisponível neste ambiente; usando fallback manual.')
+        setSnackbar({
+          open: true,
+          message: 'Não foi possível copiar. Selecione e copie o link manualmente.',
+          severity: 'warning'
+        })
+        return
+      }
+
       await navigator.clipboard.writeText(shareLink)
       setCopySuccess(true)
 
@@ -1365,7 +1510,7 @@ function TreinoForm() {
       console.error('❌ Erro ao copiar link:', error)
       setSnackbar({
         open: true,
-        message: 'Erro ao copiar link',
+        message: 'Não foi possível copiar. Selecione e copie o link manualmente.',
         severity: 'error'
       })
     }
@@ -1439,12 +1584,26 @@ function TreinoForm() {
       )
 
       const scheduledDate = data?.data?.toDate ? data.data.toDate() : data.data
+      const scheduledStr = formatISODateOnlyLocal(scheduledDate)
 
-      const trainingName = generateTrainingName(data.semana, data.data)
-      const trainingData = {
-        training_week_id: data.semana,
-        name: trainingName,
-        scheduled_date: formatISODateOnlyLocal(scheduledDate),
+      // Validar foco da semana (criação e edição)
+      const focusId = weekForSelectedDate?.week_focus_id || data.week_focus_id
+      if (!focusId) {
+        setError('week_focus_id', { type: 'manual', message: 'Escolha o foco da semana' })
+        setSnackbar({
+          open: true,
+          message: 'Escolha o foco da semana para criar/atualizar o treino.',
+          severity: 'warning',
+        })
+        setSubmitting(false)
+        setSubmittingMessage('')
+        return
+      }
+
+      const trainingDataPayload = {
+        training_week_id: isEditMode ? (editTrainingWeekId || editTrainingWeek?.id) : '',
+        name: (data.nome || '').trim(),
+        scheduled_date: scheduledStr,
         description: data.observacoes || undefined,
         internal_notes: data.observacoes_internas || undefined,
         estimated_duration_minutes: 90,
@@ -1453,22 +1612,52 @@ function TreinoForm() {
       }
 
       if (linkToken) {
-        trainingData.share_token = linkToken
+        trainingDataPayload.share_token = linkToken
       }
 
       let training
 
       if (isEditMode) {
-        training = await trainingService.updateTraining(editingTrainingId, trainingData)
+        const focusId = weekForSelectedDate?.week_focus_id || data.week_focus_id
+        devLog('🚀 Atualizando treino com RPC update_training_with_week')
+        training = await trainingService.updateTrainingWithWeek({
+          training_id: editingTrainingId,
+          name: trainingDataPayload.name,
+          scheduled_date: scheduledStr,
+          week_focus_id: focusId,
+        })
+        // Aplicar campos adicionais que não fazem parte do RPC
+        const patchAfterUpdate = {
+          movement_pattern_id: data.padrao_movimento || null,
+          description: trainingDataPayload.description,
+          internal_notes: trainingDataPayload.internal_notes,
+          estimated_duration_minutes: trainingDataPayload.estimated_duration_minutes,
+          share_status: trainingDataPayload.share_status,
+        }
+        if (linkToken) {
+          patchAfterUpdate.share_token = linkToken
+        }
+        training = await trainingService.updateTraining(editingTrainingId, patchAfterUpdate)
         devLog('✅ Treino atualizado com sucesso')
       } else if (isRetryAfterPartial) {
         const existingId = pendingCreatedTrainingIdRef.current
-        training = await trainingService.updateTraining(existingId, trainingData)
+        training = await trainingService.updateTraining(existingId, trainingDataPayload)
         devLog('✅ Metadados do treino atualizados (retry), salvando blocos...')
       } else {
-        devLog('🚀 Criando treino com dados:', trainingData)
-        training = await trainingService.createTraining(trainingData)
-        devLog('✅ Treino criado com sucesso')
+        const focusId = weekForSelectedDate?.week_focus_id || data.week_focus_id
+        devLog('🚀 Criando treino com RPC create_training_with_week')
+        training = await trainingService.createTrainingWithWeek({
+          name: trainingDataPayload.name,
+          scheduled_date: scheduledStr,
+          week_focus_id: focusId,
+          movement_pattern_id: data.padrao_movimento || null,
+          description: trainingDataPayload.description,
+          internal_notes: trainingDataPayload.internal_notes,
+          estimated_duration_minutes: trainingDataPayload.estimated_duration_minutes,
+          share_status: trainingDataPayload.share_status,
+          share_token: linkToken || null,
+        })
+        devLog('✅ Treino criado com sucesso (atomicamente)')
         if (training.share_token) {
           setLinkToken(training.share_token)
           setShareLink(generateShareLink(training.share_token))
@@ -1478,7 +1667,11 @@ function TreinoForm() {
       devLog('🛠️ Processando blocos do treino...')
       try {
         if (isEditMode || isRetryAfterPartial) {
-          await updateTrainingBlocks(training.id)
+          if (useAtomicBlocksRpc) {
+            await updateTrainingBlocksWithRpc(training.id)
+          } else {
+            await updateTrainingBlocks(training.id)
+          }
         } else {
           await createTrainingBlocks(training.id)
         }
@@ -1520,13 +1713,24 @@ function TreinoForm() {
         error?.name === 'TimeoutError' ||
         (error?.message && String(error.message).includes('Tempo esgotado'))
 
+      const messageFromError = String(error?.message ?? '')
+
       let message
       if (pendingCreatedTrainingIdRef.current) {
         message =
           'Treino já foi criado, mas os blocos não foram salvos (ex.: tempo esgotado). Suas alterações estão preservadas. Clique em "Salvar Treino" novamente para concluir (não criará outro treino).'
+      } else if (isTimeout && messageFromError.includes('criando treino')) {
+        message =
+          'Tempo esgotado ao criar o treino. Nenhuma alteração permanente foi salva. Verifique sua conexão e tente novamente.'
+      } else if (isTimeout && messageFromError.includes('atualizando treino')) {
+        message =
+          'Tempo esgotado ao atualizar os dados do treino. Nenhuma alteração permanente foi salva.'
+      } else if (isTimeout && messageFromError.includes('atualizando blocos do treino (RPC)')) {
+        message =
+          'A atualização dos blocos do treino demorou demais. O estado anterior do treino foi mantido. Tente novamente mais tarde.'
       } else if (isTimeout) {
         message =
-          'Tempo esgotado ao salvar. Verifique sua conexão e tente novamente. Seus dados não foram perdidos.'
+          'Tempo esgotado ao salvar. Verifique sua conexão e tente novamente. Seus dados podem não ter sido aplicados.'
       } else {
         message = error?.message || 'Erro ao salvar treino. Tente novamente.'
       }
@@ -1775,8 +1979,16 @@ function TreinoForm() {
                     <Divider sx={{ mb: 5 }} />
 
                     <Grid container spacing={5}>
-                      {/* Padrão de movimento */}
-                      <Grid item xs={12} md={4}>
+                      <Grid item xs={12} md={6}>
+                        <FormInput
+                          name="nome"
+                          label="Nome do Treino"
+                          disabled={submitting}
+                          required
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={3}>
                         <FormSelect
                           name="padrao_movimento"
                           label="Padrão de Movimento"
@@ -1791,48 +2003,7 @@ function TreinoForm() {
                         )}
                       </Grid>
 
-                      <Grid item xs={12} md={4}>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <Box sx={{ flex: 1 }}>
-                            <FormSelect
-                              name="semana"
-                              label="Semana"
-                              options={loading ? [{ id: '', label: 'Carregando...' }] : semanasOptions}
-                              disabled={loading || submitting}
-                              required
-                            />
-                            {loadError && (
-                              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                Erro ao carregar semanas: {loadError}
-                              </Typography>
-                            )}
-                          </Box>
-
-                          {/* Criar Semana */}
-                          <Tooltip title="Criar Semana" arrow>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="secondary"
-                              onClick={handleOpenConfirmSemanas}
-                              disabled={submitting}
-                              sx={{
-                                width: { xs: 44 },
-                                height: { xs: 44 },
-                                minWidth: { xs: 44 },
-                                p: 0,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                            >
-                              <AddIcon fontSize="small" />
-                            </Button>
-                          </Tooltip>
-                        </Box>
-                      </Grid>
-
-                      <Grid item xs={12} md={4}>
+                      <Grid item xs={12} md={3}>
                         <FormDatePicker
                           name="data"
                           label="Data do Treino"
@@ -1842,6 +2013,180 @@ function TreinoForm() {
                           highlightEndDate={weekEndDate}
                         />
                       </Grid>
+
+                      {isEditMode && (
+                        <Grid item xs={12}>
+                          <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                              Semana (automática)
+                            </Typography>
+                            {!watchedData && (
+                              <Typography variant="body2" color="text.secondary">
+                                Escolha a data do treino para identificar a semana.
+                              </Typography>
+                            )}
+                            {watchedData && weekLookupLoading && (
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <CircularProgress size={20} />
+                                <Typography variant="body2" color="text.secondary">
+                                  Verificando semana…
+                                </Typography>
+                              </Stack>
+                            )}
+                            {watchedData && !weekLookupLoading && (() => {
+                              const d = watchedData?.toDate ? watchedData.toDate() : new Date(watchedData)
+                              if (Number.isNaN(d.getTime())) return null
+                              const { week, year } = getIsoWeekAndYear(d)
+                              const monday = getWeekStartMondayLocal(d)
+                              const mondayStr = formatISODateOnlyLocal(monday)
+                              const hasFocus = !!(weekForSelectedDate && weekForSelectedDate.week_focus_id)
+                              const wf = weekForSelectedDate?.week_focus
+                              const needsFocus = !weekForSelectedDate || !weekForSelectedDate.week_focus_id
+
+                              return (
+                                <Stack spacing={2}>
+                                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                                    <Chip size="small" label={`Semana ISO ${week} (${year})`} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      Segunda-feira inicial: {dayjs(mondayStr).format('DD/MM/YYYY')}
+                                    </Typography>
+                                  </Stack>
+
+                                  {hasFocus && wf && (
+                                    <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: 'success.lighter', border: 1, borderColor: 'success.light' }}>
+                                      <Typography variant="caption" color="success.dark" fontWeight={600} display="block" gutterBottom>
+                                        Semana já cadastrada
+                                      </Typography>
+                                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                                        <Box
+                                          component="span"
+                                          sx={{
+                                            width: 12,
+                                            height: 12,
+                                            borderRadius: '50%',
+                                            bgcolor: wf.color_hex || 'grey.400',
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                        <Typography variant="body2" fontWeight={600}>
+                                          {wf.name}
+                                        </Typography>
+                                        {wf.intensity_percentage != null && (
+                                          <Typography variant="body2" color="text.secondary">
+                                            Intensidade: {wf.intensity_percentage}%
+                                          </Typography>
+                                        )}
+                                      </Stack>
+                                    </Box>
+                                  )}
+
+                                  {needsFocus && (
+                                    <Box>
+                                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                        Escolha o foco da semana.
+                                      </Typography>
+                                      <FormSelect
+                                        name="week_focus_id"
+                                        label="Foco da semana"
+                                        options={loading ? [{ id: '', label: 'Carregando...' }] : weekFocusOptions}
+                                        disabled={loading || submitting}
+                                        required
+                                      />
+                                    </Box>
+                                  )}
+                                </Stack>
+                              )
+                            })()}
+                          </Paper>
+                        </Grid>
+                      )}
+
+                      {!isEditMode && (
+                        <Grid item xs={12}>
+                          <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                              Semana (automática)
+                            </Typography>
+                            {!watchedData && (
+                              <Typography variant="body2" color="text.secondary">
+                                Escolha a data do treino para identificar a semana.
+                              </Typography>
+                            )}
+                            {watchedData && weekLookupLoading && (
+                              <Stack direction="row" alignItems="center" spacing={1}>
+                                <CircularProgress size={20} />
+                                <Typography variant="body2" color="text.secondary">
+                                  Verificando semana…
+                                </Typography>
+                              </Stack>
+                            )}
+                            {watchedData && !weekLookupLoading && (() => {
+                              const d = watchedData?.toDate ? watchedData.toDate() : new Date(watchedData)
+                              if (Number.isNaN(d.getTime())) return null
+                              const { week, year } = getIsoWeekAndYear(d)
+                              const monday = getWeekStartMondayLocal(d)
+                              const mondayStr = formatISODateOnlyLocal(monday)
+                              const hasFocus = !!(weekForSelectedDate && weekForSelectedDate.week_focus_id)
+                              const wf = weekForSelectedDate?.week_focus
+                              const needsFocus = !weekForSelectedDate || !weekForSelectedDate.week_focus_id
+
+                              return (
+                                <Stack spacing={2}>
+                                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                                    <Chip size="small" label={`Semana ISO ${week} (${year})`} />
+                                    <Typography variant="body2" color="text.secondary">
+                                      Segunda-feira inicial: {dayjs(mondayStr).format('DD/MM/YYYY')}
+                                    </Typography>
+                                  </Stack>
+
+                                  {hasFocus && wf && (
+                                    <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: 'success.lighter', border: 1, borderColor: 'success.light' }}>
+                                      <Typography variant="caption" color="success.dark" fontWeight={600} display="block" gutterBottom>
+                                        Semana já cadastrada
+                                      </Typography>
+                                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                                        <Box
+                                          component="span"
+                                          sx={{
+                                            width: 12,
+                                            height: 12,
+                                            borderRadius: '50%',
+                                            bgcolor: wf.color_hex || 'grey.400',
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                        <Typography variant="body2" fontWeight={600}>
+                                          {wf.name}
+                                        </Typography>
+                                        {wf.intensity_percentage != null && (
+                                          <Typography variant="body2" color="text.secondary">
+                                            Intensidade: {wf.intensity_percentage}%
+                                          </Typography>
+                                        )}
+                                      </Stack>
+                                    </Box>
+                                  )}
+
+                                  {needsFocus && (
+                                    <Box>
+                                      {/* <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                        Escolha o foco da semana.
+                                      </Typography> */}
+                                      <FormSelect
+                                        name="week_focus_id"
+                                        label="Foco da semana"
+                                        options={loading ? [{ id: '', label: 'Carregando...' }] : weekFocusOptions}
+                                        disabled={loading || submitting}
+                                        required
+                                      />
+                                    </Box>
+                                  )}
+                                </Stack>
+                              )
+                            })()}
+                          </Paper>
+                        </Grid>
+                      )}
 
                       {/* Segunda linha: Observações ocupando toda largura */}
                       <Grid item xs={12}>
@@ -2026,6 +2371,30 @@ function TreinoForm() {
                   </CardContent>
                 </Card>
 
+                {/* Card: Tempo Total do Treino */}
+                <Card>
+                  <CardContent>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <TimerIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                      <Box flex={1}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          Tempo Total do Treino
+                        </Typography>
+                        <Typography
+                          variant="h5"
+                          fontWeight="700"
+                          sx={{ fontFamily: 'monospace', letterSpacing: 1 }}
+                        >
+                          {formatSecondsToHHMMSS(calculateTotalTrainingTime())}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Soma de todos os exercícios incluindo descanso
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+
                 {/* Resumo de Erros */}
                 {Object.keys(errors).length > 0 && (
                   <Paper sx={{ p: 3, bgcolor: 'error.lighter', borderLeft: 4, borderColor: 'error.main' }}>
@@ -2125,49 +2494,6 @@ function TreinoForm() {
           </Button>
           <Button onClick={handleConfirmDeleteExercise} variant="contained" color="error">
             Excluir
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Confirmação para navegar para Semanas */}
-      <Dialog
-        open={confirmLeaveSemanasOpen}
-        onClose={handleCloseConfirmSemanas}
-        aria-labelledby="confirm-leave-semanas-title"
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle id="confirm-leave-semanas-title">
-          Sair do formulário de treino?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            Ao seguir para "Criar Semana", você sairá do fluxo do treino. Alterações não salvas podem ser perdidas.
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            Deseja continuar para a criação de semana?
-          </Typography>
-        </DialogContent>
-        <DialogActions
-          disableSpacing
-          sx={{
-            px: 3,
-            pb: 2,
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: 1,
-            alignItems: { xs: 'stretch', sm: 'flex-end' },
-            justifyContent: 'flex-end',
-            '& > .MuiButton-root': {
-              width: { xs: '100%', sm: 'auto' },
-            },
-          }}
-        >
-          <Button onClick={handleCloseConfirmSemanas} variant="outlined" color="error" autoFocus>
-            Cancelar
-          </Button>
-          <Button onClick={handleConfirmNavigateToSemanas} variant="contained" color="secondary">
-            Ir para Semanas
           </Button>
         </DialogActions>
       </Dialog>

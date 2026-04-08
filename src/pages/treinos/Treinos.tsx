@@ -21,7 +21,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   Fab,
   FormControl,
   Grid,
@@ -33,165 +32,20 @@ import {
   Stack,
   TextField,
   Tooltip,
-  Typography,
+  Typography
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '../../assets/images/logo-main.png';
 import { trainingService } from '../../services/trainingService';
+import type { Training } from '../../types/database.types';
 import { generateSemanaPDF } from '../../utils/pdf/generateSemanaPDF';
 import { generateTreinoPDF } from '../../utils/pdf/generateTreinoPDF';
 import { imageToBase64 } from '../../utils/pdf/pdfUtils';
 
-// Tipos TypeScript
-interface Exercicio {
-  name: string;
-  sets?: number;
-  reps?: string;
-  duration_seconds?: number;
-  rest_seconds?: number;
-  muscle_group?: string;
-}
-
-interface TrainingBlock {
-  name: string;
-  exercise_prescriptions: {
-    exercise?: {
-      name: string;
-      muscle_groups?: string[];
-    };
-    sets?: number;
-    reps?: string;
-    duration_seconds?: number;
-    rest_seconds?: number;
-    protocol?: string;  // Campo calculado para exibição
-  }[];
-}
-
-interface Treino {
-  id: string;
-  name: string;
-  scheduled_date: string;
-  intensity_level?: number;
-  description?: string;
-  training_week?: {
-    name: string;
-    week_focus?: {
-      name: string;
-    };
-  };
-  movement_pattern?: {
-    name: string;
-  };
-  training_blocks?: TrainingBlock[];
-}
-
-// Dados mockados dos treinos
-const treinosMock: Treino[] = [
-  {
-    id: "10",
-    name: 'Treino S01-05 Empurrar',
-    scheduled_date: '2024-01-15',
-    intensity_level: 8,
-    description: 'Foco em exercícios compostos para desenvolvimento da musculatura do peitoral',
-    movement_pattern: {
-      name: 'Empurrar'
-    },
-    training_week: {
-      name: '01-05'
-    },
-    training_blocks: [
-      {
-        name: 'Mobilidade Articular',
-        exercise_prescriptions: [
-          {
-            exercise: { name: 'Polichinelos', muscle_groups: ['Cardio'] },
-            sets: 2,
-            duration_seconds: 30,
-            rest_seconds: 15
-          },
-          {
-            exercise: { name: 'Rotação de Braços', muscle_groups: ['Ombros'] },
-            sets: 2,
-            reps: '15',
-            rest_seconds: 30
-          }
-        ]
-      },
-      {
-        name: 'Ativação de Core',
-        exercise_prescriptions: [
-          {
-            exercise: { name: 'Prancha', muscle_groups: ['Core'] },
-            sets: 2,
-            duration_seconds: 30,
-            rest_seconds: 60
-          }
-        ]
-      },
-      {
-        name: 'Ativação Neural',
-        exercise_prescriptions: [
-          {
-            exercise: { name: 'Flexão Facilitada', muscle_groups: ['Peito'] },
-            sets: 2,
-            duration_seconds: 30,
-            rest_seconds: 60
-          }
-        ]
-      },
-      {
-        name: 'Bloco Principal 1',
-        exercise_prescriptions: [
-          {
-            exercise: { name: 'Supino Reto', muscle_groups: ['Peito'] },
-            sets: 4,
-            reps: '8-10',
-            rest_seconds: 120
-          },
-          {
-            exercise: { name: 'Supino Inclinado', muscle_groups: ['Peito'] },
-            sets: 3,
-            reps: '10-12',
-            rest_seconds: 90
-          }
-        ]
-      },
-      {
-        name: 'Bloco Principal 2',
-        exercise_prescriptions: [
-          {
-            exercise: { name: 'Tríceps Testa', muscle_groups: ['Tríceps'] },
-            sets: 3,
-            reps: '12-15',
-            rest_seconds: 60
-          },
-          {
-            exercise: { name: 'Mergulho', muscle_groups: ['Tríceps'] },
-            sets: 3,
-            reps: '10-12',
-            rest_seconds: 60
-          }
-        ]
-      },
-      {
-        name: 'Condicionamento Físico',
-        exercise_prescriptions: [
-          {
-            exercise: { name: 'Burpee', muscle_groups: ['Cardio'] },
-            sets: 3,
-            reps: '12-15',
-            rest_seconds: 30
-          }
-        ]
-      }
-    ]
-  }
-];
-
 const Treinos = () => {
   const navigate = useNavigate();
-  const [treinos, setTreinos] = useState<Treino[]>([]);
+  const [treinos, setTreinos] = useState<Training[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Carregando treinos...');
   const [error, setError] = useState<string | null>(null);
@@ -251,35 +105,9 @@ const Treinos = () => {
 
         if (!isMounted) return;
 
-        // Mapear blocos e exercícios com estrutura do banco
-        const treinosFormatted = treinosData.map(treino => ({
-          ...treino,
-          training_blocks: treino.training_blocks?.map(block => ({
-            ...block,
-            exercise_prescriptions: block.exercise_prescriptions?.map(prescription => {
-              // Construir protocolo completo considerando tempo e intervalo
-              let protocolo = ''
-              if (prescription.sets) {
-                protocolo += `${prescription.sets}x`
-              }
-              if (prescription.duration_seconds && prescription.duration_seconds > 0) {
-                protocolo += `${prescription.duration_seconds}"`
-              } else if (prescription.reps) {
-                protocolo += prescription.reps
-              }
-              if (prescription.rest_seconds && prescription.rest_seconds > 0) {
-                protocolo += `x${prescription.rest_seconds}"`
-              }
-
-              return {
-                ...prescription,
-                protocol: protocolo || ''
-              }
-            }) || []
-          })) || []
-        }))
-
-        setTreinos(treinosFormatted)
+        // Dados otimizados: apenas informações essenciais para a listagem
+        // Blocos e exercícios são carregados sob demanda na tela de detalhe
+        setTreinos(treinosData)
 
       } catch (err: any) {
         if (!isMounted) return;
@@ -349,8 +177,12 @@ const Treinos = () => {
     navigate(`/pages/treinos/${id}/editar`);
   };
 
+  const handleViewDetail = (id: string) => {
+    navigate(`/pages/treinos/${id}`);
+  };
+
   // Handler para exportar PDF
-  const handleExportPDF = async (treino: Treino) => {
+  const handleExportPDF = async (treino: Training) => {
     try {
       const logoBase64 = await imageToBase64(logoImage);
       await generateTreinoPDF(treino, logoBase64);
@@ -675,7 +507,7 @@ const Treinos = () => {
                             }}
                           >
                             <ButtonBase
-                              onClick={() => handleEdit(treino.id)}
+                              onClick={() => handleViewDetail(treino.id)}
                               aria-label={`Abrir treino ${treino.name}`}
                               sx={{
                                 display: 'block',
@@ -727,7 +559,6 @@ const Treinos = () => {
                           />
 
                           <Checkbox
-                            color="secondary"
                             checked={selectedIds.has(treino.id)}
                             onChange={() => toggleSelected(treino.id)}
                             inputProps={{ 'aria-label': 'Selecionar treino' }}
@@ -735,110 +566,26 @@ const Treinos = () => {
                               position: 'absolute',
                               top: 40,
                               right: 8,
-                              color: 'white'
+                              color: 'rgba(255, 255, 255, 0.7)',
+                              '&:hover': {
+                                color: 'white',
+                              },
+                              '&.Mui-checked': {
+                                color: 'white',
+                              },
+                              '&.Mui-checked:hover': {
+                                color: 'white',
+                                bgcolor: 'rgba(255, 255, 255, 0.03)',
+                              },
                             }}
                           />
                         </Box>
-
-                        <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
-                          {/* Observações */}
-                          {treino.description && (
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                lineHeight: 1.4,
-                                mb: 2,
-                              }}
-                            >
-                              {treino.description}
-                            </Typography>
-                          )}
-
-                          {/* Estrutura dos Blocos */}
-                          {treino.training_blocks && treino.training_blocks.length > 0 ? (
-                            <Box>
-                              {/* <Typography
-                            variant="subtitle2"
-                            fontWeight="600"
-                            color="primary.main"
-                            gutterBottom
-                            sx={{ fontSize: '0.9rem' }}
-                          >
-                            Estrutura ({treino.blocos.length} blocos)
-                          </Typography> */}
-                              <Box>
-                                {treino.training_blocks.map((block, blockIndex) => (
-                                  <Box key={blockIndex} sx={{ mb: 1 }}>
-                                    <Typography
-                                      variant="caption"
-                                      component="div"
-                                      color="secondary.main"
-                                      sx={{
-                                        fontWeight: 600,
-                                        fontSize: '0.75rem',
-                                        mb: 0.5,
-                                      }}
-                                    >
-                                      {block.name}
-                                    </Typography>
-                                    {block.exercise_prescriptions?.map((prescription, exIndex) => (
-                                      <Typography
-                                        key={exIndex}
-                                        variant="caption"
-                                        component="div"
-                                        color="text.secondary"
-                                        sx={{
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                          py: 0.25,
-                                          pl: 1,
-                                          fontSize: '0.7rem',
-                                        }}
-                                      >
-                                        <span>• {prescription.exercise?.name || 'Exercício'}</span>
-                                        {prescription.protocol && (
-                                          <span style={{ fontWeight: 600 }}>
-                                            {prescription.protocol}
-                                          </span>
-                                        )}
-                                      </Typography>
-                                    ))}
-                                  </Box>
-                                ))}
-                              </Box>
-                            </Box>
-                          ) : (
-                            /* Fallback quando não há blocos definidos */
-                            <Box>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{
-                                  fontStyle: 'italic',
-                                  display: 'block',
-                                  textAlign: 'center',
-                                  py: 2
-                                }}
-                              >
-                                Treino criado - blocos e exercícios serão definidos posteriormente
-                              </Typography>
-                            </Box>
-                          )}
-                        </CardContent>
-
-                        <Divider />
 
                         <CardActions sx={{ p: 1.5, justifyContent: 'space-between' }}>
                           <Button
                             startIcon={<PlayArrowIcon />}
                             size="small"
-                            onClick={() => handleEdit(treino.id)}
+                            onClick={() => handleViewDetail(treino.id)}
                           >
                             Detalhes
                           </Button>

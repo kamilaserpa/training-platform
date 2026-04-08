@@ -4,9 +4,12 @@ import {
     CardContent,
     Grid,
     TextField,
-    Typography,
+    Typography
 } from '@mui/material';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+
 //
+import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useState } from 'react';
 import { ExerciseVideo } from '../../components/ExerciseVideo';
 import { supabase } from '../../lib/supabase';
@@ -36,6 +39,27 @@ export const ExerciseConfigForm = ({
     initialValues,
     onChange,
 }: ExerciseConfigFormProps) => {
+    const secondsToMmSs = (seconds: number | null | undefined): Dayjs | null => {
+        if (seconds === null || seconds === undefined) return null;
+        const safe = Math.max(0, Math.floor(seconds));
+        return dayjs().startOf('day').add(safe, 'second');
+    };
+
+    const mmSsToSeconds = (value: Dayjs | null): number | null => {
+        if (!value) return null;
+        const minutes = value.minute();
+        const seconds = value.second();
+        return minutes * 60 + seconds;
+    };
+
+    // Converter segundos em formato mm:ss
+    const formatSecondsToMmSs = (totalSeconds: number | null | undefined): string => {
+        if (totalSeconds === null || totalSeconds === undefined || totalSeconds === 0) return '00:00';
+        const minutes = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
     // Calcular tempo total: (tempo + intervalo) × séries. Intervalo 0 é válido.
     const calculateTempoTotal = (series: number, duracao: number | null, intervalo: number | null) => {
         if (!series || series <= 0) return 0;
@@ -47,7 +71,8 @@ export const ExerciseConfigForm = ({
     // Usar valores iniciais se fornecidos, senão usar padrões apenas para criação
     const initialSeries = initialValues?.series ?? 3;
     const initialDuration = initialValues?.duration_seconds ?? null; // Sem valor padrão
-    const initialRest = initialValues?.rest_seconds ?? null; // Sem valor padrão
+    // Padrão: 15 segundos (usar ?? para preservar 0 como valor válido)
+    const initialRest = initialValues?.rest_seconds ?? 15;
     const initialRepetitions = initialValues?.repetitions ?? '';
     const initialWeight = initialValues?.weight_kg ?? '';
     const initialNotes = initialValues?.notes ?? '';
@@ -67,7 +92,8 @@ export const ExerciseConfigForm = ({
         if (initialValues) {
             const newSeries = initialValues.series ?? 3;
             const newDuration = initialValues.duration_seconds ?? null;
-            const newRest = initialValues.rest_seconds ?? null; // Sem valor padrão
+            // Padrão: 15 segundos (usar ?? para preservar 0 como valor válido)
+            const newRest = initialValues.rest_seconds ?? 15;
             const newRepetitions = initialValues.repetitions ?? '';
             const newWeight = initialValues.weight_kg ?? '';
             const newNotes = initialValues.notes ?? '';
@@ -181,18 +207,18 @@ export const ExerciseConfigForm = ({
 
             {/* Formulário de Configuração - Reproduzindo campos do dialog simples */}
             <Grid container spacing={4} mt={2}>
-                <Grid item xs={12} sm={4} md={4}>
+                <Grid item xs={6} sm={4} md={4}>
                     <TextField
                         label="Séries"
                         type="number"
                         value={config.series || ''}
                         onChange={(e) => handleChange('series', parseInt(e.target.value) || 0)}
                         fullWidth
-                        inputProps={{ min: 1 }}
+                        inputProps={{ min: 1, inputMode: 'numeric' }}
                     />
                 </Grid>
 
-                <Grid item xs={12} sm={4} md={4}>
+                <Grid item xs={6} sm={4} md={4}>
                     <TextField
                         label="Repetições"
                         value={config.repetitions || ''}
@@ -215,14 +241,20 @@ export const ExerciseConfigForm = ({
                 </Grid>
 
                 <Grid item xs={12} sm={4} md={4}>
-                    <TextField
-                        label="Tempo (seg)"
-                        type="number"
-                        value={config.duration_seconds || ''}
-                        onChange={(e) => handleChange('duration_seconds', e.target.value ? parseInt(e.target.value) : null)}
-                        fullWidth
-                        helperText="Duração de cada série em segundos"
-                        inputProps={{ min: 0 }}
+                    <TimePicker
+                        label="Duração (mm:ss)"
+                        views={['minutes', 'seconds']}
+                        format="mm:ss"
+                        ampm={false}
+                        timeSteps={{ minutes: 1, seconds: 1 }}
+                        value={secondsToMmSs(config.duration_seconds)}
+                        onChange={(v) => handleChange('duration_seconds', mmSsToSeconds(v))}
+                        slotProps={{
+                            textField: {
+                                fullWidth: true,
+                                helperText: 'Duração de cada série (minutos e segundos)',
+                            },
+                        }}
                     />
                 </Grid>
 
@@ -240,19 +272,19 @@ export const ExerciseConfigForm = ({
                         }}
                         fullWidth
                         helperText="Descanso entre séries em segundos"
-                        inputProps={{ min: 0 }}
+                        inputProps={{ min: 0, inputMode: 'numeric' }}
                     />
                 </Grid>
 
                 <Grid item xs={12} sm={6} md={4}>
                     <TextField
                         label="Tempo Total"
-                        value={config.tempoTotal || 0}
+                        value={formatSecondsToMmSs(config.tempoTotal)}
                         fullWidth
                         disabled
                         helperText="Calculado automaticamente: (Tempo + Intervalo) × Séries"
                         InputProps={{
-                            endAdornment: <span style={{ color: '#666', fontSize: '0.875rem' }}>segundos</span>
+                            endAdornment: <span style={{ color: '#666', fontSize: '0.875rem' }}>(mm:ss)</span>
                         }}
                     />
                 </Grid>

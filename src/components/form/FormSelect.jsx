@@ -1,6 +1,6 @@
 // FormSelect - Select reutilizável com React Hook Form
 import { useFormContext, Controller } from 'react-hook-form'
-import { FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material'
+import { Box, FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack } from '@mui/material'
 
 export default function FormSelect({ name, label, options, required, ...props }) {
   const { control, formState: { errors } } = useFormContext()
@@ -35,7 +35,21 @@ export default function FormSelect({ name, label, options, required, ...props })
               </MenuItem>
               {options.map((item) => (
                 <MenuItem key={item.id} value={item.id}>
-                  {item.label}
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    {item.color_hex ? (
+                      <Box
+                        component="span"
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          bgcolor: item.color_hex,
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : null}
+                    <span>{item.label}</span>
+                  </Stack>
                 </MenuItem>
               ))}
             </Select>

@@ -190,8 +190,18 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
 
   if (isLoading && !cachedExercises) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={300}>
+      <Box
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        minHeight={300}
+        gap={2}
+      >
         <CircularProgress />
+        <Typography variant="body2" color="text.secondary">
+          Carregando exercícios...
+        </Typography>
       </Box>
     );
   }
@@ -244,7 +254,14 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
           borderRadius: 1,
         }}
       >
-        {filteredExercises.length === 0 ? (
+        {isLoading && !cachedExercises ? (
+          <Box p={3} textAlign="center">
+            <CircularProgress size={32} />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              Carregando exercícios...
+            </Typography>
+          </Box>
+        ) : filteredExercises.length === 0 ? (
           <Box p={3} textAlign="center">
             <Typography color="text.secondary" gutterBottom>
               {search.trim()

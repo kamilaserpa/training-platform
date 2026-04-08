@@ -1,11 +1,15 @@
 import 'theme/theme.variables.css';
 import { CssBaseline, ThemeProvider } from '@mui/material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import BreakpointsProvider from 'providers/BreakpointsProvider';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import router from 'routes/router';
 import { theme } from 'theme/theme';
+
+import 'dayjs/locale/pt-br';
 
 // Suprimir erros relacionados a extensões do browser
 window.addEventListener('error', (e) => {
@@ -47,7 +51,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider theme={theme}>
       <BreakpointsProvider>
         <CssBaseline />
-        <RouterProvider router={router} />
+        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+          <RouterProvider router={router} />
+        </LocalizationProvider>
       </BreakpointsProvider>
     </ThemeProvider>
   </React.StrictMode>,

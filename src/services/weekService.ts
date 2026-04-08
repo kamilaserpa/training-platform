@@ -353,6 +353,34 @@ class WeekService {
     }
   }
 
+  /** Semana do usuário atual cuja segunda-feira (start_date) coincide com a data informada (YYYY-MM-DD). */
+  async getTrainingWeekByStartDate(startDate: string): Promise<TrainingWeek | null> {
+    if (useMock) {
+      return mockTrainingWeeks.find((week) => week.start_date === startDate) || null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('training_weeks')
+        .select(
+          `
+          *,
+          week_focus:week_focuses(*)
+        `,
+        )
+        .eq('start_date', startDate)
+        .maybeSingle()
+        .overrideTypes<TrainingWeek, { merge: false }>();
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao buscar semana por start_date:', error);
+      throw error;
+    }
+  }
+
   async createTrainingWeek(weekData: CreateTrainingWeekDTO): Promise<TrainingWeek> {
     if (useMock) {
       const weekFocus = mockWeekFocuses.find((wf) => wf.id === weekData.week_focus_id);

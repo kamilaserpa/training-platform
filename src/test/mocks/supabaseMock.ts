@@ -13,6 +13,8 @@ export type SupabaseQuery = {
   filters: SupabaseFilter[]
   order?: { column: string; options?: unknown }
   single?: boolean
+  /** `single` / `maybeSingle` from supabase-js */
+  resultMode?: 'many' | 'single' | 'maybeSingle'
 }
 
 export type SupabaseResult<TData = any> = {
@@ -24,7 +26,7 @@ export type SupabaseQueryHandler = (query: SupabaseQuery) =>
   | SupabaseResult
   | Promise<SupabaseResult>
 
-const defaultQueryHandler: SupabaseQueryHandler = async () => ({
+const defaultQueryHandler: SupabaseQueryHandler = async (_query: SupabaseQuery) => ({
   data: null,
   error: null,
 })
@@ -38,7 +40,7 @@ class QueryBuilder {
   private payloadValue: SupabaseQuery['payload']
   private filtersValue: SupabaseFilter[] = []
   private orderValue: SupabaseQuery['order']
-  private singleValue = false
+  private resultMode: SupabaseQuery['resultMode'] = 'many'
 
   constructor(table: string, getHandler: () => SupabaseQueryHandler) {
     this.table = table
@@ -88,7 +90,12 @@ class QueryBuilder {
   }
 
   single() {
-    this.singleValue = true
+    this.resultMode = 'single'
+    return this
+  }
+
+  maybeSingle() {
+    this.resultMode = 'maybeSingle'
     return this
   }
 
@@ -106,7 +113,8 @@ class QueryBuilder {
       payload: this.payloadValue,
       filters: this.filtersValue,
       order: this.orderValue,
-      single: this.singleValue,
+      single: this.resultMode === 'single' || this.resultMode === 'maybeSingle',
+      resultMode: this.resultMode,
     })
   }
 
@@ -120,6 +128,7 @@ class QueryBuilder {
 
 function createSupabaseClientMock() {
   let queryHandler: SupabaseQueryHandler = defaultQueryHandler
+  const rpcCalls: Array<{ name: string; args: any }> = []
 
   const authGetUser = vi.fn(async () => ({
     data: { user: { id: 'user-1' } as any },
@@ -137,6 +146,10 @@ function createSupabaseClientMock() {
       getSession: authGetSession,
     },
     from: vi.fn((table: string) => new QueryBuilder(table, () => queryHandler)),
+    rpc: vi.fn(async (name: string, args?: any) => {
+      rpcCalls.push({ name, args })
+      return { data: null, error: null }
+    }),
   }
 
   const setQueryHandler = (handler: SupabaseQueryHandler) => {
@@ -169,6 +182,8 @@ function createSupabaseClientMock() {
     })
 
     client.from.mockClear()
+    client.rpc.mockClear()
+    rpcCalls.splice(0, rpcCalls.length)
     queryHandler = defaultQueryHandler
   }
 
@@ -180,6 +195,7 @@ function createSupabaseClientMock() {
     setAuthUser,
     setAuthError,
     reset,
+    rpcCalls,
   }
 }
 
