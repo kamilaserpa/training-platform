@@ -254,7 +254,14 @@ export const ExerciseSelector = ({ onSelect, section }: ExerciseSelectorProps) =
           borderRadius: 1,
         }}
       >
-        {filteredExercises.length === 0 ? (
+        {isLoading && !cachedExercises ? (
+          <Box p={3} textAlign="center">
+            <CircularProgress size={32} />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              Carregando exercícios...
+            </Typography>
+          </Box>
+        ) : filteredExercises.length === 0 ? (
           <Box p={3} textAlign="center">
             <Typography color="text.secondary" gutterBottom>
               {search.trim()

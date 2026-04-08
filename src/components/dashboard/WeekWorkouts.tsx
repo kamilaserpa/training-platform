@@ -74,7 +74,7 @@ const WeekWorkouts = () => {
   };
 
   const handleViewWorkout = (workoutId: string) => {
-    navigate(`/pages/treinos/${workoutId}/editar`);
+    navigate(`/pages/treinos/${workoutId}`);
   };
 
   const handleAddWorkout = () => {
