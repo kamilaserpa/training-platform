@@ -71,7 +71,8 @@ export const ExerciseConfigForm = ({
     // Usar valores iniciais se fornecidos, senão usar padrões apenas para criação
     const initialSeries = initialValues?.series ?? 3;
     const initialDuration = initialValues?.duration_seconds ?? null; // Sem valor padrão
-    const initialRest = initialValues?.rest_seconds ?? 15; // Padrão: 15 segundos
+    // Padrão: 15 segundos (usar ?? para preservar 0 como valor válido)
+    const initialRest = initialValues?.rest_seconds ?? 15;
     const initialRepetitions = initialValues?.repetitions ?? '';
     const initialWeight = initialValues?.weight_kg ?? '';
     const initialNotes = initialValues?.notes ?? '';
@@ -91,7 +92,8 @@ export const ExerciseConfigForm = ({
         if (initialValues) {
             const newSeries = initialValues.series ?? 3;
             const newDuration = initialValues.duration_seconds ?? null;
-            const newRest = initialValues.rest_seconds ?? 15; // Padrão: 15 segundos
+            // Padrão: 15 segundos (usar ?? para preservar 0 como valor válido)
+            const newRest = initialValues.rest_seconds ?? 15;
             const newRepetitions = initialValues.repetitions ?? '';
             const newWeight = initialValues.weight_kg ?? '';
             const newNotes = initialValues.notes ?? '';

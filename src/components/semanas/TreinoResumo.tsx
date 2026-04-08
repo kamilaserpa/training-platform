@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  IconButton, 
-  Collapse, 
+import {
+  Box,
+  Typography,
+  IconButton,
+  Collapse,
   Stack,
-  Tooltip 
+  Tooltip
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -26,7 +26,7 @@ export const TreinoResumo = ({ treino }: TreinoResumoProps) => {
 
   const handleVerDetalhes = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(paths.treinoEditar(treino.id));
+    navigate(paths.treinoVer(treino.id));
   };
 
   // Garantir que training_blocks existe e está ordenado
@@ -44,28 +44,28 @@ export const TreinoResumo = ({ treino }: TreinoResumoProps) => {
       }}
     >
       {/* Header do Treino */}
-      <Stack 
-        direction="row" 
-        alignItems="center" 
+      <Stack
+        direction="row"
+        alignItems="center"
         justifyContent="space-between"
         sx={{ cursor: 'pointer' }}
         onClick={() => setExpanded(!expanded)}
       >
-        <Typography 
-          variant="subtitle2" 
+        <Typography
+          variant="subtitle2"
           fontWeight="700"
           color="primary.main"
           sx={{ fontSize: '0.875rem' }}
         >
           {treino.name}
         </Typography>
-        
+
         <Stack direction="row" spacing={0.5}>
           <Tooltip title="Ver detalhes">
             <IconButton
               size="small"
               onClick={handleVerDetalhes}
-              sx={{ 
+              sx={{
                 p: 0.5,
                 '&:hover': {
                   bgcolor: 'primary.main',
@@ -76,7 +76,7 @@ export const TreinoResumo = ({ treino }: TreinoResumoProps) => {
               <VisibilityIcon sx={{ fontSize: '1rem' }} />
             </IconButton>
           </Tooltip>
-          
+
           <IconButton
             size="small"
             onClick={(e) => {

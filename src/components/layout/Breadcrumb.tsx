@@ -1,6 +1,6 @@
+import { Home as HomeIcon, NavigateNext as NavigateNextIcon } from '@mui/icons-material';
+import { Box, Breadcrumbs, Link, Typography } from '@mui/material';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { Breadcrumbs, Link, Typography, Box } from '@mui/material';
-import { NavigateNext as NavigateNextIcon, Home as HomeIcon } from '@mui/icons-material';
 
 /**
  * Mapeamento de rotas para labels legíveis
@@ -73,15 +73,16 @@ export default function Breadcrumb() {
           const customLabel = sessionStorage.getItem(`breadcrumb_${value}`);
           const label = customLabel || routeLabels[value] || value.charAt(0).toUpperCase() + value.slice(1);
 
-          // Se for um UUID (ID de recurso), não tornar clicável a menos que seja o último
+          // Se for um UUID (ID de recurso), é clicável exceto se for o último
           const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
-          // Se for o último item OU for um UUID intermediário, mostrar como texto (sem link)
-          return last || isUUID ? (
+          // Se for o último item, mostrar como texto (sem link)
+          // IDs intermediários (UUIDs) agora são clicáveis para permitir navegação para tela de detalhe
+          return last ? (
             <Typography
               key={to}
-              color={last ? "text.primary" : "text.secondary"}
-              sx={{ fontWeight: last ? 600 : 400 }}
+              color="text.primary"
+              sx={{ fontWeight: 600 }}
             >
               {label}
             </Typography>
