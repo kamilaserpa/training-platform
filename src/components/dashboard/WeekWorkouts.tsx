@@ -1,30 +1,30 @@
-import { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Stack,
-  Button,
-  CircularProgress,
-  Alert,
-  Chip,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-} from '@mui/material';
-import {
+  Add as AddIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
   FitnessCenter as FitnessCenterIcon,
   Visibility as VisibilityIcon,
-  Add as AddIcon,
-  ArrowForward as ArrowForwardIcon,
-  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { trainingService } from '../../services/trainingService';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import paths from '../../routes/paths';
+import { trainingService } from '../../services/trainingService';
 
 dayjs.extend(isBetween);
 
@@ -47,24 +47,10 @@ const WeekWorkouts = () => {
       setLoading(true);
       setError(null);
 
-      // Buscar todas as semanas com treinos
-      const weeks = await trainingService.getWeeksWithTrainings();
-
-      // Encontrar a semana atual
-      const today = dayjs();
-      const currentWeek = weeks.find(week => {
-        const start = dayjs(week.start_date);
-        const end = dayjs(week.end_date);
-        return today.isBetween(start, end, 'day', '[]');
-      });
-
-      if (currentWeek && currentWeek.trainings) {
-        // Ordenar treinos por data
-        const sortedWorkouts = currentWeek.trainings.sort((a: any, b: any) =>
-          dayjs(a.scheduled_date).diff(dayjs(b.scheduled_date))
-        );
-        setWorkouts(sortedWorkouts);
-      }
+      // Buscar apenas treinos da semana atual com dados otimizados
+      // Não carrega todos os exercícios, apenas contagens
+      const trainings = await trainingService.getCurrentWeekTrainingsForDashboard();
+      setWorkouts(trainings);
     } catch (err) {
       console.error('Erro ao carregar treinos da semana:', err);
       setError('Erro ao carregar treinos');
@@ -87,10 +73,8 @@ const WeekWorkouts = () => {
   };
 
   const getTotalExercises = (workout: any) => {
-    if (!workout.training_blocks) return 0;
-    return workout.training_blocks.reduce((total: number, block: any) => {
-      return total + (block.exercise_prescriptions?.length || 0);
-    }, 0);
+    // Usar contagem otimizada do backend
+    return workout.exercise_count || 0;
   };
 
   const scroll = (direction: 'left' | 'right') => {
@@ -150,24 +134,24 @@ const WeekWorkouts = () => {
               display: { xs: 'none', sm: 'inline' }
             }}
           >
-              Novo Treino
+            Novo Treino
           </Button>
 
           <Button
             variant="contained"
             onClick={handleAddWorkout}
             size="small"
-             sx={{
-                display: { xs: 'flex', sm: 'none' },
-                width: { xs: 40 },
-                height: { xs: 40 },
-                minWidth: { xs: 40 },
-                p: 0,
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+            sx={{
+              display: { xs: 'flex', sm: 'none' },
+              width: { xs: 40 },
+              height: { xs: 40 },
+              minWidth: { xs: 40 },
+              p: 0,
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-             <AddIcon fontSize="small" />
+            <AddIcon fontSize="small" />
           </Button>
         </Stack>
 

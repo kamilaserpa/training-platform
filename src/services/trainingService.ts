@@ -1119,6 +1119,82 @@ class TrainingService {
       throw error;
     }
   }
+
+  /**
+   * Busca treinos da semana atual com dados otimizados para o dashboard
+   * Retorna apenas informações essenciais: nome, data e contagens
+   */
+  async getCurrentWeekTrainingsForDashboard(): Promise<any[]> {
+    if (useMock) {
+      return [];
+    }
+
+    try {
+      const userId = await this.getCurrentUserId();
+      const today = new Date().toISOString().slice(0, 10);
+
+      // Buscar semana atual
+      const { data: currentWeek, error: weekError } = await supabase
+        .from('training_weeks')
+        .select('id, start_date, end_date')
+        .lte('start_date', today)
+        .gte('end_date', today)
+        .eq('created_by', userId)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (weekError) throw weekError;
+      if (!currentWeek) return [];
+
+      // Buscar treinos da semana com contagens via RPC ou agregação
+      // Query otimizada: apenas dados essenciais sem carregar todos os exercícios
+      const { data: trainings, error: trainingsError } = await supabase
+        .from('trainings')
+        .select(
+          `
+          id,
+          name,
+          scheduled_date,
+          training_blocks!inner(
+            id
+          )
+        `,
+        )
+        .eq('training_week_id', currentWeek.id)
+        .eq('created_by', userId)
+        .order('scheduled_date');
+
+      if (trainingsError) throw trainingsError;
+
+      // Processar os dados para adicionar contagens
+      const trainingsWithCounts = await Promise.all(
+        (trainings || []).map(async (training: any) => {
+          // Contar exercícios de forma otimizada
+          const { count: exerciseCount, error: countError } = await supabase
+            .from('exercise_prescriptions')
+            .select('id', { count: 'exact', head: true })
+            .in(
+              'training_block_id',
+              training.training_blocks?.map((b: any) => b.id) || []
+            );
+
+          return {
+            id: training.id,
+            name: training.name,
+            scheduled_date: training.scheduled_date,
+            training_blocks: training.training_blocks || [],
+            exercise_count: countError ? 0 : exerciseCount || 0,
+          };
+        })
+      );
+
+      return trainingsWithCounts;
+    } catch (error) {
+      console.error('Erro ao buscar treinos do dashboard:', error);
+      throw error;
+    }
+  }
 }
 
 export const trainingService = new TrainingService();

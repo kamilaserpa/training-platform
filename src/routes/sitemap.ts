@@ -32,23 +32,23 @@ const sitemap: MenuItem[] = [
   },
   {
     id: 2,
+    subheader: 'Treinos',
+    path: paths.treinos,
+    icon: 'ic:round-fitness-center',
+    requireAuth: true,
+  },
+  {
+    id: 3,
     subheader: 'Semanas',
     path: paths.semanas,
     icon: 'ic:round-calendar-today',
     requireAuth: true,
   },
   {
-    id: 2.1,
+    id: 3.1,
     subheader: 'Exportação avançada',
     path: paths.exportSettings,
     icon: 'ic:round-tune',
-    requireAuth: true,
-  },
-  {
-    id: 3,
-    subheader: 'Treinos',
-    path: paths.treinos,
-    icon: 'ic:round-fitness-center',
     requireAuth: true,
   },
   {
@@ -58,13 +58,13 @@ const sitemap: MenuItem[] = [
     icon: 'ic:round-directions-run',
     requireAuth: true,
   },
-  {
-    id: 4.5,
-    subheader: 'Biblioteca de Vídeos',
-    path: paths.videos,
-    icon: 'ic:round-video-library',
-    requireAuth: true,
-  },
+  // {
+  //   id: 4.1,
+  //   subheader: 'Biblioteca de Vídeos',
+  //   path: paths.videos,
+  //   icon: 'ic:round-video-library',
+  //   requireAuth: true,
+  // },
   {
     id: 5,
     subheader: 'Parâmetros da Semana',
