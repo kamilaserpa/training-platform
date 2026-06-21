@@ -1,10 +1,10 @@
-name: Keep Supabase Alive
+name: Keep Supabase Alive PROD
 
 on:
   schedule:
     # Executa a cada 6 horas (00:00, 06:00, 12:00, 18:00 UTC)
     # Isso previne o pausamento automático após 7 dias de inatividade
-    - cron: '0 */6 * * *'
+    - cron: '0 */12 * * *'
 
   # Permite execução manual no GitHub UI (Actions > Keep Supabase Alive > Run workflow)
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
 
           response=$(curl -s -o /dev/null -w "%{http_code}" -I \
             https://srcijngrqjgzmqngbuax.supabase.co/rest/v1/ \
-            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}")
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY_PROD }}")
 
           echo "📡 Status HTTP: $response"
 
@@ -36,4 +36,4 @@ jobs:
         run: |
           echo "### ✨ Supabase Keep-Alive" >> $GITHUB_STEP_SUMMARY
           echo "Projeto mantido ativo com sucesso!" >> $GITHUB_STEP_SUMMARY
-          echo "Próxima execução: em 6 horas" >> $GITHUB_STEP_SUMMARY
+          echo "Próxima execução: em 12 horas" >> $GITHUB_STEP_SUMMARY
